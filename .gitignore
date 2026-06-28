@@ -1,0 +1,6 @@
+config/.env
+*.log
+.DS_Store
+Thumbs.db
+login.json
+phase1_tasks.txt

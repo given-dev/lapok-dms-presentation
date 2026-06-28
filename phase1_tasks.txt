@@ -1,0 +1,502 @@
+LAPOK DMS
+Inventory & Distribution Management System
+UI Adjustment & Backend Alignment Task Document
+Prepared for
+Given (Frontend Developer)
+Prepared by
+Ekizzz (Backend / Systems)
+System
+LAPOK Ventures Company Limited — Gulu, Uganda
+Date
+June 2026
+Version
+v1.0 — Phase 1 Polish
+1. Purpose
+This document lists all UI changes and additions required to align Given's frontend with the LAPOK DMS backend schema and real-world operations at the LAPOK Coca-Cola depot. It is the single source of truth for frontend adjustments before Phase 2 development begins.
+The backend (PHP + MySQL) has been built to match LAPOK's actual workflow. Where the current UI diverges from that — in field names, data models, missing screens, or missing fields — this document describes exactly what needs to change.
+2. Summary of Changes
+Changes fall into four categories:
+Role model — the driver/cadet distinction needs to be reflected in the system
+Dispatch form — vehicle loading must capture both driver and cadet separately
+Stock intake form — batch number and expiry date fields are required on delivery recording
+Missing fields — EFRIS reference, cash handover confirmation, and customer credit balance
+Missing pages — reports module, audit log view, user profile / change password
+3. Full Task List
+#
+Area
+What to change / add
+Priority
+Status
+1
+Roles — Driver & Cadet
+Add "Driver" and "Cadet" as distinct roles alongside Manager and Field User. A Field User who drives is a Driver; one who handles goods and collects cash is a Cadet.
+High
+Pending
+2
+Add User form — Role dropdown
+Add "Driver" and "Cadet" options to the role dropdown in Add User and Edit User forms.
+High
+Pending
+3
+Fleet table — Two people per vehicle
+The fleet table currently shows one "Driver / Rider" column. Change this to two columns: "Driver" and "Cadet". Both must be assigned per vehicle/trip.
+High
+Pending
+4
+Dispatch form — Driver + Cadet fields
+The dispatch form currently has one user assignment. Add a second field so both a Driver and a Cadet are selected before a vehicle can be dispatched.
+High
+Pending
+5
+Field user view — Cadet vs Driver view
+Cadet sees: sales entry, receipt generation, return requests, end-of-day cash summary. Driver sees: route stops, odometer fields, fuel/damage report. Split or add tabs accordingly.
+Medium
+Pending
+6
+Coca-Cola delivery form — Batch number field
+Add a "Batch number" field per product row in the Record Coca-Cola Delivery form. This feeds the batches table and enables expiry tracking.
+High
+Pending
+7
+Coca-Cola delivery form — Expiry date field
+Add an "Expiry date" field per product row. Each product in a delivery may have a different expiry date.
+High
+Pending
+8
+Stock table — Batch / expiry columns
+The warehouse stock table should show batch number and nearest expiry date alongside current qty. Add an expiry warning highlight for batches expiring within 30 days.
+Medium
+Pending
+9
+Stock table — Unit label
+Change "crates" label to "cartons" throughout — this matches LAPOK's actual unit and the backend schema.
+Low
+Pending
+10
+Sale form — EFRIS reference field
+Add a nullable "EFRIS / URA Receipt No." field to the sale/receipt form. Leave it optional for now. This prepares for the future URA tax integration without requiring a schema change later.
+High
+Pending
+11
+Sale confirmation — Cash handover step
+When a cadet submits end-of-day, the accountant/cashier must separately confirm cash received. Add a "Confirm cash received" action visible only to Accountant role, separate from the manager's sale confirmation.
+High
+Pending
+12
+Customer list — Credit balance column
+Add a "Balance (UGX)" column to the customer list table. Customers with outstanding balances should be highlighted. Clicking a customer should show their order history and balance breakdown.
+High
+Pending
+13
+End-of-day — Odometer fields
+Add odometer start and end fields to the end-of-day / return form. These are recorded on the trip record and used in vehicle performance reporting.
+Medium
+Pending
+14
+End-of-day — Fuel field
+The form already has a "Fuel submitted" checkbox. Change this to a numeric field (UGX amount) so fuel cost can be recorded properly.
+Medium
+Pending
+15
+Reports page — Stock report
+Add a Reports section with: current stock levels by product and batch, low stock alerts, expiry alerts (items expiring within 30 days), and stock movement history.
+High
+Pending
+16
+Reports page — Sales & delivery report
+Sales report filterable by date range, vehicle, route, driver, and cadet. Show total cartons, revenue, and cash collected per trip.
+High
+Pending
+17
+Reports page — Financial / receivables
+List of customers with outstanding credit balances. Total receivables. Revenue vs expenses vs profit by month. Exportable as PDF and CSV.
+Medium
+Pending
+18
+Audit log page — Admin only
+A simple table showing every change made in the system: who, what table, what changed (old → new), and when. Visible to Admin role only.
+Medium
+Pending
+19
+User profile page
+Any logged-in user should be able to change their own password. Accessible from their name/avatar in the top nav.
+Low
+Pending
+20
+EFRIS placeholder page
+Add a grayed-out "EFRIS / URA Integration" item in the sidebar nav with a "Coming soon" page. This sets user expectations and reserves the navigation slot.
+Low
+Pending
+4. Detailed Field Specifications
+4.1  Dispatch Vehicle Form
+Current form captures: Vehicle, Dispatch time, Route, Products to load.
+Required changes:
+Field / Element
+Current
+Should be
+Required?
+Notes
+Driver field
+Single "User" dropdown (one person)
+Separate "Driver" dropdown — shows only users with role = driver
+Yes
+Driver operates vehicle
+Cadet field
+Not present
+Separate "Cadet" dropdown — shows only users with role = cadet
+Yes
+Cadet handles goods + cash
+Odometer start
+Not present
+Numeric field — km reading at departure
+Yes
+Used in trip report
+Trip notes
+Not present
+Optional textarea for special instructions
+No
+4.2  Record Coca-Cola Delivery Form
+Current form captures: Date, time, waybill, invoice, truck plate, driver, received by, qty ordered, qty delivered, condition, notes.
+Required additions per product row:
+Field / Element
+Current
+Should be
+Required?
+Notes
+Batch number
+Not present
+Text input per product row e.g. "CC500-JUN26-A"
+Yes
+Feeds batches table
+Expiry date
+Not present
+Date picker per product row
+Yes
+Enables FIFO + expiry alerts
+Unit cost
+Present
+Keep as-is
+Yes
+Already in form
+Qty variance
+Present (calculated)
+Keep — auto = delivered minus ordered
+Yes
+Already works
+4.3  New Sale / Receipt Form
+Field / Element
+Current
+Should be
+Required?
+Notes
+Customer
+Free text name + phone + location
+Dropdown from saved customers list OR add new inline
+Yes
+Links sale to customer record
+EFRIS ref no.
+Not present
+Optional text field labelled "URA Receipt No. (EFRIS)"
+No
+Leave blank until integration
+Payment type
+Not present
+Radio: Cash / Credit
+Yes
+Feeds order_type in DB
+Amount paid
+Not present
+Numeric — how much was collected on the spot
+Yes
+Used in cash handover reconciliation
+4.4  End-of-Day Report (Cadet / Field User)
+Field / Element
+Current
+Should be
+Required?
+Notes
+Odometer end
+Not present
+Numeric field — km on return
+Yes
+Paired with odometer start on dispatch
+Fuel cost (UGX)
+"Fuel submitted" checkbox
+Numeric field — actual fuel amount spent
+Yes
+Used in expenses reporting
+Cash to hand over
+Total sales shown
+Editable field — actual cash in hand
+Yes
+Accountant confirms this amount
+Damage notes
+Vehicle damage checkbox
+Checkbox + optional text description
+No
+4.5  Cash Handover Confirmation (Accountant role only)
+This is a new step, not currently in the UI. After the cadet submits their end-of-day report, the accountant sees a pending confirmation:
+Field / Element
+Current
+Should be
+Required?
+Notes
+Cadet reported
+N/A
+Read-only — amount cadet said they collected
+Yes
+From EOD submission
+Amount received
+N/A
+Editable — what accountant physically counted
+Yes
+Saved to delivery_trips.cash_collected
+Variance
+N/A
+Auto-calculated — reported minus received
+Yes
+Flag if non-zero
+Confirm button
+N/A
+Button — "Confirm receipt" — closes the trip
+Yes
+Sets trip status = completed
+5. New Pages / Screens Required
+Page
+Content
+Visible to
+Priority
+Reports — Stock
+Stock levels by batch, expiry alerts, movement history
+Admin, Manager, Accountant
+High
+Reports — Sales
+By date, vehicle, route, driver/cadet. Export PDF/CSV
+Admin, Manager, Accountant
+High
+Reports — Financial
+Revenue vs expenses, customer receivables, profit trend
+Admin, Accountant
+Medium
+Audit Log
+Table: who, what, old value, new value, when
+Admin only
+Medium
+User Profile
+Change own password. View own route and role.
+All roles
+Low
+EFRIS (placeholder)
+"Coming soon" page — reserves nav slot for future integration
+Admin, Manager
+Low
+6. Updated Role & Access Matrix
+Feature / Screen
+Admin
+Manager
+Accountant
+Field User
+Driver
+Cadet
+Dashboard
+Full
+Full
+Finance only
+Own stats
+Own stats
+Own stats
+Stock / Warehouse
+Full
+Full
+View only
+View only
+—
+—
+Record CC Delivery
+Yes
+Yes
+—
+—
+—
+—
+Dispatch Vehicle
+Yes
+Yes
+—
+—
+—
+—
+Record Sale
+—
+—
+—
+—
+—
+Yes
+Confirm Sale
+Yes
+Yes
+—
+—
+—
+—
+Confirm Cash (EOD)
+Yes
+—
+Yes
+—
+—
+—
+Edit/Cancel Requests
+Yes
+Yes
+—
+—
+—
+—
+Customers
+Full
+Full
+Balance view
+—
+—
+Route only
+Reports
+All
+All
+Finance + Sales
+—
+—
+—
+Audit Log
+Yes
+—
+—
+—
+—
+—
+Manage Users
+Yes
+—
+—
+—
+—
+—
+Manage Vehicles
+Yes
+Yes
+—
+—
+—
+—
+EFRIS (future)
+Yes
+Yes
+Yes
+—
+—
+—
+7. Backend API Notes for Given
+These are the API endpoints the frontend should connect to. All return JSON. Auth is session-based — the frontend should send requests with credentials included.
+Method
+Endpoint
+Purpose
+Role required
+POST
+/api/auth/login
+Authenticate user, return session
+Public
+POST
+/api/auth/logout
+Destroy session
+Any
+GET
+/api/stock/fetch_stock.php
+Current stock levels with batch + expiry
+All
+POST
+/api/stock/receive_delivery.php
+Record Coca-Cola delivery (new batch)
+Admin, Manager
+GET
+/api/orders/fetch_orders.php
+List orders with status filter
+All
+POST
+/api/orders/create_order.php
+Create new sale/order
+Cadet, Field User
+POST
+/api/orders/confirm_order.php
+Manager confirms a sale
+Admin, Manager
+POST
+/api/orders/edit_request.php
+Submit edit/cancel request
+Field User, Cadet
+POST
+/api/orders/approve_request.php
+Approve or reject edit request
+Admin, Manager
+GET
+/api/customers/fetch_customers.php
+Customer list with balances
+All
+POST
+/api/customers/create_customer.php
+Add new customer
+Admin, Manager
+GET
+/api/vehicles/fetch_vehicles.php
+Vehicle list with status
+All
+POST
+/api/vehicles/dispatch.php
+Dispatch vehicle — creates trip
+Admin, Manager
+POST
+/api/trips/eod_submit.php
+Cadet submits end-of-day
+Cadet, Field User
+POST
+/api/trips/cash_confirm.php
+Accountant confirms cash handover
+Admin, Accountant
+GET
+/api/reports/stock.php
+Stock report data
+Admin, Manager, Accountant
+GET
+/api/reports/sales.php
+Sales report — filterable
+Admin, Manager, Accountant
+GET
+/api/reports/financial.php
+Financial summary + receivables
+Admin, Accountant
+GET
+/api/audit/fetch_log.php
+Audit log entries
+Admin
+8. Recommended Order of Work
+Do these in order — each one unblocks the next.
+Add Driver and Cadet roles to the role dropdown (blocks everything else)
+Update dispatch form — two people per vehicle (Driver + Cadet)
+Update fleet table — show Driver + Cadet columns
+Add batch number + expiry date to the Coca-Cola delivery form
+Add EFRIS reference field to sale form (nullable, no validation needed yet)
+Add cash handover confirmation step for Accountant role
+Add credit balance column to customer list
+Add odometer + fuel fields to dispatch and end-of-day forms
+Change "crates" label to "cartons" throughout
+Build Reports page — stock first, then sales, then financial
+Build Audit Log page (Admin only)
+Add User Profile / change password page
+Add EFRIS placeholder page in sidebar nav
+9. Notes
+Location names (Gulu routes, customer addresses) will be updated in a separate pass — skip for now.
+The current demo data (Kampala customers, KCA/KCB plates) can stay in the frontend until we wire up the real backend.
+All API responses follow the format: { "success": true/false, "data": {...}, "error": "..." }.
+Session is cookie-based. Frontend fetch calls need credentials: "include" in all requests.
+EFRIS integration is a future phase — no backend work needed yet, just reserve the field and the nav slot.
+Questions? Reach out on the LAPOK IT team group.
