@@ -1,0 +1,722 @@
+<!--
+  LAPOK DMS — Admin Polish: User Management + Audit Log
+  =====================================================
+  HOW TO USE — 6 simple steps:
+
+  1. PASTE SECTION A inside your existing <style> tag in index.html
+  2. REPLACE the <div class="page" id="page-admin-users"> block with SECTION B
+  3. REPLACE the <div class="page" id="page-admin-audit"> block with SECTION C
+  4. REPLACE <div class="modal-overlay" id="addUserModal"> block with SECTION D
+  5. REPLACE <div class="modal-overlay" id="editUserModal"> block with SECTION E
+  6. PASTE SECTION F (the big <script> block) just before your closing </body> tag
+
+  No other changes needed. All colours, fonts, shadows match your tokens exactly.
+  When your PHP API is ready, replace the UM_USERS seed array with a real fetch,
+  and the loadAuditLog function already calls LapokAPI.fetchAuditLog() automatically.
+-->
+
+
+<!-- ═══════════════════════════════════════════════
+  SECTION A — PASTE INSIDE YOUR <style> TAG
+  ═══════════════════════════════════════════════ -->
+<style>
+
+/* ── USER MANAGEMENT ──────────────────────────────────── */
+.um-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
+.um-search-wrap{flex:1;min-width:220px;max-width:380px;position:relative}
+.um-search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--gray-mid);pointer-events:none}
+.um-search-wrap .input{padding-left:32px}
+.um-filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem}
+.filter-pill{display:inline-flex;align-items:center;padding:5px 14px;border-radius:20px;font-size:11.5px;font-weight:600;cursor:pointer;border:1.5px solid var(--gray-light);background:var(--white);color:var(--gray);transition:var(--transition);user-select:none}
+.filter-pill:hover{border-color:var(--gray-mid);background:var(--surface)}
+.filter-pill.active{background:var(--gradient-primary);color:#fff;border-color:var(--red);box-shadow:0 4px 10px rgba(229,62,62,.2)}
+.um-count{font-size:12px;color:var(--gray-mid);margin-left:auto;white-space:nowrap}
+.user-row-info{display:flex;align-items:center;gap:10px}
+.user-row-meta{display:flex;flex-direction:column}
+.user-row-name{font-size:13px;font-weight:600;color:var(--black)}
+.user-row-email{font-size:11px;color:var(--gray-mid);margin-top:1px}
+.toggle-cell{display:flex;align-items:center;gap:8px}
+.toggle-cell .toggle-label{font-size:11px;color:var(--gray-mid);min-width:44px}
+.um-empty{text-align:center;padding:3rem 1rem;color:var(--gray-mid)}
+.um-empty-icon{font-size:36px;opacity:.25;margin-bottom:12px}
+.um-empty-text{font-size:13px}
+tr.deactivated td{opacity:.45}
+tr.deactivated td .user-row-name{text-decoration:line-through}
+
+/* ── AUDIT LOG ────────────────────────────────────────── */
+.audit-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
+.audit-search-wrap{flex:1;min-width:220px;max-width:380px;position:relative}
+.audit-search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--gray-mid);pointer-events:none}
+.audit-search-wrap .input{padding-left:32px}
+.audit-action-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 9px;border-radius:5px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+.aab-create{background:#dcfce7;color:#14532d}
+.aab-update{background:#fef3c7;color:#92400e}
+.aab-delete{background:#fee2e2;color:#991b1b}
+.aab-login{background:#dbeafe;color:#1e40af}
+.aab-logout{background:#f3f4f6;color:#374151}
+.aab-other{background:rgba(126,34,206,.08);color:#6b21a8}
+.audit-diff{display:flex;flex-direction:column;gap:3px;font-family:'Courier New',monospace;font-size:10.5px;max-width:340px}
+.diff-line{display:flex;gap:6px;align-items:baseline;line-height:1.5}
+.diff-key{color:var(--gray-mid);white-space:nowrap;min-width:70px;max-width:110px;overflow:hidden;text-overflow:ellipsis}
+.diff-old{color:#991b1b;background:#fef2f2;padding:1px 5px;border-radius:3px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.diff-new{color:#166534;background:#f0fdf4;padding:1px 5px;border-radius:3px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.diff-val{color:var(--black);background:var(--surface);padding:1px 5px;border-radius:3px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.audit-who-name{font-size:13px;font-weight:600;color:var(--black)}
+.audit-who-email{font-size:11px;color:var(--gray-mid);margin-top:1px}
+.audit-when-date{font-size:12px;font-weight:500;color:var(--black)}
+.audit-when-time{font-size:11px;color:var(--gray-mid);margin-top:1px}
+.audit-table-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10.5px;font-weight:700;background:var(--surface);border:1px solid var(--gray-light);color:var(--gray);font-family:'Courier New',monospace;letter-spacing:.03em}
+.audit-loading{text-align:center;padding:2.5rem 1rem;color:var(--gray-mid);font-size:13px}
+.audit-spinner{width:20px;height:20px;border:2px solid var(--gray-light);border-top-color:var(--red);border-radius:50%;animation:lapok-spin .7s linear infinite;margin:0 auto 12px}
+@keyframes lapok-spin{to{transform:rotate(360deg)}}
+.audit-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem}
+.audit-stat{background:var(--white);border:1px solid var(--gray-light);border-radius:var(--r);padding:.8rem 1rem;box-shadow:var(--shadow)}
+.audit-stat-val{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.audit-stat-label{font-size:10px;color:var(--gray-mid);margin-top:2px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+
+/* ── Confirm dialog ───────────────────────────────────── */
+.confirm-modal .danger-icon{width:48px;height:48px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px}
+.confirm-modal .confirm-title{text-align:center;font-size:16px;font-weight:700;margin-bottom:6px}
+.confirm-modal .confirm-body{text-align:center;font-size:13px;color:var(--gray);margin-bottom:1.4rem;line-height:1.6}
+
+/* ── Toast ────────────────────────────────────────────── */
+.lapok-toast{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 8px 30px rgba(15,23,42,.18);transform:translateY(20px);opacity:0;pointer-events:none;transition:all .25s cubic-bezier(.4,0,.2,1)}
+.lapok-toast.show{transform:translateY(0);opacity:1;pointer-events:auto}
+.lapok-toast.toast-success{background:#166534;color:#fff}
+.lapok-toast.toast-error{background:#991b1b;color:#fff}
+.lapok-toast.toast-info{background:var(--black);color:#fff}
+
+/* Responsive */
+@media(max-width:768px){
+  .audit-stats{grid-template-columns:repeat(2,1fr)}
+  .um-toolbar{flex-direction:column;align-items:flex-start}
+  .um-count{margin-left:0}
+  .audit-diff{max-width:200px}
+}
+</style>
+
+
+<!-- ═══════════════════════════════════════════════
+  SECTION B — page-admin-users replacement
+  Find the existing <div class="page" id="page-admin-users">
+  block and replace everything up to (and including)
+  its closing </div>
+  ═══════════════════════════════════════════════ -->
+
+<div class="page" id="page-admin-users">
+
+  <div class="um-toolbar">
+    <div class="um-search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="input" id="umSearch" type="text" placeholder="Search by name, email, ID or phone…" oninput="umFilter()">
+    </div>
+    <button class="btn btn-red" onclick="umOpenAdd()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add user
+    </button>
+    <button class="btn" onclick="umExportCSV()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export CSV
+    </button>
+    <span class="um-count" id="umCount"></span>
+  </div>
+
+  <div class="um-filter-row">
+    <span class="filter-pill active" data-role="all" onclick="umSetRole(this)">All</span>
+    <span class="filter-pill" data-role="admin" onclick="umSetRole(this)">Admin</span>
+    <span class="filter-pill" data-role="manager" onclick="umSetRole(this)">Manager</span>
+    <span class="filter-pill" data-role="accountant" onclick="umSetRole(this)">Accountant</span>
+    <span class="filter-pill" data-role="driver" onclick="umSetRole(this)">Driver</span>
+    <span class="filter-pill" data-role="cadet" onclick="umSetRole(this)">Cadet</span>
+    <span class="filter-pill" data-role="field_user" onclick="umSetRole(this)">Field User</span>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tbl-wrap">
+      <table id="umTable" style="min-width:700px">
+        <thead>
+          <tr>
+            <th style="padding-left:1.2rem">User</th>
+            <th>Role</th>
+            <th>National ID</th>
+            <th>Phone</th>
+            <th>Vehicle</th>
+            <th>Active</th>
+            <th style="padding-right:1.2rem;text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="umBody"></tbody>
+      </table>
+    </div>
+    <div class="um-empty" id="umEmpty" style="display:none">
+      <div class="um-empty-icon">👤</div>
+      <div class="um-empty-text">No users match this filter.</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+  SECTION C — page-admin-audit replacement
+  Find the existing <div class="page" id="page-admin-audit">
+  block and replace it
+  ═══════════════════════════════════════════════ -->
+
+<div class="page" id="page-admin-audit">
+
+  <div class="alert a-info" style="margin-bottom:1rem">
+    <span>🔒</span>
+    <div>Admin only — every create, update, delete, login and logout is recorded here. Entries are permanent and cannot be edited.</div>
+  </div>
+
+  <div class="audit-stats">
+    <div class="audit-stat"><div class="audit-stat-val" id="asStat-total">—</div><div class="audit-stat-label">Total entries</div></div>
+    <div class="audit-stat"><div class="audit-stat-val" style="color:#166534" id="asStat-creates">—</div><div class="audit-stat-label">Creates</div></div>
+    <div class="audit-stat"><div class="audit-stat-val" style="color:#92400e" id="asStat-updates">—</div><div class="audit-stat-label">Updates</div></div>
+    <div class="audit-stat"><div class="audit-stat-val" style="color:#991b1b" id="asStat-deletes">—</div><div class="audit-stat-label">Deletes</div></div>
+  </div>
+
+  <div class="audit-toolbar">
+    <div class="audit-search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="input" id="auditSearch" type="text" placeholder="Search by user, table, or change details…" oninput="auditLocalFilter()">
+    </div>
+    <div class="um-filter-row" style="margin:0;gap:6px">
+      <span class="filter-pill active" data-action="all" onclick="auditSetAction(this)">All</span>
+      <span class="filter-pill" data-action="CREATE" onclick="auditSetAction(this)">Creates</span>
+      <span class="filter-pill" data-action="UPDATE" onclick="auditSetAction(this)">Updates</span>
+      <span class="filter-pill" data-action="DELETE" onclick="auditSetAction(this)">Deletes</span>
+      <span class="filter-pill" data-action="LOGIN" onclick="auditSetAction(this)">Logins</span>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-shrink:0">
+      <select class="select-inp" id="auditLimit" onchange="loadAuditLog()" style="min-width:120px;min-height:38px;padding:6px 10px;font-size:12px">
+        <option value="50">Last 50</option>
+        <option value="100">Last 100</option>
+        <option value="200">Last 200</option>
+      </select>
+      <button class="btn btn-sm" onclick="loadAuditLog()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.47-4.13"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tbl-wrap">
+      <table style="min-width:780px">
+        <thead>
+          <tr>
+            <th style="padding-left:1.2rem;width:140px">When</th>
+            <th style="width:170px">User</th>
+            <th style="width:110px">Table</th>
+            <th style="width:90px">Action</th>
+            <th>Changed fields</th>
+          </tr>
+        </thead>
+        <tbody id="auditLogBody">
+          <tr><td colspan="5"><div class="audit-loading"><div class="audit-spinner"></div>Loading…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:.75rem;font-size:12px;color:var(--gray-mid)" id="auditPageNote"></div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+  SECTION D — addUserModal replacement
+  ═══════════════════════════════════════════════ -->
+
+<div class="modal-overlay" id="addUserModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add new user</div>
+    <div id="addUserErr" class="alert a-danger" style="display:none;margin-bottom:12px"></div>
+    <div id="addUserOk"  class="alert a-success" style="display:none;margin-bottom:12px"></div>
+
+    <div class="form-section">Personal details</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Full name <span style="color:var(--red)">*</span></label>
+        <input class="input" id="auFullName" placeholder="Full legal name">
+      </div>
+      <div class="form-group">
+        <label>Role <span style="color:var(--red)">*</span></label>
+        <select class="select-inp" id="auRole" onchange="umToggleVehicleSection()">
+          <option value="admin">Admin</option>
+          <option value="manager">Manager</option>
+          <option value="accountant">Accountant</option>
+          <option value="driver">Driver</option>
+          <option value="cadet">Cadet</option>
+          <option value="field_user" selected>Field User</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>National ID <span style="color:var(--red)">*</span></label>
+        <input class="input" id="auNatID" placeholder="CMxxxxxxxxxxxxxxx">
+      </div>
+      <div class="form-group">
+        <label>Phone <span style="color:var(--red)">*</span></label>
+        <input class="input" id="auPhone" placeholder="+256 7XX XXXXXX">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Email address <span style="color:var(--red)">*</span></label>
+      <input class="input" id="auEmail" type="email" placeholder="user@lapok.ug">
+    </div>
+
+    <div id="auVehicleSection">
+      <div class="form-section">Vehicle assignment</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Assign vehicle</label>
+          <select class="select-inp" id="auVehicle">
+            <option value="">None / unassigned</option>
+            <option value="KCA201T">🚛 KCA 201T — Isuzu NPR (Truck)</option>
+            <option value="KCB774Y">🚛 KCB 774Y — Mercedes Sprinter (Truck)</option>
+            <option value="TUK001">🛺 TUK-001 (Tuktuk)</option>
+            <option value="TUK002">🛺 TUK-002 (Tuktuk)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Default route / zone</label>
+          <input class="input" id="auRoute" placeholder="e.g. Gulu Central">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">Account setup</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Temporary password <span style="color:var(--red)">*</span></label>
+        <input class="input" id="auPassword" type="password" placeholder="Min 8 characters">
+      </div>
+      <div class="form-group">
+        <label>Start date</label>
+        <input class="input" id="auStartDate" type="date">
+      </div>
+    </div>
+    <p style="font-size:11.5px;color:var(--gray-mid);margin-top:-8px">
+      The user will be prompted to change this password on first login.
+    </p>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('addUserModal')">Cancel</button>
+      <button class="btn btn-red" onclick="umSubmitAdd()">Add user</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+  SECTION E — editUserModal replacement
+  ═══════════════════════════════════════════════ -->
+
+<div class="modal-overlay" id="editUserModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="editUserTitle">Edit user</div>
+    <div id="editUserErr" class="alert a-danger" style="display:none;margin-bottom:12px"></div>
+    <div id="editUserOk"  class="alert a-success" style="display:none;margin-bottom:12px"></div>
+    <input type="hidden" id="euUserId">
+
+    <div class="form-section">Personal details</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Full name</label>
+        <input class="input" id="euFullName">
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select class="select-inp" id="euRole">
+          <option value="admin">Admin</option>
+          <option value="manager">Manager</option>
+          <option value="accountant">Accountant</option>
+          <option value="driver">Driver</option>
+          <option value="cadet">Cadet</option>
+          <option value="field_user">Field User</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>National ID</label>
+        <input class="input" id="euNatID">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input class="input" id="euPhone">
+      </div>
+    </div>
+
+    <div class="form-section">Vehicle assignment</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Assigned vehicle</label>
+        <select class="select-inp" id="euVehicle">
+          <option value="">None</option>
+          <option value="KCA201T">🚛 KCA 201T (Truck)</option>
+          <option value="KCB774Y">🚛 KCB 774Y (Truck)</option>
+          <option value="TUK001">🛺 TUK-001 (Tuktuk)</option>
+          <option value="TUK002">🛺 TUK-002 (Tuktuk)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Default route</label>
+        <input class="input" id="euRoute">
+      </div>
+    </div>
+
+    <div class="form-section">Password reset (leave blank to keep current)</div>
+    <div class="form-group">
+      <input class="input" id="euPassword" type="password" placeholder="New password — min 8 characters">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" style="color:#991b1b;border-color:#fca5a5" onclick="umConfirmDeactivate()">Deactivate</button>
+      <button class="btn" onclick="closeModal('editUserModal')">Cancel</button>
+      <button class="btn btn-red" onclick="umSubmitEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Confirm deactivate -->
+<div class="modal-overlay" id="confirmDeactivateModal">
+  <div class="modal confirm-modal" style="max-width:400px">
+    <div class="modal-handle"></div>
+    <div class="danger-icon">⚠️</div>
+    <div class="confirm-title">Deactivate user?</div>
+    <div class="confirm-body" id="confirmDeactivateBody">
+      This user will no longer be able to log in. All their historical data is preserved.
+      You can reactivate them at any time by toggling the Active switch in the user table.
+    </div>
+    <div class="modal-actions" style="justify-content:center">
+      <button class="btn" onclick="closeModal('confirmDeactivateModal')">Cancel</button>
+      <button class="btn" style="background:#fee2e2;color:#991b1b;border-color:#fca5a5;font-weight:700"
+              onclick="umDoDeactivate()">Yes, deactivate</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+  SECTION F — PASTE BEFORE </body>
+  ═══════════════════════════════════════════════ -->
+
+<script>
+/* ════════════════════════════════════════════════════════
+   LAPOK ADMIN — User Management + Audit Log
+   Paste this entire block just before </body>
+   ════════════════════════════════════════════════════════ */
+
+/* ─── Toast ─────────────────────────────────────────── */
+(function(){
+  const t=document.createElement('div');
+  t.className='lapok-toast';t.id='lapokToast';
+  document.body.appendChild(t);
+})();
+function showToast(msg,type='success'){
+  const t=document.getElementById('lapokToast');if(!t)return;
+  t.textContent=msg;t.className='lapok-toast toast-'+type+' show';
+  clearTimeout(t._tid);t._tid=setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+/* ─── User Management ──────────────────────────────── */
+
+/* Seed — swap this out for a real fetch('/api/users/list.php') call */
+const UM_USERS=[
+  {id:1,name:'John Okello',  email:'admin@lapok.ug',   role:'admin',      natId:'CM90200145671',phone:'+256 772 000001',vehicle:'',        route:'—',             active:true},
+  {id:2,name:'Sarah Nakato', email:'manager@lapok.ug', role:'manager',    natId:'CM90200145672',phone:'+256 772 100001',vehicle:'',        route:'—',             active:true},
+  {id:3,name:'Peter Mugisha',email:'accounts@lapok.ug',role:'accountant', natId:'CM90200145673',phone:'+256 772 100002',vehicle:'',        route:'—',             active:true},
+  {id:4,name:'David Ssemuju',email:'david@lapok.ug',   role:'driver',     natId:'CM87101234567',phone:'+256 754 200002',vehicle:'TUK-001',route:'Owino / Katwe',  active:true},
+  {id:5,name:'Grace Apio',   email:'grace@lapok.ug',   role:'driver',     natId:'CM92030987654',phone:'+256 703 300003',vehicle:'KCB 774Y',route:'Mukono',        active:true},
+  {id:6,name:'Ruth Nambi',   email:'ruth@lapok.ug',    role:'cadet',      natId:'CM95041122334',phone:'+256 701 500005',vehicle:'KCA 201T',route:'Kampala Central',active:true},
+  {id:7,name:'Moses Otieno', email:'moses@lapok.ug',   role:'cadet',      natId:'CM88120456789',phone:'+256 782 400004',vehicle:'',        route:'Unassigned',    active:false},
+  {id:8,name:'Amina Kirabo', email:'amina@lapok.ug',   role:'field_user', natId:'CM93061567890',phone:'+256 754 600007',vehicle:'TUK-001',route:'Owino / Katwe',  active:true},
+  {id:9,name:'Joseph Okello',email:'joseph@lapok.ug',  role:'field_user', natId:'CM91055678901',phone:'+256 754 600006',vehicle:'TUK-002',route:'Gulu Depot',     active:true},
+];
+
+const UM_ROLE_BADGE={
+  admin:     '<span class="badge br">Admin</span>',
+  manager:   '<span class="badge bi">Manager</span>',
+  accountant:'<span class="badge bi">Accountant</span>',
+  driver:    '<span class="badge bs">Driver</span>',
+  cadet:     '<span class="badge bw">Cadet</span>',
+  field_user:'<span class="badge bg">Field User</span>',
+};
+let umActiveRole='all';
+
+function umAvatarColor(r){return(r==='admin'||r==='manager'||r==='accountant')?'av-red':'av-blk'}
+function umInitials(n){return n.split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase()}
+function umVehicleBadge(v){
+  if(!v)return'<span style="color:var(--gray-mid)">—</span>';
+  if(v.startsWith('TUK'))return`<span class="badge b-tuk">${v}</span>`;
+  return`<span class="badge b-truck">${v}</span>`;
+}
+
+function umRender(){
+  const q=((document.getElementById('umSearch')||{}).value||'').toLowerCase();
+  const filtered=UM_USERS.filter(u=>{
+    const roleOk=umActiveRole==='all'||u.role===umActiveRole;
+    const qOk=!q||[u.name,u.email,u.natId,u.phone].join(' ').toLowerCase().includes(q);
+    return roleOk&&qOk;
+  });
+  const tbody=document.getElementById('umBody');
+  const empty=document.getElementById('umEmpty');
+  const countEl=document.getElementById('umCount');
+  if(!tbody)return;
+  if(!filtered.length){
+    tbody.innerHTML='';
+    if(empty)empty.style.display='block';
+    if(countEl)countEl.textContent='';
+    return;
+  }
+  if(empty)empty.style.display='none';
+  if(countEl)countEl.textContent=filtered.length+' of '+UM_USERS.length+' users';
+  tbody.innerHTML=filtered.map(u=>`
+    <tr id="umRow-${u.id}" class="${u.active?'':'deactivated'}">
+      <td style="padding-left:1.2rem">
+        <div class="user-row-info">
+          <div class="avatar ${umAvatarColor(u.role)}">${umInitials(u.name)}</div>
+          <div class="user-row-meta">
+            <div class="user-row-name">${u.name}</div>
+            <div class="user-row-email">${u.email}</div>
+          </div>
+        </div>
+      </td>
+      <td>${UM_ROLE_BADGE[u.role]||u.role}</td>
+      <td style="font-family:monospace;font-size:11.5px">${u.natId}</td>
+      <td>${u.phone}</td>
+      <td>${umVehicleBadge(u.vehicle)}</td>
+      <td>
+        <div class="toggle-cell">
+          <label class="toggle">
+            <input type="checkbox" ${u.active?'checked':''} onchange="umToggleActive(${u.id},this)">
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-label">${u.active?'Active':'Off'}</span>
+        </div>
+      </td>
+      <td style="text-align:right;padding-right:1.2rem">
+        <button class="btn btn-sm" onclick="umOpenEdit(${u.id})">Edit</button>
+      </td>
+    </tr>`).join('');
+}
+
+function umFilter(){umRender()}
+function umSetRole(el){
+  document.querySelectorAll('.um-filter-row .filter-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');umActiveRole=el.dataset.role;umRender();
+}
+function umToggleActive(id,cb){
+  const u=UM_USERS.find(x=>x.id===id);if(!u)return;
+  u.active=cb.checked;
+  const row=document.getElementById('umRow-'+id);
+  if(row){
+    if(u.active)row.classList.remove('deactivated');else row.classList.add('deactivated');
+    const lbl=row.querySelector('.toggle-label');if(lbl)lbl.textContent=u.active?'Active':'Off';
+  }
+  showToast(u.name+' '+(u.active?'reactivated':'deactivated'),u.active?'success':'info');
+  /* TODO: POST to /api/users/toggle.php { id, active } */
+}
+
+function umOpenAdd(){
+  ['addUserErr','addUserOk'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none'});
+  ['auFullName','auNatID','auPhone','auEmail','auRoute','auPassword'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
+  const r=document.getElementById('auRole');if(r)r.value='field_user';
+  const v=document.getElementById('auVehicle');if(v)v.value='';
+  const d=document.getElementById('auStartDate');if(d)d.value=new Date().toISOString().split('T')[0];
+  umToggleVehicleSection();
+  openModal('addUserModal');
+}
+function umToggleVehicleSection(){
+  const role=((document.getElementById('auRole')||{}).value||'');
+  const sec=document.getElementById('auVehicleSection');
+  if(sec)sec.style.display=['admin','manager','accountant'].includes(role)?'none':'block';
+}
+function umSubmitAdd(){
+  const err=document.getElementById('addUserErr');
+  const ok=document.getElementById('addUserOk');
+  if(err)err.style.display='none';if(ok)ok.style.display='none';
+  const g=id=>((document.getElementById(id)||{}).value||'').trim();
+  const name=g('auFullName'),role=g('auRole'),natId=g('auNatID'),phone=g('auPhone'),email=g('auEmail'),pass=g('auPassword');
+  if(!name||!natId||!phone||!email||!pass){
+    if(err){err.textContent='Please fill in all required fields (marked *).';err.style.display='block';}return;
+  }
+  if(pass.length<8){if(err){err.textContent='Password must be at least 8 characters.';err.style.display='block';}return;}
+  if(UM_USERS.find(u=>u.email===email)){if(err){err.textContent='A user with this email already exists.';err.style.display='block';}return;}
+  const vehicle=g('auVehicle'),route=g('auRoute');
+  UM_USERS.unshift({id:Date.now(),name,email,role,natId,phone,vehicle,route:route||'—',active:true});
+  umRender();closeModal('addUserModal');showToast(name+' added successfully.','success');
+  /* TODO: POST to /api/users/create.php */
+}
+
+function umOpenEdit(id){
+  const u=UM_USERS.find(x=>x.id===id);if(!u)return;
+  const set=(elId,val)=>{const e=document.getElementById(elId);if(e)e.value=val};
+  set('euUserId',u.id);set('euFullName',u.name);set('euRole',u.role);
+  set('euNatID',u.natId);set('euPhone',u.phone);
+  set('euVehicle',u.vehicle||'');set('euRoute',u.route==='—'?'':u.route);set('euPassword','');
+  const t=document.getElementById('editUserTitle');if(t)t.textContent='Edit user — '+u.name;
+  ['editUserErr','editUserOk'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none'});
+  openModal('editUserModal');
+}
+function umSubmitEdit(){
+  const err=document.getElementById('editUserErr');if(err)err.style.display='none';
+  const id=parseInt(((document.getElementById('euUserId')||{}).value)||0);
+  const u=UM_USERS.find(x=>x.id===id);if(!u)return;
+  const name=((document.getElementById('euFullName')||{}).value||'').trim();
+  const pass=((document.getElementById('euPassword')||{}).value||'');
+  if(!name){if(err){err.textContent='Name is required.';err.style.display='block';}return;}
+  if(pass&&pass.length<8){if(err){err.textContent='New password must be at least 8 characters.';err.style.display='block';}return;}
+  u.name=name;
+  u.role=((document.getElementById('euRole')||{}).value)||u.role;
+  u.natId=((document.getElementById('euNatID')||{}).value||'').trim()||u.natId;
+  u.phone=((document.getElementById('euPhone')||{}).value||'').trim()||u.phone;
+  u.vehicle=((document.getElementById('euVehicle')||{}).value)||'';
+  u.route=((document.getElementById('euRoute')||{}).value||'').trim()||'—';
+  umRender();closeModal('editUserModal');showToast(u.name+' updated.','success');
+  /* TODO: POST to /api/users/update.php */
+}
+function umConfirmDeactivate(){
+  const id=parseInt(((document.getElementById('euUserId')||{}).value)||0);
+  const u=UM_USERS.find(x=>x.id===id);if(!u)return;
+  const b=document.getElementById('confirmDeactivateBody');
+  if(b)b.textContent=u.name+' will no longer be able to log in. All historical data is preserved. You can reactivate them at any time by toggling the Active switch.';
+  openModal('confirmDeactivateModal');
+}
+function umDoDeactivate(){
+  const id=parseInt(((document.getElementById('euUserId')||{}).value)||0);
+  const u=UM_USERS.find(x=>x.id===id);
+  if(u)u.active=false;
+  umRender();
+  closeModal('confirmDeactivateModal');closeModal('editUserModal');
+  showToast((u?u.name:'User')+' deactivated.','info');
+}
+function umExportCSV(){
+  const rows=[['Name','Email','Role','National ID','Phone','Vehicle','Route','Active']];
+  UM_USERS.forEach(u=>rows.push([u.name,u.email,u.role,u.natId,u.phone,u.vehicle||'—',u.route,u.active?'Yes':'No']));
+  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='lapok-users-'+new Date().toISOString().split('T')[0]+'.csv';a.click();
+  showToast('CSV exported.','success');
+}
+
+/* ─── Audit Log ─────────────────────────────────────── */
+let AUDIT_ALL=[];
+let AUDIT_ACTION='all';
+
+const AUDIT_ACTION_CLASS={CREATE:'aab-create',UPDATE:'aab-update',DELETE:'aab-delete',LOGIN:'aab-login',LOGOUT:'aab-logout'};
+const AUDIT_ICONS={CREATE:'＋',UPDATE:'✎',DELETE:'✕',LOGIN:'→',LOGOUT:'←'};
+function auditActionBadge(action){
+  const up=action.toUpperCase();
+  return`<span class="audit-action-badge ${AUDIT_ACTION_CLASS[up]||'aab-other'}">${AUDIT_ICONS[up]||'•'} ${action}</span>`;
+}
+function auditDiffCell(e){
+  if(!e.new_values&&!e.old_values)return'<span style="color:var(--gray-mid);font-size:12px">—</span>';
+  const ov=e.old_values||{},nv=e.new_values||{};
+  const skip=['password_hash','remember_token'];
+  const keys=[...new Set([...Object.keys(ov),...Object.keys(nv)])].filter(k=>!skip.includes(k));
+  if(!keys.length)return'<span style="color:var(--gray-mid);font-size:12px">—</span>';
+  const shown=keys.slice(0,4);
+  const lines=shown.map(k=>{
+    const o=ov[k],n=nv[k];
+    if(o!==undefined&&n!==undefined&&String(o)!==String(n)){
+      return`<div class="diff-line"><span class="diff-key">${k}</span><span class="diff-old">${String(o).slice(0,18)}</span><span style="color:var(--gray-mid);font-size:10px;padding:0 2px">→</span><span class="diff-new">${String(n).slice(0,18)}</span></div>`;
+    }
+    const val=n!==undefined?n:o;
+    return`<div class="diff-line"><span class="diff-key">${k}</span><span class="diff-val">${String(val===null?'null':val).slice(0,28)}</span></div>`;
+  });
+  if(keys.length>4)lines.push(`<div class="diff-line" style="margin-top:2px"><span style="color:var(--gray-mid);font-size:10px">+${keys.length-4} more fields</span></div>`);
+  return`<div class="audit-diff">${lines.join('')}</div>`;
+}
+
+function auditRenderRows(entries){
+  const tbody=document.getElementById('auditLogBody');if(!tbody)return;
+  if(!entries.length){
+    tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-mid)">No entries match this filter.</td></tr>';return;
+  }
+  tbody.innerHTML=entries.map(e=>{
+    const d=new Date((e.logged_at||'').replace(' ','T'));
+    const date=d.toLocaleDateString('en-UG',{day:'2-digit',month:'short',year:'numeric'});
+    const time=d.toLocaleTimeString('en-UG',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    return`<tr>
+      <td style="padding-left:1.2rem"><div class="audit-when-date">${date}</div><div class="audit-when-time">${time}</div></td>
+      <td><div class="audit-who-name">${e.user_name||'System'}</div><div class="audit-who-email">${e.user_email||'—'}</div></td>
+      <td><span class="audit-table-badge">${e.table_name}</span></td>
+      <td>${auditActionBadge(e.action)}</td>
+      <td>${auditDiffCell(e)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function auditLocalFilter(){
+  const q=((document.getElementById('auditSearch')||{}).value||'').toLowerCase();
+  const filtered=AUDIT_ALL.filter(e=>{
+    const aOk=AUDIT_ACTION==='all'||e.action.toUpperCase()===AUDIT_ACTION;
+    const qOk=!q||[e.user_name,e.user_email,e.table_name,e.action,JSON.stringify(e.new_values||{})].join(' ').toLowerCase().includes(q);
+    return aOk&&qOk;
+  });
+  auditRenderRows(filtered);
+  const note=document.getElementById('auditPageNote');
+  if(note)note.textContent=filtered.length<AUDIT_ALL.length?'Showing '+filtered.length+' of '+AUDIT_ALL.length+' entries':'';
+}
+
+function auditSetAction(el){
+  document.querySelectorAll('.audit-filter-row .filter-pill, .um-filter-row .filter-pill[data-action]').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');AUDIT_ACTION=el.dataset.action;auditLocalFilter();
+}
+
+function auditUpdateStats(entries){
+  const c={total:entries.length,creates:0,updates:0,deletes:0};
+  entries.forEach(e=>{
+    const a=e.action.toUpperCase();
+    if(a==='CREATE')c.creates++;else if(a==='UPDATE')c.updates++;else if(a==='DELETE')c.deletes++;
+  });
+  Object.keys(c).forEach(k=>{const el=document.getElementById('asStat-'+k);if(el)el.textContent=c[k]});
+}
+
+/* Demo seed shown when DB not connected */
+const AUDIT_DEMO_SEED=[
+  {id:10,user_name:'John Okello',user_email:'admin@lapok.ug',    table_name:'users',              action:'CREATE',old_values:null,                     new_values:{name:'Grace Apio',role:'driver',email:'grace@lapok.ug'},     logged_at:'2026-05-07 08:05:00'},
+  {id:9, user_name:'John Okello',user_email:'admin@lapok.ug',    table_name:'users',              action:'UPDATE',old_values:{role:'field_user'},        new_values:{role:'driver'},                                               logged_at:'2026-05-07 08:01:22'},
+  {id:8, user_name:'Sarah Nakato',user_email:'manager@lapok.ug', table_name:'dispatches',         action:'CREATE',old_values:null,                     new_values:{vehicle:'KCB774Y',route:'Mukono',cartons:80},                 logged_at:'2026-05-07 08:45:00'},
+  {id:7, user_name:'David Ssemuju',user_email:'david@lapok.ug',  table_name:'sales',              action:'CREATE',old_values:null,                     new_values:{customer:'Nandos',amount:200000,product:'Coke 500ml'},        logged_at:'2026-05-07 10:32:00'},
+  {id:6, user_name:'Grace Apio',user_email:'grace@lapok.ug',     table_name:'sale_change_requests',action:'CREATE',old_values:null,                    new_values:{type:'cancel',reason:'Customer did not pay'},                 logged_at:'2026-05-07 12:55:00'},
+  {id:5, user_name:'Sarah Nakato',user_email:'manager@lapok.ug', table_name:'sale_change_requests',action:'UPDATE',old_values:{status:'pending'},       new_values:{status:'approved'},                                           logged_at:'2026-05-07 13:10:00'},
+  {id:4, user_name:'Sarah Nakato',user_email:'manager@lapok.ug', table_name:'supplier_deliveries',action:'CREATE',old_values:null,                     new_values:{waybill:'WB-2026-0504-001',total_cartons:598},                logged_at:'2026-05-04 09:15:00'},
+  {id:3, user_name:'John Okello',user_email:'admin@lapok.ug',    table_name:'vehicles',           action:'UPDATE',old_values:{status:'on_route'},       new_values:{status:'available'},                                          logged_at:'2026-05-04 17:30:00'},
+  {id:2, user_name:'System',user_email:null,                     table_name:'users',              action:'LOGIN', old_values:null,                     new_values:{email:'david@lapok.ug',ip:'192.168.1.10'},                    logged_at:'2026-05-07 07:58:00'},
+  {id:1, user_name:'System',user_email:null,                     table_name:'users',              action:'LOGIN', old_values:null,                     new_values:{email:'admin@lapok.ug',ip:'192.168.1.2'},                     logged_at:'2026-05-07 07:55:00'},
+];
+
+/* Override the stub loadAuditLog from lapok.js */
+async function loadAuditLog(){
+  const tbody=document.getElementById('auditLogBody');if(!tbody)return;
+  const role=(window.LAPOK_USER||{role:'admin'}).role;
+  if(role!=='admin')return;
+  tbody.innerHTML='<tr><td colspan="5"><div class="audit-loading"><div class="audit-spinner"></div>Loading audit log…</div></td></tr>';
+  const limitEl=document.getElementById('auditLimit');
+  const limit=limitEl?parseInt(limitEl.value)||50:50;
+  try{
+    const data=await LapokAPI.fetchAuditLog(limit);
+    AUDIT_ALL=data.entries||[];
+    auditUpdateStats(AUDIT_ALL);auditLocalFilter();
+    const note=document.getElementById('auditPageNote');
+    if(note&&AUDIT_ALL.length>=limit)note.textContent='Showing the '+limit+' most recent entries. Increase the limit to load more.';
+  }catch(ex){
+    AUDIT_ALL=AUDIT_DEMO_SEED;
+    auditUpdateStats(AUDIT_ALL);auditLocalFilter();
+    const note=document.getElementById('auditPageNote');
+    if(note)note.textContent='Demo data shown — database not connected ('+ex.message+')';
+  }
+}
+
+/* ─── Init ──────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded',()=>{umRender()});
+</script>

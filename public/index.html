@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>Lapok IMS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#E53E3E;--red-dark:#C53030;--red-glow:rgba(229,62,62,.12);--red-light:#FEE2E2;
+  --black:#0F172A;--surface:#F9FAFB;--white:#FFFFFF;
+  --gray:#64748B;--gray-mid:#94A3B8;--gray-light:#E2E8F0;--gray-dark:#1E293B;
+  --gold:#D97706;--accent:#3B82F6;
+  --shadow:0 4px 6px rgba(15,23,42,.07),0 10px 24px rgba(15,23,42,.08);
+  --shadow-lg:0 10px 30px rgba(15,23,42,.12),0 20px 50px rgba(15,23,42,.1);
+  --gradient-primary:linear-gradient(135deg,#E53E3E 0%,#DC2626 100%);
+  --gradient-dark:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);
+  --r:8px;--rl:12px;--sb:240px;
+  --transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+html,body{height:100%;font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#FFFFFF 0%,#F9FAFB 100%);color:var(--black);font-size:13.5px;letter-spacing:-0.3px}
+.app{display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sb);background:var(--gradient-dark);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow-y:auto;transition:transform .3s;box-shadow:4px 0 20px rgba(15,23,42,.1)}
+.sidebar::before{content:'';position:absolute;top:-60px;left:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(229,62,62,.1) 0%,transparent 70%);pointer-events:none}
+.sidebar-logo{padding:1.2rem 1rem 1rem;border-bottom:1px solid rgba(255,255,255,.06)}
+.logo-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.logo-mark{width:36px;height:36px;background:var(--gradient-primary);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0;box-shadow:0 8px 16px rgba(229,62,62,.3);transition:var(--transition)}
+.logo-text{font-size:13px;font-weight:600;color:#fff}
+.logo-sub{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.05em;text-transform:uppercase}
+.user-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:10px 12px;margin-top:2px}
+.user-name{font-size:13px;font-weight:500;color:rgba(255,255,255,.9)}
+.user-email{font-size:11px;color:rgba(255,255,255,.35);margin-top:1px}
+.role-pill{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;margin-top:6px;font-weight:600;letter-spacing:.03em}
+.rp-admin{background:linear-gradient(90deg,var(--red),#FF4D4D);color:#fff}
+.rp-manager{background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15)}
+.rp-user{background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.2)}
+.nav-section{font-size:9.5px;color:rgba(255,255,255,.22);padding:14px 1rem 5px;text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+.nav-item{padding:10px 1rem;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:12.5px;color:rgba(255,255,255,.6);transition:var(--transition);border-left:3px solid transparent;margin:2px 0;min-height:44px;font-weight:500}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.8;transition:var(--transition)}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.95);border-left-color:transparent;padding-left:calc(1rem + 4px)}
+.nav-item.active{background:linear-gradient(90deg,rgba(229,62,62,.25) 0%,transparent 100%);color:#fff;border-left-color:var(--red);font-weight:600}
+.role-switcher{padding:.75rem;border-top:1px solid rgba(255,255,255,.06);margin-top:auto}
+.rs-label{font-size:9.5px;color:rgba(255,255,255,.25);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em}
+.role-btn{display:flex;align-items:center;width:100%;text-align:left;padding:8px 12px;border:1px solid rgba(255,255,255,.1);border-radius:var(--r);background:transparent;cursor:pointer;font-size:11.5px;color:rgba(255,255,255,.5);margin-bottom:4px;transition:var(--transition);font-family:inherit;min-height:40px;font-weight:500}
+.role-btn:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.9);border-color:rgba(255,255,255,.2)}
+.role-btn.active{background:linear-gradient(90deg,rgba(229,62,62,.2) 0%,transparent 100%);color:#fff;border-color:rgba(229,62,62,.4);font-weight:600}
+
+/* ── MAIN ── */
+.main{flex:1;margin-left:var(--sb);display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(226,232,240,.5);padding:.9rem 1.8rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;gap:10px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(15,23,42,.04)}
+.topbar-left{display:flex;align-items:center;gap:10px;min-width:0}
+.menu-btn{display:none;background:none;border:1px solid var(--gray-light);border-radius:7px;padding:8px 10px;cursor:pointer;flex-shrink:0;min-height:44px;min-width:44px;align-items:center;justify-content:center}
+.topbar-title{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-right{display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
+.tb-chip{display:inline-flex;align-items:center;padding:5px 10px;border-radius:20px;font-size:11.5px;background:var(--surface);border:1px solid var(--gray-light);color:var(--gray);font-weight:500;white-space:nowrap}
+.notif-btn{width:44px;height:44px;border-radius:var(--r);background:var(--surface);border:1px solid var(--gray-light);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:var(--transition);flex-shrink:0;box-shadow:0 2px 4px rgba(15,23,42,.04)}
+.notif-btn:hover{background:#E2E8F0;border-color:var(--gray-mid)}
+.notif-dot{width:7px;height:7px;background:var(--red);border-radius:50%;position:absolute;top:6px;right:6px;border:1.5px solid white}
+.content{padding:1.5rem;flex:1}
+.page{display:none}.page.active{display:block}
+
+/* ── CARDS & LAYOUT ── */
+.card{background:var(--white);border:1px solid rgba(226,232,240,.5);border-radius:var(--rl);padding:1.4rem;margin-bottom:1rem;box-shadow:var(--shadow);transition:var(--transition)}
+.card:hover{box-shadow:var(--shadow-lg);border-color:var(--gray-light)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem;flex-wrap:wrap;gap:8px}
+.card-title{font-size:14px;font-weight:700;color:var(--black);letter-spacing:-0.2px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+
+/* ── METRICS ── */
+.metric-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:1.25rem}
+.metric-card{background:var(--white);border:1px solid var(--gray-light);border-radius:var(--rl);padding:1rem 1.1rem;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.metric-card.hi{background:linear-gradient(135deg,var(--red),#C41E1E);border-color:var(--red);box-shadow:0 4px 20px rgba(212,43,43,.3)}
+.metric-card.hi .metric-label,.metric-card.hi .metric-value,.metric-card.hi .metric-sub{color:#fff}
+.metric-label{font-size:10px;color:var(--gray-mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.metric-value{font-size:22px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.metric-sub{font-size:11px;color:var(--gray-mid);margin-top:3px}
+.metric-trend{font-size:11px;font-weight:600;margin-top:3px}
+.trend-up{color:#16a34a}.trend-dn{color:var(--red)}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:500px}
+th{text-align:left;padding:7px 10px;font-weight:600;font-size:10.5px;color:var(--gray-mid);border-bottom:1.5px solid var(--gray-light);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid rgba(0,0,0,.04);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(0,0,0,.012)}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;font-size:11px;padding:4px 10px;border-radius:20px;font-weight:600;white-space:nowrap;transition:var(--transition)}
+.bs{background:#DCFCE7;color:#166534;font-weight:600}.bw{background:#FEF3C7;color:#92400E;font-weight:600}.bd{background:#FEE2E2;color:#991B1B;font-weight:600}.bi{background:#DBEAFE;color:#1E40AF;font-weight:600}.bg{background:#F3F4F6;color:#374151;font-weight:600}.br{background:var(--gradient-primary);color:#fff;box-shadow:0 4px 12px rgba(229,62,62,.3)}.bgold{background:rgba(217,119,6,.12);color:var(--gold);border:1px solid rgba(217,119,6,.2);font-weight:600}
+.b-truck{background:#e0f2fe;color:#0369a1}.b-tuk{background:#fdf4ff;color:#7e22ce}
+
+/* ── ALERTS ── */
+.alert{padding:12px 16px;border-radius:var(--r);margin-bottom:1rem;font-size:13px;display:flex;align-items:flex-start;gap:12px;line-height:1.6;border:1px solid;transition:var(--transition)}
+.a-danger{background:#FEE2E2;color:#7F1D1D;border-color:#FCA5A5;box-shadow:0 4px 12px rgba(229,62,62,.08)}
+.a-warning{background:#FFFBEB;color:#78350F;border-color:#FCD34D;box-shadow:0 4px 12px rgba(217,119,6,.08)}
+.a-info{background:#EFF6FF;color:#1E3A5F;border-color:#93C5FD;box-shadow:0 4px 12px rgba(59,130,246,.08)}
+.a-success{background:#F0FDF4;color:#14532D;border-color:#86EFAC;box-shadow:0 4px 12px rgba(34,197,94,.08)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:none;border-radius:var(--r);background:var(--white);cursor:pointer;font-size:12.5px;color:var(--black);transition:var(--transition);font-family:inherit;font-weight:600;white-space:nowrap;min-height:44px;border:1px solid var(--gray-light);box-shadow:0 2px 4px rgba(15,23,42,.04)}
+.btn:hover{background:var(--surface);border-color:var(--gray);box-shadow:0 4px 12px rgba(15,23,42,.08);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-red{background:var(--gradient-primary);color:#fff;border-color:var(--red);box-shadow:0 4px 12px rgba(229,62,62,.25)}
+.btn-red:hover{box-shadow:0 8px 20px rgba(229,62,62,.35);transform:translateY(-2px)}
+.btn-black{background:var(--black);color:#fff;border-color:var(--black)}
+.btn-sm{padding:6px 12px;font-size:11.5px;min-height:36px}
+.btn-full{width:100%;justify-content:center;padding:11px;font-size:14px;font-weight:600}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem}
+
+/* ── FORM ── */
+.input,.select-inp,.textarea-inp{padding:10px 12px;border:1.5px solid var(--gray-light);border-radius:var(--r);background:var(--white);color:var(--black);font-size:13px;width:100%;font-family:inherit;transition:var(--transition);min-height:44px;box-shadow:inset 0 1px 2px rgba(15,23,42,.03)}
+.input:hover,.select-inp:hover,.textarea-inp:hover{border-color:var(--gray-mid)}
+.input:focus,.select-inp:focus,.textarea-inp:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 4px var(--red-light),inset 0 1px 2px rgba(15,23,42,.03)}
+.textarea-inp{resize:vertical;min-height:70px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:1rem}
+.form-group label{font-size:12px;color:var(--black);font-weight:700;letter-spacing:-0.1px;text-transform:capitalize}
+.form-section{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-mid);margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--gray-light)}
+
+/* ── PROGRESS ── */
+.progress-bar{height:5px;background:var(--gray-light);border-radius:3px;overflow:hidden;margin-top:3px}
+.progress-fill{height:100%;border-radius:3px}
+.p-red{background:linear-gradient(90deg,#D42B2B,#FF6B6B)}
+.p-amber{background:linear-gradient(90deg,#D97706,#FBBF24)}
+.p-green{background:linear-gradient(90deg,#16a34a,#4ade80)}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:300;backdrop-filter:blur(3px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--white);border-radius:16px 16px 0 0;padding:1.6rem;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;box-shadow:0 -20px 60px rgba(15,23,42,.2);backdrop-filter:blur(12px)}
+@media(min-width:600px){.modal-overlay{align-items:center}.modal{border-radius:16px;max-height:88vh}}
+.modal-handle{width:44px;height:4px;background:linear-gradient(90deg,transparent 0%,var(--gray-light) 50%,transparent 100%);border-radius:2px;margin:0 auto 1.3rem}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:1.2rem;letter-spacing:-0.3px;color:var(--black)}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:1.4rem;border-top:1px solid rgba(226,232,240,.5);padding-top:1.2rem}
+
+/* ── MISC ── */
+.receipt-box{font-family:'Courier New',monospace;font-size:11.5px;background:#fafafa;border:1px solid var(--gray-light);padding:1rem;border-radius:8px;line-height:1.9;white-space:pre-wrap;color:#1a1a1a}
+.divider{border:none;border-top:1px solid linear-gradient(90deg,transparent 0%,var(--gray-light) 50%,transparent 100%);margin:.8rem 0}
+.chip{display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;font-size:11.5px;background:var(--surface);border:1px solid var(--gray-light);color:var(--gray);font-weight:600;transition:var(--transition)}
+.qty-inp{width:65px;padding:7px 8px;border:1.5px solid var(--gray-light);border-radius:6px;font-size:13px;font-family:inherit;background:var(--white);color:var(--black);min-height:36px}
+.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;background:var(--gradient-primary);color:#fff;box-shadow:0 4px 12px rgba(229,62,62,.25);transition:var(--transition)}
+.av-red{background:#fee2e2;color:var(--red)}.av-blk{background:#f3f4f6;color:#374151}
+.toggle{position:relative;display:inline-block;width:50px;height:28px;cursor:pointer;border-radius:14px;background:var(--gray-light);border:none;transition:var(--transition)}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:var(--gray-light);border-radius:22px;transition:var(--transition)}
+.slider:before{content:'';position:absolute;height:22px;width:22px;left:2px;bottom:3px;background:white;border-radius:50%;transition:var(--transition);box-shadow:0 2px 6px rgba(15,23,42,.1)}
+input:checked+.slider{background:var(--gradient-primary)}
+input:checked+.slider:before{transform:translateX(20px);box-shadow:0 2px 8px rgba(229,62,62,.3)}
+
+/* ── VEHICLE CARD ── */
+.vehicle-card{border:1px solid rgba(226,232,240,.5);border-radius:var(--rl);padding:16px;margin-bottom:10px;background:var(--white);box-shadow:var(--shadow);transition:var(--transition)}
+.vehicle-card:hover{border-color:var(--gray-light);box-shadow:var(--shadow-lg);transform:translateY(-1px)}
+.vehicle-card.active-v{border-color:var(--red);background:#fff8f8}
+.vehicle-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.vi-truck{background:#e0f2fe}.vi-tuk{background:#fdf4ff}
+.vehicle-info{flex:1;min-width:0}
+.vehicle-name{font-size:13.5px;font-weight:600}
+.vehicle-detail{font-size:12px;color:var(--gray-mid);margin-top:2px}
+
+/* ── DELIVERY RECORD ── */
+.delivery-card{border:1px solid var(--gray-light);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;background:var(--surface)}
+.delivery-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px}
+
+/* ── ROUTE ── */
+.route-map{position:relative;padding:.5rem 0}
+.route-line{position:absolute;left:21px;top:10px;bottom:10px;width:2px;background:var(--gray-light)}
+.route-fill{position:absolute;left:21px;top:10px;width:2px;background:linear-gradient(180deg,var(--red),#FF6B6B);border-radius:1px}
+.stop{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;position:relative;z-index:1}
+.stop-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;margin-top:1px;border:2.5px solid var(--white);box-shadow:0 0 0 1.5px var(--gray-light)}
+.stop-dot.done{background:var(--red);box-shadow:0 0 0 1.5px var(--red)}
+.stop-dot.active{background:var(--white);box-shadow:0 0 0 2px var(--red)}
+.stop-dot.pending{background:var(--surface)}
+
+/* ── CUST CARD ── */
+.cust-card{border:1px solid rgba(226,232,240,.5);border-radius:var(--r);padding:14px;margin-bottom:8px;cursor:pointer;background:var(--white);box-shadow:var(--shadow);transition:var(--transition)}
+.cust-card:hover{border-color:var(--red);box-shadow:var(--shadow-lg);transform:translateY(-1px)}
+.cust-card.selected{border-color:var(--red);background:linear-gradient(135deg,#FFF8F8 0%,#FFFFFF 100%);box-shadow:0 0 0 2px var(--red-light)}
+
+/* ── EOD ── */
+.eod-sec{background:var(--surface);border-radius:var(--r);padding:1rem;margin-bottom:.8rem;border:1px solid var(--gray-light)}
+.recon-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.05);font-size:13px}
+.recon-row:last-child{border-bottom:none}
+.surplus{color:#16a34a;font-weight:600}.deficit{color:var(--red);font-weight:600}
+
+/* ── TIMELINE ── */
+.timeline{padding-left:10px}
+.tl-item{position:relative;padding:0 0 13px 20px;border-left:2px solid var(--gray-light)}
+.tl-item:last-child{border-left-color:transparent}
+.tl-dot{position:absolute;left:-7px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--red);border:2px solid var(--white)}
+.tl-time{font-size:11px;color:var(--gray-mid);font-weight:500}
+.tl-text{font-size:13px;margin-top:2px}
+
+/* ── CHART ── */
+canvas{display:block;width:100%!important}
+.chart-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--gray)}
+.legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+/* ── OVERLAY for mobile sidebar ── */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
+.sidebar-overlay.show{display:block}
+
+/* ════════════════════════════════════════════════ */
+/* ── RESPONSIVE DESIGN — Comprehensive Breakpoints ── */
+/* ════════════════════════════════════════════════ */
+
+/* 1440px & UP: Large Desktop */
+@media(min-width:1920px){:root{--sb:240px}.metric-grid{grid-template-columns:repeat(6,1fr);gap:12px}.topbar{padding:0.8rem 1.8rem}.content{padding:1.8rem}}
+
+/* 1440px: Desktop */
+@media(max-width:1919px){:root{--sb:240px}.metric-grid{grid-template-columns:repeat(5,1fr);gap:11px}}
+
+/* 1024px: Laptop */
+@media(max-width:1439px){:root{--sb:240px}.metric-grid{grid-template-columns:repeat(4,1fr);gap:10px}.topbar{padding:0.7rem 1.4rem}.content{padding:1.4rem}table{min-width:420px;font-size:12.5px}th,td{padding:7px 9px}}
+
+/* 1024px: Tablet Landscape */
+@media(max-width:1023px){:root{--sb:240px}.metric-grid{grid-template-columns:repeat(3,1fr);gap:10px}.two-col{grid-template-columns:1fr 1fr;gap:1rem}.three-col{grid-template-columns:1fr 1fr;gap:1rem}.topbar{padding:0.65rem 1.2rem;font-size:13px}.content{padding:1.2rem}.card{padding:1rem 1.2rem}table{min-width:380px;font-size:12px}th,td{padding:7px 8px}.metric-value{font-size:20px}.metric-label{font-size:9px}.metric-sub{font-size:10px}}
+
+/* 768px: Tablet Portrait */
+@media(max-width:768px){:root{--sb:0px}.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-btn{display:flex}.topbar{padding:0.6rem 1rem;font-size:13px}.topbar-left{flex:1}.topbar-right{order:3;width:100%;margin-top:0.5rem;justify-content:flex-end}.content{padding:1rem}.card{padding:1rem}.card-header{gap:6px}.card-title{font-size:12.5px}.two-col,.three-col{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.metric-grid{grid-template-columns:repeat(3,1fr);gap:9px}.metric-card{padding:0.9rem}.metric-value{font-size:18px}.metric-label{font-size:9px}.metric-sub{font-size:10px}table{min-width:350px;font-size:12px}th,td{padding:6px 8px}.tb-chip.hide-sm{display:none}.btn{padding:7px 12px;font-size:12px;min-height:40px}.btn-sm{padding:5px 10px;min-height:36px}.input,.select-inp,.textarea-inp{font-size:12px;min-height:40px;padding:7px 10px}.qty-inp{min-height:36px;font-size:12px;width:60px}.topbar-title{font-size:14px}html,body{font-size:13px}}
+
+/* 640px: Tablet Portrait — Optimized */
+@media(max-width:640px){.metric-grid{grid-template-columns:repeat(2,1fr);gap:8px}.metric-card{padding:0.85rem}.metric-value{font-size:17px}.content{padding:0.9rem}.card{padding:0.95rem 1rem}table{min-width:300px;font-size:11.5px}th,td{padding:6px 7px}.topbar{padding:0.55rem 0.9rem}.btn-group{gap:6px}.btn{padding:6px 11px;font-size:11.5px}.form-row{gap:8px;margin-bottom:8px}.vehicle-card{padding:12px}.vehicle-icon{width:40px;height:40px;font-size:20px}.modal{padding:1.2rem;border-radius:14px 14px 0 0}.modal-title{font-size:14px}}
+
+/* 480px: Large Phone */
+@media(max-width:480px){:root{--r:8px;--rl:12px}html,body{font-size:12px}.topbar{padding:0.5rem 0.8rem;gap:8px}.topbar-title{font-size:13px}.topbar-right{width:100%;margin-top:0.4rem}.content{padding:0.75rem}.card{padding:0.85rem;margin-bottom:0.8rem;border-radius:var(--rl)}.card-header{gap:5px;margin-bottom:0.8rem}.card-title{font-size:12px}.metric-grid{grid-template-columns:repeat(2,1fr);gap:8px}.metric-card{padding:0.8rem;border-radius:var(--rl)}.metric-value{font-size:16px}.metric-label{font-size:8.5px;margin-bottom:3px}.metric-sub{font-size:9px}table{min-width:280px;font-size:11px}th,td{padding:5px 6px;font-size:11px}.badge{padding:2px 6px;font-size:10px}.alert{padding:8px 10px;font-size:12px}.btn{padding:6px 10px;font-size:11px;min-height:40px}.btn-sm{padding:5px 9px;font-size:10px;min-height:36px}.btn-full{padding:10px;font-size:13px}.input,.select-inp,.textarea-inp{font-size:12px;padding:7px 9px;min-height:40px}.textarea-inp{min-height:60px}.qty-inp{width:55px;padding:6px 7px;min-height:36px;font-size:11px}.form-group label{font-size:11px}.form-section{font-size:10px;margin:12px 0 6px}.chip{padding:2px 8px;font-size:10px}.btn-group{gap:5px}.two-col,.three-col{gap:0.8rem}.form-row{gap:6px;margin-bottom:8px}.vehicle-card{padding:10px;margin-bottom:6px}.vehicle-icon{width:36px;height:36px;font-size:18px}.vehicle-name{font-size:12px}.vehicle-detail{font-size:11px}.modal{padding:1.1rem;border-radius:12px 12px 0 0}.modal-title{font-size:13px}.modal-handle{margin-bottom:1rem}canvas{height:100px!important}.chart-legend{gap:10px;font-size:10px}.legend-item{font-size:10px}.receipt-box{font-size:10.5px;padding:0.8rem}.stop{gap:10px;margin-bottom:12px}.stop-dot{width:18px;height:18px;border:2px solid var(--white)}.tl-item{padding:0 0 10px 18px}.tl-dot{width:10px;height:10px;left:-6px}.recon-row{font-size:12px;padding:6px 0}.topbar-left{gap:8px}}
+
+/* 375px: iPhone 12 / Standard Phone */
+@media(max-width:375px){:root{--r:7px;--rl:10px}html,body{font-size:11.5px}.topbar{padding:0.45rem 0.7rem}.topbar-title{font-size:12px}.menu-btn{padding:6px 8px;min-width:40px}.content{padding:0.65rem}.card{padding:0.75rem;margin-bottom:0.7rem}.card-header{gap:4px}.card-title{font-size:11.5px}.metric-grid{grid-template-columns:repeat(2,1fr);gap:6px}.metric-card{padding:0.75rem}.metric-value{font-size:15px}.metric-label{font-size:8px}.metric-sub{font-size:8.5px}table{min-width:260px;font-size:10px}th{font-size:9px;padding:4px 5px}td{padding:4px 5px}.badge{padding:1px 5px;font-size:9px}.alert{padding:7px 9px;font-size:11px}.btn{padding:5px 9px;font-size:10px;min-height:38px}.btn-sm{padding:4px 8px;font-size:9px;min-height:34px}.input,.select-inp,.textarea-inp{font-size:11px;padding:6px 8px;min-height:38px}.qty-inp{width:50px;padding:5px 6px;min-height:34px;font-size:10px}.form-group label{font-size:10px}.form-section{font-size:9px;margin:10px 0 5px}.vehicle-card{padding:9px;margin-bottom:5px}.vehicle-icon{width:32px;height:32px;font-size:16px}.vehicle-name{font-size:11px}.vehicle-detail{font-size:10px}.modal{padding:1rem}.modal-title{font-size:12px}.btn-group{gap:4px}.two-col,.three-col{gap:0.7rem}.form-row{gap:5px;margin-bottom:7px}.chip{padding:2px 7px;font-size:9px}canvas{height:80px!important}.chart-legend{gap:8px;font-size:9px}.notif-btn{width:40px;height:40px}.avatar{width:28px;height:28px;font-size:10px}.stop{gap:8px}.stop-dot{width:16px;height:16px}.tl-item{padding:0 0 8px 16px}.tl-dot{width:9px;height:9px;left:-5px}.recon-row{font-size:11px;padding:5px 0}.topbar-left{gap:6px}.receipt-box{font-size:10px;padding:0.7rem}}
+
+/* 320px: Small Android Phone */
+@media(max-width:320px){:root{--r:6px;--rl:9px}html,body{font-size:11px}.topbar{padding:0.4rem 0.6rem;gap:4px}.topbar-title{font-size:11px}.menu-btn{padding:5px 6px;min-width:36px;width:36px;height:36px}.notif-btn{width:36px;height:36px}.content{padding:0.6rem}.card{padding:0.7rem;margin-bottom:0.6rem}.card-header{flex-direction:column;align-items:flex-start}.card-title{font-size:11px}.metric-grid{grid-template-columns:1fr;gap:6px}.metric-card{padding:0.7rem}.metric-value{font-size:14px}.metric-label{font-size:7.5px}.metric-sub{font-size:8px}table{min-width:240px;font-size:9px}th{font-size:8px;padding:3px 4px}td{padding:3px 4px}.badge{padding:1px 4px;font-size:8px}.alert{padding:6px 8px;font-size:10px}.btn{padding:5px 8px;font-size:9.5px;min-height:36px}.btn-sm{padding:4px 7px;font-size:8.5px;min-height:32px}.input,.select-inp,.textarea-inp{font-size:10px;padding:6px 7px;min-height:36px}.qty-inp{width:48px;padding:5px 5px;min-height:32px;font-size:9px}.form-group label{font-size:9.5px}.form-section{font-size:8px;margin:8px 0 4px}.vehicle-card{padding:8px;margin-bottom:4px}.vehicle-icon{width:28px;height:28px;font-size:14px}.vehicle-name{font-size:10px}.vehicle-detail{font-size:9px}.modal{padding:0.95rem;border-radius:10px 10px 0 0}.modal-title{font-size:11px}.modal-handle{width:35px;margin-bottom:0.9rem}.btn-group{gap:3px;flex-direction:column}.btn-group .btn{width:100%}.two-col,.three-col{gap:0.6rem}.form-row{gap:4px;margin-bottom:6px;grid-template-columns:1fr}.chip{padding:1px 6px;font-size:8px}.avatar{width:24px;height:24px;font-size:8px}canvas{height:70px!important}.chart-legend{gap:6px;font-size:8px;flex-direction:column}.receipt-box{font-size:9px;padding:0.6rem;line-height:1.6}.stop{gap:6px;margin-bottom:10px}.stop-dot{width:14px;height:14px;border:1.5px}.tl-item{padding:0 0 6px 14px}.tl-dot{width:8px;height:8px;left:-4px}.recon-row{font-size:10px;padding:4px 0}.topbar-left{gap:4px}.tb-chip{font-size:10px;padding:4px 8px}}
+</style>
+</head>
+<body data-auth="required">
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<div class="app">
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-top">
+      <div class="logo-mark">CC</div>
+      <div><div class="logo-text">Outlet IMS</div><div class="logo-sub">Kampala Branch</div></div>
+    </div>
+    <div class="user-card">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar" id="sidebarAvatar">JO</div>
+        <div>
+          <div class="user-name" id="sidebarName">John Okello</div>
+          <div class="user-email" id="sidebarEmail">admin@ccoutlet.ug</div>
+          <span class="role-pill rp-admin" id="roleBadge">Admin</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="navMenu"></div>
+  <div class="role-switcher">
+    <div class="rs-label">Account</div>
+    <button class="role-btn" type="button" onclick="showPage('user-profile');closeSidebar()">Profile &amp; password</button>
+    <button class="role-btn" type="button" onclick="logoutApp()" style="color:#fca5a5;border-color:rgba(252,165,165,.35)">Log out</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+<div class="topbar">
+  <div class="topbar-left">
+    <button class="menu-btn" onclick="openSidebar()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="topbar-title" id="topbarTitle">Dashboard</span>
+  </div>
+  <div class="topbar-right">
+    <div class="tb-chip hide-sm" id="clockChip">--:--</div>
+    <div class="tb-chip hide-sm" style="color:var(--red);border-color:#fca5a5;background:#fff0f0">07 May 2026</div>
+    <div class="notif-btn" onclick="openModal('notifModal')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <div class="notif-dot"></div>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ══════════ ADMIN DASHBOARD ══════════ -->
+<div class="page active" id="page-admin-dashboard">
+  <div class="alert a-danger"><span>⚠</span><div><strong>Low stock:</strong> Coke 500ml (42 cartons) and Sprite 1L (18 cartons) below minimum of 80. <a href="#" onclick="showPage('admin-order');return false" style="color:var(--red);font-weight:600">Order now →</a></div></div>
+  <div class="metric-grid">
+    <div class="metric-card hi"><div class="metric-label">Warehouse</div><div class="metric-value">1,284</div><div class="metric-sub">cartons total</div></div>
+    <div class="metric-card"><div class="metric-label">Revenue today</div><div class="metric-value">3.72M</div><div class="metric-sub">UGX</div><div class="metric-trend trend-up">↑ 8%</div></div>
+    <div class="metric-card"><div class="metric-label">Cartons sold</div><div class="metric-value">186</div><div class="metric-sub">today</div></div>
+    <div class="metric-card"><div class="metric-label">Revenue MTD</div><div class="metric-value">84.2M</div><div class="metric-sub">UGX</div></div>
+    <div class="metric-card"><div class="metric-label">Vehicles out</div><div class="metric-value">3<span style="font-size:14px;font-weight:400;color:var(--gray-mid)">/4</span></div><div class="metric-sub">active now</div></div>
+    <div class="metric-card"><div class="metric-label">Edit requests</div><div class="metric-value">2</div><div class="metric-sub pending">pending</div></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Sales vs Expenses vs Profit</span><span class="chip">May 2026</span></div>
+      <canvas id="mainChart" height="180"></canvas>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#D42B2B"></div>Sales</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#374151"></div>Expenses</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div>Profit</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Product share — MTD</span></div>
+      <canvas id="donutChart" height="180"></canvas>
+      <div class="chart-legend" style="justify-content:center">
+        <div class="legend-item"><div class="legend-dot" style="background:#D42B2B"></div>Coke 500ml</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#374151"></div>Coke 1L</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#D97706"></div>Fanta</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1d4ed8"></div>Sprite</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div>Novida</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Monthly profit trend — 2026</span><div class="tb-chip" style="color:#16a34a;border-color:#86efac;background:#f0fdf4">↑ 14% vs last quarter</div></div>
+    <canvas id="profitChart" height="130"></canvas>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Fleet status</span><button class="btn btn-sm btn-red" onclick="showPage('admin-fleet')">Manage fleet</button></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>Vehicle</th><th>Type</th><th>Driver</th><th>Cadet</th><th>Status</th></tr>
+        <tr><td><strong>KCA 201T</strong></td><td><span class="badge b-truck">Truck</span></td><td>Ruth Nambi</td><td>Moses Otieno</td><td><span class="badge bs">On route</span></td></tr>
+        <tr><td><strong>KCB 774Y</strong></td><td><span class="badge b-truck">Truck</span></td><td>Grace Apio</td><td>Moses Otieno</td><td><span class="badge bs">On route</span></td></tr>
+        <tr><td><strong>TUK-001</strong></td><td><span class="badge b-tuk">Tuktuk</span></td><td>David Ssemuju</td><td>Amina Kirabo</td><td><span class="badge bs">On route</span></td></tr>
+        <tr><td><strong>TUK-002</strong></td><td><span class="badge b-tuk">Tuktuk</span></td><td>Joseph Okello</td><td>—</td><td><span class="badge bg">Available</span></td></tr>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Activity log</span></div>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">14:22</div><div class="tl-text">David S. requested edit on RCP-0507-4421</div></div>
+        <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">13:15</div><div class="tl-text">Manager confirmed 3 sales — UGX 680,000</div></div>
+        <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">11:00</div><div class="tl-text">KCB 774Y loaded 120 cartons, departed</div></div>
+        <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">09:45</div><div class="tl-text">Delivery from Coca-Cola — 350 cartons, KCA 201T</div></div>
+        <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">08:30</div><div class="tl-text">TUK-001 loaded — 40 cartons, David S. dispatched</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN USERS —— live data from /api/users/fetch_users.php -->
+<div class="page" id="page-admin-users">
+  <!-- top action bar -->
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem">
+    <button class="btn btn-red" onclick="openModal('addUserModal')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add user
+    </button>
+    <span class="chip" id="umCount" style="margin-left:auto"></span>
+  </div>
+  <!-- filter row -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
+    <input class="input" id="umSearch" style="max-width:280px;flex:1" type="text" placeholder="Search name, email, national ID, phone…" oninput="filterUserTable(this.value)">
+    <select class="select-inp" style="max-width:180px" onchange="filterUserTable(document.getElementById('umSearch').value)" id="umRoleFilter">
+      <option value="">All roles</option>
+      <option value="admin">Admin</option>
+      <option value="manager">Manager</option>
+      <option value="accountant">Accountant</option>
+      <option value="driver">Driver</option>
+      <option value="cadet">Cadet</option>
+      <option value="field_user">Field User</option>
+    </select>
+  </div>
+  <!-- stats row -->
+  <div class="three-col" style="margin-bottom:1rem">
+    <div class="metric-card" style="padding:.9rem 1rem">
+      <div class="metric-label">Total staff</div>
+      <div class="metric-value" id="umStatTotal" style="font-size:20px">—</div>
+    </div>
+    <div class="metric-card" style="padding:.9rem 1rem">
+      <div class="metric-label">Active accounts</div>
+      <div class="metric-value" id="umStatActive" style="font-size:20px">—</div>
+    </div>
+    <div class="metric-card" style="padding:.9rem 1rem">
+      <div class="metric-label">Inactive / suspended</div>
+      <div class="metric-value" id="umStatInactive" style="font-size:20px">—</div>
+    </div>
+  </div>
+  <!-- user table -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">System users</span>
+      <button class="btn btn-sm" onclick="loadUserManagement()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+        Refresh
+      </button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Name &amp; email</th><th>Role</th><th>National ID</th><th>Phone</th><th>Vehicle</th><th>Active</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="userTableBody">
+          <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-mid)">Loading users…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN FLEET -->
+<div class="page" id="page-admin-fleet">
+  <div class="btn-group"><button class="btn btn-red" onclick="openModal('addVehicleModal')">+ Add vehicle</button></div>
+  <div class="two-col">
+    <div>
+      <div class="card" style="border-top:3px solid #0369a1">
+        <div class="card-title" style="margin-bottom:.9rem">🚛 Trucks (2)</div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray-light)">
+          <div class="vehicle-icon vi-truck">🚛</div>
+          <div class="vehicle-info">
+            <div class="vehicle-name">KCA 201T — Isuzu NPR</div>
+            <div class="vehicle-detail">Driver: Ruth Nambi · Plate: KCA 201T · Capacity: 150 cartons</div>
+            <div style="margin-top:5px"><span class="badge bs">On route</span> <span class="badge b-truck">Kampala Central</span></div>
+          </div>
+          <button class="btn btn-sm" onclick="openModal('vehicleDetailModal')">View</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+          <div class="vehicle-icon vi-truck">🚛</div>
+          <div class="vehicle-info">
+            <div class="vehicle-name">KCB 774Y — Mercedes Sprinter</div>
+            <div class="vehicle-detail">Driver: Grace Apio · Plate: KCB 774Y · Capacity: 120 cartons</div>
+            <div style="margin-top:5px"><span class="badge bs">On route</span> <span class="badge b-truck">Mukono</span></div>
+          </div>
+          <button class="btn btn-sm" onclick="openModal('vehicleDetailModal')">View</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="border-top:3px solid #7e22ce">
+        <div class="card-title" style="margin-bottom:.9rem">🛺 Tuktuks (2)</div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray-light)">
+          <div class="vehicle-icon vi-tuk">🛺</div>
+          <div class="vehicle-info">
+            <div class="vehicle-name">TUK-001</div>
+            <div class="vehicle-detail">Rider: David Ssemuju · Reg: UAN 441R · Capacity: 40 cartons</div>
+            <div style="margin-top:5px"><span class="badge bs">On route</span> <span class="badge b-tuk">Owino / Katwe</span></div>
+          </div>
+          <button class="btn btn-sm" onclick="openModal('vehicleDetailModal')">View</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+          <div class="vehicle-icon vi-tuk">🛺</div>
+          <div class="vehicle-info">
+            <div class="vehicle-name">TUK-002</div>
+            <div class="vehicle-detail">Rider: Joseph Okello · Reg: UAN 552S · Capacity: 40 cartons</div>
+            <div style="margin-top:5px"><span class="badge bg">Available</span></div>
+          </div>
+          <button class="btn btn-sm" onclick="openModal('vehicleDetailModal')">View</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Today's dispatch log</span></div>
+    <div class="tbl-wrap"><table>
+      <tr><th>Vehicle</th><th>Type</th><th>Driver</th><th>Cadet</th><th>Departed</th><th>Load (cartons)</th><th>Route</th><th>Returned</th><th>Status</th></tr>
+      <tr><td>KCA 201T</td><td><span class="badge b-truck">Truck</span></td><td>Ruth N.</td><td>Moses O.</td><td>08:15</td><td>120</td><td>Kampala Central</td><td>—</td><td><span class="badge bs">Out</span></td></tr>
+      <tr><td>KCB 774Y</td><td><span class="badge b-truck">Truck</span></td><td>Grace A.</td><td>Moses O.</td><td>08:45</td><td>80</td><td>Mukono</td><td>—</td><td><span class="badge bs">Out</span></td></tr>
+      <tr><td>TUK-001</td><td><span class="badge b-tuk">Tuktuk</span></td><td>David S.</td><td>Amina K.</td><td>09:10</td><td>40</td><td>Owino / Katwe</td><td>13:30 ✓</td><td><span class="badge bg">Returned</span></td></tr>
+      <tr><td>TUK-002</td><td><span class="badge b-tuk">Tuktuk</span></td><td>Joseph O.</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><span class="badge bg">Available</span></td></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- ADMIN EDIT REQUESTS -->
+<div class="page" id="page-admin-editreqs">
+  <div class="alert a-info"><span>ℹ</span>Field users cannot modify sales directly. All changes require manager or admin approval.</div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Pending requests</span><span class="badge bd">2 pending</span></div>
+    <div class="tbl-wrap"><table>
+      <tr><th>Ref</th><th>User</th><th>Type</th><th>Reason</th><th>Details</th><th>Time</th><th>Action</th></tr>
+      <tr><td style="font-family:monospace;font-size:11px">RCP-0507-4421</td><td>David S.</td><td><span class="badge bw">Edit</span></td><td>Customer returned 2 cartons</td><td>Coke 500ml ×12→×10</td><td>14:22</td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approved')">Approve</button> <button class="btn btn-sm" onclick="approveReq(this,'rejected')">Reject</button></td></tr>
+      <tr><td style="font-family:monospace;font-size:11px">RCP-0507-3809</td><td>Grace A.</td><td><span class="badge bd">Cancel</span></td><td>Customer did not pay</td><td>Fanta Orange ×6</td><td>12:55</td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approved')">Approve</button> <button class="btn btn-sm" onclick="approveReq(this,'rejected')">Reject</button></td></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- ADMIN ORDER -->
+<div class="page" id="page-admin-order">
+  <div class="alert a-warning"><span>⚠</span>Auto-suggested: Coke 500ml and Sprite 1L below minimum threshold.</div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">New restock order to Coca-Cola Uganda</span></div>
+    <div class="tbl-wrap"><table style="margin-bottom:1rem">
+      <tr><th>Product</th><th>Warehouse</th><th>Min</th><th>Order qty</th><th>Unit cost</th><th>Est. total</th></tr>
+      <tr><td>Coke 500ml</td><td><span class="badge bd">42</span></td><td>80</td><td><input class="qty-inp" type="number" value="200" oninput="calcOrderCost()"></td><td>20,000</td><td id="c1">4,000,000</td></tr>
+      <tr><td>Coke 1L</td><td>210</td><td>100</td><td><input class="qty-inp" type="number" value="0" oninput="calcOrderCost()"></td><td>22,000</td><td id="c2">0</td></tr>
+      <tr><td>Fanta Orange</td><td>98</td><td>80</td><td><input class="qty-inp" type="number" value="100" oninput="calcOrderCost()"></td><td>18,000</td><td id="c3">1,800,000</td></tr>
+      <tr><td>Sprite 1L</td><td><span class="badge bd">18</span></td><td>80</td><td><input class="qty-inp" type="number" value="200" oninput="calcOrderCost()"></td><td>20,000</td><td id="c4">4,000,000</td></tr>
+      <tr><td>Novida</td><td>310</td><td>100</td><td><input class="qty-inp" type="number" value="0" oninput="calcOrderCost()"></td><td>20,000</td><td id="c5">0</td></tr>
+    </table></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border-top:1px solid var(--gray-light);padding-top:.9rem">
+      <span style="font-size:14px;font-weight:600">Total: <span id="orderTotal">UGX 9,800,000</span></span>
+      <button class="btn btn-red" onclick="alert('Order submitted.\nRef: ORD-2026-0507-001')">Submit order</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN REPORTS -->
+<div class="page" id="page-admin-reports">
+  <div class="btn-group"><button class="btn btn-red" onclick="alert('PDF exported')">Export PDF</button><button class="btn btn-black" onclick="alert('Board summary emailed')">Email board</button></div>
+  <div class="metric-grid">
+    <div class="metric-card hi"><div class="metric-label">Revenue MTD</div><div class="metric-value">84.2M</div><div class="metric-sub">UGX</div></div>
+    <div class="metric-card"><div class="metric-label">Expenses MTD</div><div class="metric-value">58.1M</div></div>
+    <div class="metric-card"><div class="metric-label">Net profit</div><div class="metric-value">26.1M</div><div class="metric-trend trend-up">↑ 14%</div></div>
+    <div class="metric-card"><div class="metric-label">Cartons MTD</div><div class="metric-value">4,210</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Sales vs Expenses vs Profit — detailed</span></div>
+    <canvas id="reportChart" height="180"></canvas>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#D42B2B"></div>Sales</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#374151"></div>Expenses</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div>Profit</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MANAGER PAGES ══════════ -->
+<div class="page" id="page-manager-dashboard">
+  <div class="alert a-danger"><span>⚠</span><strong>Low stock:</strong> Coke 500ml (42) and Sprite 1L (18).</div>
+  <div class="metric-grid">
+    <div class="metric-card hi"><div class="metric-label">Warehouse</div><div class="metric-value">1,284</div><div class="metric-sub">cartons</div></div>
+    <div class="metric-card"><div class="metric-label">Sales today</div><div class="metric-value">186</div><div class="metric-sub">UGX 3,720,000</div></div>
+    <div class="metric-card"><div class="metric-label">To confirm</div><div class="metric-value">5</div></div>
+    <div class="metric-card"><div class="metric-label">Edit requests</div><div class="metric-value">2</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Sales awaiting confirmation</span><span class="badge bd">5 pending</span></div>
+    <div class="tbl-wrap"><table>
+      <tr><th>User</th><th>Vehicle</th><th>Customer</th><th>Amount</th><th>Time</th><th>Action</th></tr>
+      <tr><td>David S.</td><td><span class="badge b-tuk">TUK-001</span></td><td>Nandos Supermkt</td><td>360,000</td><td>10:32</td><td><button class="btn btn-sm btn-red" onclick="confirmSale(this)">Confirm</button></td></tr>
+      <tr><td>Grace A.</td><td><span class="badge b-truck">KCB 774Y</span></td><td>Kampala Mall</td><td>480,000</td><td>11:05</td><td><button class="btn btn-sm btn-red" onclick="confirmSale(this)">Confirm</button></td></tr>
+      <tr><td>Ruth N.</td><td><span class="badge b-truck">KCA 201T</span></td><td>Owino Market</td><td>160,000</td><td>11:48</td><td><button class="btn btn-sm btn-red" onclick="confirmSale(this)">Confirm</button></td></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- MANAGER STOCK (with full delivery recording) -->
+<div class="page" id="page-manager-stock">
+  <div class="btn-group">
+    <button class="btn btn-red" onclick="openModal('incomingModal')">+ Record Coca-Cola delivery</button>
+    <button class="btn btn-black" onclick="alert('Daily stock update sent to Coca-Cola system — 07 May 2026 14:30')">Send daily update</button>
+    <button class="btn" onclick="openModal('dispatchModal')">Dispatch vehicle</button>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Current warehouse stock</span><span class="chip">Updated 14:30</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>Product</th><th>SKU</th><th>Warehouse</th><th>Batch</th><th>Nearest expiry</th><th>With vehicles</th><th>Sold today</th><th>Level</th></tr>
+        <tr><td>Coke 500ml</td><td>CK-500</td><td>42</td><td>CC500-JUN26-A</td><td>15 Aug 2026</td><td>38</td><td>64</td><td><div class="progress-bar"><div class="progress-fill p-red" style="width:21%"></div></div></td></tr>
+        <tr><td>Coke 1L</td><td>CK-1L</td><td>210</td><td>CC1L-JUN26-B</td><td>01 Sep 2026</td><td>40</td><td>22</td><td><div class="progress-bar"><div class="progress-fill p-green" style="width:78%"></div></div></td></tr>
+        <tr><td>Fanta Orange</td><td>FT-OR</td><td>98</td><td>FTOR-JUN26-C</td><td>20 Jul 2026</td><td>22</td><td>30</td><td><div class="progress-bar"><div class="progress-fill p-amber" style="width:49%"></div></div></td></tr>
+        <tr><td>Sprite 500ml</td><td>SP-500</td><td>155</td><td>SP500-JUN26-D</td><td>30 Aug 2026</td><td>35</td><td>18</td><td><div class="progress-bar"><div class="progress-fill p-green" style="width:72%"></div></div></td></tr>
+        <tr style="background:#fff7ed"><td>Sprite 1L</td><td>SP-1L</td><td>18</td><td>SP1L-JUN26-E</td><td style="color:var(--red);font-weight:600">10 Jul 2026 ⚠</td><td>12</td><td>22</td><td><div class="progress-bar"><div class="progress-fill p-red" style="width:9%"></div></div></td></tr>
+        <tr><td>Novida</td><td>NV-OR</td><td>310</td><td>NVOR-JUN26-F</td><td>01 Oct 2026</td><td>60</td><td>30</td><td><div class="progress-bar"><div class="progress-fill p-green" style="width:88%"></div></div></td></tr>
+      </table></div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Coca-Cola delivery records — today</span><button class="btn btn-sm btn-red" onclick="openModal('incomingModal')">+ Record</button></div>
+        <div id="deliveryList">
+          <div class="delivery-card">
+            <div class="delivery-header">
+              <div>
+                <strong>Delivery — 04 May 2026</strong>
+                <div style="font-size:12px;color:var(--gray-mid);margin-top:2px">Waybill: WB-2026-0504-001 · CC Truck: UBA 223K</div>
+                <div style="font-size:12px;color:var(--gray-mid)">Driver: Coca-Cola Driver · Time: 09:00 · Received by: Sarah Nakato</div>
+              </div>
+              <span class="badge bs">Recorded</span>
+            </div>
+            <div class="tbl-wrap"><table style="min-width:300px">
+              <tr><th>Product</th><th>Ordered</th><th>Delivered</th><th>Variance</th></tr>
+              <tr><td>Coke 500ml</td><td>300</td><td>300</td><td><span class="surplus">0</span></td></tr>
+              <tr><td>Fanta Orange</td><td>100</td><td>98</td><td><span class="deficit">-2</span></td></tr>
+              <tr><td>Novida</td><td>200</td><td>200</td><td><span class="surplus">0</span></td></tr>
+            </table></div>
+            <div style="font-size:12px;color:var(--gray-mid);margin-top:8px">Notes: 2 cartons Fanta short-delivered. Reported to Coca-Cola rep. Invoice: INV-CC-0504-0091</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:.8rem">Edit / cancel requests</div>
+        <div class="tbl-wrap"><table>
+          <tr><th>Ref</th><th>User</th><th>Type</th><th>Action</th></tr>
+          <tr><td style="font-family:monospace;font-size:11px">RCP-0507-4421</td><td>David S.</td><td><span class="badge bw">Edit</span></td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approved')">Approve</button></td></tr>
+          <tr><td style="font-family:monospace;font-size:11px">RCP-0507-3809</td><td>Grace A.</td><td><span class="badge bd">Cancel</span></td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approved')">Approve</button></td></tr>
+        </table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-manager-reports">
+  <div class="btn-group"><button class="btn btn-red" onclick="alert('PDF exported')">Daily PDF</button><button class="btn btn-black" onclick="alert('Board summary emailed')">Email board</button></div>
+  <div class="two-col">
+    <div class="card"><div class="card-title" style="margin-bottom:.8rem">Sales — May 2026</div>
+      <div class="tbl-wrap"><table><tr><th>Date</th><th>Cartons</th><th>Revenue</th></tr>
+        <tr><td>07 May</td><td>186</td><td>3,720,000</td></tr><tr><td>06 May</td><td>221</td><td>4,420,000</td></tr><tr><td>05 May</td><td>198</td><td>3,960,000</td></tr>
+      </table></div>
+    </div>
+    <div class="card"><div class="card-title" style="margin-bottom:.8rem">Vehicle performance</div>
+      <div class="tbl-wrap"><table><tr><th>Vehicle</th><th>Trips</th><th>Cartons</th><th>Revenue</th></tr>
+        <tr><td><span class="badge b-truck">KCA 201T</span></td><td>1</td><td>120</td><td>2,400,000</td></tr>
+        <tr><td><span class="badge b-truck">KCB 774Y</span></td><td>1</td><td>80</td><td>1,600,000</td></tr>
+        <tr><td><span class="badge b-tuk">TUK-001</span></td><td>2</td><td>40</td><td>840,000</td></tr>
+        <tr><td><span class="badge b-tuk">TUK-002</span></td><td>0</td><td>0</td><td>0</td></tr>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ FIELD USER PAGES ══════════ -->
+<div class="page" id="page-user-dashboard">
+  <!-- Vehicle banner -->
+  <div style="background:linear-gradient(135deg,#0D0D0D,#2A2A2A);border-radius:var(--rl);padding:1.1rem 1.3rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 4px 20px rgba(0,0,0,.2)">
+    <div style="font-size:32px">🛺</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:16px;font-weight:700;color:#fff">TUK-001 — Assigned vehicle</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:3px">Reg: UAN 441R · Capacity: 40 cartons · Route: Owino / Katwe</div>
+      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"><span class="badge bs">Active</span><span class="badge b-tuk" style="background:rgba(126,34,206,.25);color:#c084fc">Tuktuk</span></div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div style="font-size:11px;color:rgba(255,255,255,.4)">Load today</div>
+      <div style="font-size:22px;font-weight:700;color:#fff">40</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4)">cartons</div>
+    </div>
+  </div>
+  <div class="metric-grid">
+    <div class="metric-card hi"><div class="metric-label">Taken</div><div class="metric-value">40</div><div class="metric-sub">cartons loaded</div></div>
+    <div class="metric-card"><div class="metric-label">Sold</div><div class="metric-value">28</div><div class="metric-sub">UGX 560,000</div></div>
+    <div class="metric-card"><div class="metric-label">Remaining</div><div class="metric-value">12</div><div class="metric-sub">on vehicle</div></div>
+    <div class="metric-card"><div class="metric-label">Receipts</div><div class="metric-value">4</div></div>
+    <div class="metric-card"><div class="metric-label">Stops done</div><div class="metric-value">3<span style="font-size:13px;color:var(--gray-mid)">/6</span></div></div>
+  </div>
+  <div class="two-col">
+    <div class="card"><div class="card-title" style="margin-bottom:.8rem">My product breakdown</div>
+      <div class="tbl-wrap"><table>
+        <tr><th>Product</th><th>Loaded</th><th>Sold</th><th>Remaining</th></tr>
+        <tr><td>Coke 500ml</td><td>15</td><td>12</td><td><strong>3</strong></td></tr>
+        <tr><td>Fanta Orange</td><td>10</td><td>8</td><td><strong>2</strong></td></tr>
+        <tr><td>Novida</td><td>10</td><td>6</td><td><strong>4</strong></td></tr>
+        <tr><td>Sprite 500ml</td><td>5</td><td>2</td><td><strong>3</strong></td></tr>
+      </table></div>
+    </div>
+    <div class="card"><div class="card-title" style="margin-bottom:.8rem">Today's sales</div>
+      <div class="tbl-wrap"><table>
+        <tr><th>Time</th><th>Customer</th><th>Amount</th><th>Status</th><th></th></tr>
+        <tr><td>10:32</td><td>Nandos</td><td>200,000</td><td><span class="badge bs">✓</span></td><td>—</td></tr>
+        <tr><td>11:48</td><td>Owino Mkt</td><td>160,000</td><td><span class="badge bw">Pending</span></td><td><button class="btn btn-sm" onclick="openModal('editSaleModal')">Edit req.</button></td></tr>
+        <tr><td>13:15</td><td>Katwe Shop</td><td>120,000</td><td><span class="badge bw">Pending</span></td><td><button class="btn btn-sm" onclick="openModal('cancelSaleModal')">Cancel req.</button></td></tr>
+        <tr><td>14:02</td><td>Kiosk Jinja</td><td>80,000</td><td><span class="badge bs">✓</span></td><td>—</td></tr>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-user-customers">
+  <div class="btn-group"><button class="btn btn-red" onclick="openModal('addCustModal')">+ Add customer</button></div>
+  <div style="margin-bottom:.8rem"><input class="input" type="text" placeholder="Search customers…" oninput="searchCustomers(this.value)"></div>
+  <div class="card"><div class="tbl-wrap"><table>
+    <tr><th>Customer</th><th>Phone</th><th>Location</th><th>Category</th><th>Balance (UGX)</th><th>Last sale</th></tr>
+    <tr><td><strong>Nandos Supermarket</strong></td><td>+256 772 555 001</td><td>Kampala Road, Shop 14</td><td><span class="badge bs">Regular</span></td><td>0</td><td>07 May — 200,000</td></tr>
+    <tr><td><strong>Owino Market</strong></td><td>—</td><td>Owino Market, Stall 22</td><td><span class="badge bg">Occasional</span></td><td>0</td><td>06 May — 160,000</td></tr>
+    <tr style="background:#fff7ed"><td><strong>Katwe Shop</strong></td><td>+256 701 334 455</td><td>Katwe Main St</td><td><span class="badge bg">Occasional</span></td><td style="color:var(--red);font-weight:600">120,000</td><td>07 May — 120,000</td></tr>
+  </table></div></div>
+  <div id="customerList" style="display:none">
+    <div class="cust-card" onclick="selectCustomer(this,'Nandos Supermarket','+256 772 555 001','Kampala Road, Shop 14')">
+      <div style="display:flex;justify-content:space-between;gap:8px"><div><div class="cust-name">Nandos Supermarket</div><div class="cust-detail">+256 772 555 001 · Kampala Road, Shop 14</div><div class="cust-detail" style="margin-top:3px">Last: 07 May — 200,000 · Total: UGX 3,400,000</div></div><span class="badge bs">Regular</span></div>
+    </div>
+    <div class="cust-card" onclick="selectCustomer(this,'Owino Market','—','Owino Market, Stall 22')">
+      <div style="display:flex;justify-content:space-between;gap:8px"><div><div class="cust-name">Owino Market</div><div class="cust-detail">— · Owino Market, Stall 22</div><div class="cust-detail" style="margin-top:3px">Last: 06 May — 160,000 · Total: UGX 1,200,000</div></div><span class="badge bg">Occasional</span></div>
+    </div>
+    <div class="cust-card" onclick="selectCustomer(this,'Katwe Shop','+256 701 334 455','Katwe Main St')">
+      <div style="display:flex;justify-content:space-between;gap:8px"><div><div class="cust-name">Katwe Shop</div><div class="cust-detail">+256 701 334 455 · Katwe Main St</div><div class="cust-detail" style="margin-top:3px">Last: 07 May — 120,000 · Total: UGX 800,000</div></div><span class="badge bg">Occasional</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-user-route">
+  <div class="alert a-info"><span>ℹ</span>Today's route: <strong>Owino / Katwe</strong> — 6 stops. Vehicle: TUK-001 (🛺)</div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Route stops</span><span class="chip">TUK-001</span></div>
+      <div class="route-map">
+        <div class="route-line"></div>
+        <div class="route-fill" style="height:100px"></div>
+        <div class="stop"><div class="stop-dot done"></div><div><div style="font-size:13px;font-weight:600">1. Nandos Supermarket</div><div style="font-size:12px;color:var(--gray-mid)">Kampala Rd · 10:20</div><div style="margin-top:4px"><span class="badge bs">Done — 200,000</span></div></div></div>
+        <div class="stop"><div class="stop-dot done"></div><div><div style="font-size:13px;font-weight:600">2. Owino Market</div><div style="font-size:12px;color:var(--gray-mid)">Owino Stall 22 · 11:40</div><div style="margin-top:4px"><span class="badge bw">Pending confirmation</span></div></div></div>
+        <div class="stop"><div class="stop-dot done"></div><div><div style="font-size:13px;font-weight:600">3. Katwe Shop</div><div style="font-size:12px;color:var(--gray-mid)">Katwe Main St · 13:10</div><div style="margin-top:4px"><span class="badge bw">Pending confirmation</span></div></div></div>
+        <div class="stop"><div class="stop-dot active"></div><div><div style="font-size:13px;font-weight:600">4. Kibuye Market <span class="badge br" style="font-size:10px">Current</span></div><div style="font-size:12px;color:var(--gray-mid)">ETA 14:30</div><div style="display:flex;gap:6px;margin-top:6px"><button class="btn btn-sm btn-red" onclick="markStopDone(this)">Mark arrived</button><button class="btn btn-sm" onclick="showPage('user-receipt')">New sale</button></div></div></div>
+        <div class="stop"><div class="stop-dot pending"></div><div><div style="font-size:13px;font-weight:600">5. Nakawa Market</div><div style="font-size:12px;color:var(--gray-mid)">ETA 15:15</div></div></div>
+        <div class="stop"><div class="stop-dot pending"></div><div><div style="font-size:13px;font-weight:600">6. Bugolobi Kiosk</div><div style="font-size:12px;color:var(--gray-mid)">ETA 16:00</div></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card"><div class="card-title" style="margin-bottom:.8rem">Route summary</div>
+        <div class="recon-row"><span>Stops done</span><strong>3 / 6</strong></div>
+        <div class="recon-row"><span>Distance covered</span><strong>~8 km</strong></div>
+        <div class="recon-row"><span>Revenue collected</span><strong>UGX 480,000</strong></div>
+        <div class="recon-row"><span>Cartons delivered</span><strong>22 / 40</strong></div>
+        <div class="recon-row"><span>Est. return</span><strong>17:00</strong></div>
+      </div>
+      <div class="card"><div class="card-title" style="margin-bottom:.8rem">Request more stock</div>
+        <p style="font-size:12px;color:var(--gray-mid);margin-bottom:10px">Running low on your tuktuk? Request a top-up from warehouse.</p>
+        <div class="tbl-wrap"><table style="margin-bottom:10px">
+          <tr><th>Product</th><th>On vehicle</th><th>Request</th></tr>
+          <tr><td>Coke 500ml</td><td>3</td><td><input class="qty-inp" type="number" value="5"></td></tr>
+          <tr><td>Fanta Orange</td><td>2</td><td><input class="qty-inp" type="number" value="5"></td></tr>
+        </table></div>
+        <button class="btn btn-red" onclick="alert('Stock request sent. Manager notified.')">Send request</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-user-receipt">
+  <div class="two-col">
+    <div class="card">
+      <div class="card-header"><span class="card-title">New sale</span><button class="btn btn-sm" onclick="showPage('user-customers')">Pick customer</button></div>
+      <div class="form-group"><label>Customer name</label><input class="input" id="custName" value="Nandos Supermarket"></div>
+      <div class="form-group"><label>Phone</label><input class="input" id="custPhone" value="+256 772 555 001"></div>
+      <div class="form-group"><label>Location</label><input class="input" id="custLoc" value="Kampala Road, Shop 14"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Payment type</label><select class="select-inp" id="paymentType"><option value="cash">Cash</option><option value="credit">Credit</option></select></div>
+        <div class="form-group"><label>Amount paid (UGX)</label><input class="input" id="amountPaid" type="number" value="200000"></div>
+      </div>
+      <div class="form-group"><label>URA Receipt No. (EFRIS) — optional</label><input class="input" id="efrisRef" placeholder="Leave blank until URA integration"></div>
+      <hr class="divider">
+      <div class="tbl-wrap"><table>
+        <tr><th>Product</th><th>Qty</th><th>Unit</th></tr>
+        <tr><td>Coke 500ml</td><td><input class="qty-inp" data-prod="Coke 500ml" data-price="20000" type="number" value="5"></td><td>20,000</td></tr>
+        <tr><td>Coke 1L</td><td><input class="qty-inp" data-prod="Coke 1L" data-price="22000" type="number" value="0"></td><td>22,000</td></tr>
+        <tr><td>Fanta Orange</td><td><input class="qty-inp" data-prod="Fanta Orange" data-price="18000" type="number" value="3"></td><td>18,000</td></tr>
+        <tr><td>Sprite 500ml</td><td><input class="qty-inp" data-prod="Sprite 500ml" data-price="19000" type="number" value="0"></td><td>19,000</td></tr>
+        <tr><td>Novida</td><td><input class="qty-inp" data-prod="Novida" data-price="20000" type="number" value="0"></td><td>20,000</td></tr>
+      </table></div>
+      <div style="display:flex;gap:8px;margin-top:1rem">
+        <button class="btn btn-red" onclick="generateReceipt()" style="flex:1">Generate receipt</button>
+        <button class="btn" onclick="alert('Sale logged.')">Log only</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Receipt preview</span><button class="btn btn-sm" onclick="printReceipt()">Print / Share</button></div>
+      <div class="receipt-box" id="receiptPreview">Fill in details and click "Generate receipt".</div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-user-eod">
+  <div class="alert a-info"><span>ℹ</span>End-of-day report — <strong>07 May 2026</strong>. Submit before returning TUK-001.</div>
+  <div class="two-col">
+    <div>
+      <div class="eod-sec"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-mid);margin-bottom:10px">Stock reconciliation</div>
+        <div class="tbl-wrap"><table>
+          <tr><th>Product</th><th>Loaded</th><th>Sold</th><th>Returning</th><th>Variance</th></tr>
+          <tr><td>Coke 500ml</td><td>15</td><td>12</td><td><input class="qty-inp" type="number" value="3" oninput="calcVariance(this,15,12,'v1')"></td><td id="v1" class="surplus">0</td></tr>
+          <tr><td>Fanta Orange</td><td>10</td><td>8</td><td><input class="qty-inp" type="number" value="2" oninput="calcVariance(this,10,8,'v2')"></td><td id="v2" class="surplus">0</td></tr>
+          <tr><td>Novida</td><td>10</td><td>6</td><td><input class="qty-inp" type="number" value="4" oninput="calcVariance(this,10,6,'v3')"></td><td id="v3" class="surplus">0</td></tr>
+          <tr><td>Sprite 500ml</td><td>5</td><td>2</td><td><input class="qty-inp" type="number" value="3" oninput="calcVariance(this,5,2,'v4')"></td><td id="v4" class="surplus">0</td></tr>
+        </table></div>
+      </div>
+      <div class="card"><div class="card-title" style="margin-bottom:.8rem">Cash summary</div>
+        <div class="recon-row"><span>Total sales</span><strong>UGX 560,000</strong></div>
+        <div class="recon-row"><span>Bank confirmed</span><strong>UGX 400,000</strong></div>
+        <div class="recon-row"><span>Pending</span><strong style="color:var(--red)">UGX 160,000</strong></div>
+        <div class="form-group" style="margin-top:10px"><label>Remarks</label><textarea class="textarea-inp" placeholder="Any issues or incidents…"></textarea></div>
+      </div>
+    </div>
+    <div>
+      <div class="card"><div class="card-title" style="margin-bottom:.8rem">Vehicle end-of-day</div>
+        <div class="recon-row"><span>Vehicle</span><strong>TUK-001</strong></div>
+        <div class="recon-row"><span>Stops completed</span><strong>6 / 6</strong></div>
+        <div class="recon-row"><span>Distance</span><strong>~18 km</strong></div>
+        <div class="form-group" style="margin-top:10px"><label>Odometer end (km)</label><input class="input" type="number" placeholder="e.g. 12068"></div>
+        <div class="form-group"><label>Fuel cost (UGX)</label><input class="input" type="number" placeholder="e.g. 45000"></div>
+        <div class="form-group"><label>Cash to hand over (UGX)</label><input class="input" type="number" value="560000"></div>
+        <div class="recon-row"><span>Vehicle damage reported</span><label class="toggle" style="float:right"><input type="checkbox"><span class="slider"></span></label></div>
+        <div class="form-group"><label>Damage notes (optional)</label><textarea class="textarea-inp" placeholder="Describe any vehicle damage…"></textarea></div>
+      </div>
+      <div class="card"><div class="card-title" style="margin-bottom:.8rem">Unpaid balances</div>
+        <div class="tbl-wrap"><table>
+          <tr><th>Customer</th><th>Amount</th><th>Status</th></tr>
+          <tr><td>Katwe Shop</td><td>120,000</td><td><span class="badge bw">Unpaid</span></td></tr>
+        </table></div>
+      </div>
+      <button class="btn btn-red btn-full" onclick="alert('EOD submitted.\nRef: EOD-2026-0507-DS001\nManager notified.')">Submit end-of-day report</button>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-user-returns">
+  <div class="card"><div class="card-header"><span class="card-title">Return unsold stock — TUK-001</span></div>
+    <div class="tbl-wrap"><table style="margin-bottom:1rem">
+      <tr><th>Product</th><th>Loaded</th><th>Sold</th><th>Returning</th></tr>
+      <tr><td>Coke 500ml</td><td>15</td><td>12</td><td><input class="qty-inp" type="number" value="3"></td></tr>
+      <tr><td>Fanta Orange</td><td>10</td><td>8</td><td><input class="qty-inp" type="number" value="2"></td></tr>
+      <tr><td>Novida</td><td>10</td><td>6</td><td><input class="qty-inp" type="number" value="4"></td></tr>
+      <tr><td>Sprite 500ml</td><td>5</td><td>2</td><td><input class="qty-inp" type="number" value="3"></td></tr>
+    </table></div>
+    <button class="btn btn-red" onclick="alert('Returns logged. Warehouse updated. Manager notified.')">Submit returns</button>
+  </div>
+</div>
+
+<div class="page" id="page-admin-audit">
+  <!-- header alert -->
+  <div class="alert a-info" style="margin-bottom:1rem">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div>Admin-only view — every <strong>create</strong>, <strong>update</strong>, <strong>delete</strong>, <strong>login</strong> and <strong>logout</strong> event is recorded here in real time.</div>
+  </div>
+
+  <!-- filters -->
+  <div class="card" style="margin-bottom:1rem;padding:1rem 1.2rem">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--gray-mid)"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      <span style="font-size:12px;font-weight:600;color:var(--gray-mid);margin-right:4px">Filter by</span>
+      <select class="select-inp" id="auditFilterAction" style="max-width:150px;min-height:36px" onchange="loadAuditLog()">
+        <option value="">All actions</option>
+        <option value="create">Create</option>
+        <option value="update">Update</option>
+        <option value="delete">Delete</option>
+        <option value="login">Login</option>
+        <option value="logout">Logout</option>
+      </select>
+      <select class="select-inp" id="auditFilterTable" style="max-width:180px;min-height:36px" onchange="loadAuditLog()">
+        <option value="">All tables</option>
+        <option value="users">Users</option>
+        <option value="sales">Sales</option>
+        <option value="dispatches">Dispatches</option>
+        <option value="supplier_deliveries">Deliveries</option>
+        <option value="orders">Orders</option>
+        <option value="customers">Customers</option>
+        <option value="vehicles">Vehicles</option>
+        <option value="batches">Batches</option>
+      </select>
+      <input class="input" id="auditFilterUser" style="max-width:200px;min-height:36px" type="text" placeholder="Filter by user name/email…" oninput="loadAuditLog()">
+      <button class="btn btn-sm" onclick="loadAuditLog()" style="margin-left:auto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+        Refresh
+      </button>
+      <span class="chip" id="auditCount"></span>
+    </div>
+  </div>
+
+  <!-- table -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Audit trail</span>
+      <span style="font-size:11.5px;color:var(--gray-mid)">Most recent first · up to 200 entries</span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:150px">When</th>
+            <th style="width:190px">User</th>
+            <th style="width:150px">Table / record</th>
+            <th style="width:90px">Action</th>
+            <th>Changes</th>
+          </tr>
+        </thead>
+        <tbody id="auditLogBody">
+          <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-mid)">Sign in as Admin, then open this page.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-admin-efris">
+  <div class="card" style="text-align:center;padding:3rem 1.5rem">
+    <div style="font-size:42px;margin-bottom:12px;opacity:.35">🧾</div>
+    <div class="card-title" style="font-size:18px;margin-bottom:8px">EFRIS / URA Integration</div>
+    <p style="color:var(--gray-mid);max-width:420px;margin:0 auto 1rem">Coming soon — sales will sync with URA e-invoicing. The EFRIS reference field on receipts is already in place for when integration goes live.</p>
+    <span class="badge bg">Planned — Phase 3+</span>
+  </div>
+</div>
+
+<div class="page" id="page-user-profile">
+  <div class="card" style="max-width:480px">
+    <div class="card-title" style="margin-bottom:1rem">Change password</div>
+    <div class="alert a-danger" id="profileErr" style="display:none"></div>
+    <div class="alert a-success" id="profileOk" style="display:none"></div>
+    <form onsubmit="submitPasswordChange(event)">
+      <div class="form-group"><label>Current password</label><input class="input" id="currentPassword" type="password" required autocomplete="current-password"></div>
+      <div class="form-group"><label>New password</label><input class="input" id="newPassword" type="password" required minlength="8" autocomplete="new-password"></div>
+      <div class="form-group"><label>Confirm new password</label><input class="input" id="confirmPassword" type="password" required minlength="8" autocomplete="new-password"></div>
+      <button class="btn btn-red" type="submit">Update password</button>
+    </form>
+  </div>
+</div>
+
+<div class="page" id="page-accountant-cash">
+  <div class="alert a-warning"><span>⚠</span>Confirm physical cash received from cadets after end-of-day submission.</div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Pending cash confirmations</span><span class="badge bw">1 pending</span></div>
+    <div class="tbl-wrap"><table>
+      <tr><th>Trip</th><th>Cadet</th><th>Reported (UGX)</th><th>Amount received</th><th>Variance</th><th>Action</th></tr>
+      <tr>
+        <td>TUK-001 · 07 May</td><td>Amina Kirabo</td><td>560,000</td>
+        <td><input class="input" style="min-height:36px;max-width:140px" type="number" value="560000" oninput="calcCashVariance(this,560000,'var1')"></td>
+        <td id="var1" class="surplus">0</td>
+        <td><button class="btn btn-sm btn-red" onclick="alert('Cash confirmed. Trip marked completed.')">Confirm receipt</button></td>
+      </tr>
+    </table></div>
+  </div>
+</div>
+
+<div class="page" id="page-accountant-dashboard">
+  <div class="metric-grid">
+    <div class="metric-card hi"><div class="metric-label">Pending confirmations</div><div class="metric-value">1</div></div>
+    <div class="metric-card"><div class="metric-label">Receivables</div><div class="metric-value">120K</div><div class="metric-sub">UGX outstanding</div></div>
+    <div class="metric-card"><div class="metric-label">Cash collected today</div><div class="metric-value">3.72M</div><div class="metric-sub">UGX</div></div>
+  </div>
+</div>
+
+<div class="page" id="page-accountant-reports">
+  <div class="btn-group"><button class="btn btn-red" onclick="alert('PDF exported')">Export PDF</button><button class="btn" onclick="alert('CSV exported')">Export CSV</button></div>
+  <div class="card"><div class="card-title" style="margin-bottom:.8rem">Outstanding receivables</div>
+    <div class="tbl-wrap"><table>
+      <tr><th>Customer</th><th>Balance (UGX)</th><th>Last sale</th></tr>
+      <tr><td>Katwe Shop</td><td style="color:var(--red);font-weight:600">120,000</td><td>07 May — credit sale</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<div class="page" id="page-driver-dashboard">
+  <div class="alert a-info"><span>ℹ</span>Driver view — route stops, odometer, and vehicle condition.</div>
+  <div class="metric-grid">
+    <div class="metric-card hi"><div class="metric-label">Today's route</div><div class="metric-value" style="font-size:16px">Owino / Katwe</div></div>
+    <div class="metric-card"><div class="metric-label">Stops</div><div class="metric-value">3/6</div></div>
+    <div class="metric-card"><div class="metric-label">Odometer start</div><div class="metric-value">12,050</div><div class="metric-sub">km</div></div>
+  </div>
+  <button class="btn btn-red" onclick="showPage('user-route')">Open route stops</button>
+</div>
+
+</div></div></div>
+
+<!-- ══════════ MODALS ══════════ -->
+<!-- ══ ADD USER MODAL (live API) ══ -->
+<div class="modal-overlay" id="addUserModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Add new user</div>
+  <div class="alert a-danger" id="addUserErr" style="display:none"></div>
+  <form onsubmit="submitAddUser(event)">
+    <div class="form-section">Personal details</div>
+    <div class="form-row">
+      <div class="form-group"><label>Full name</label><input class="input" id="auName" placeholder="Full legal name" required></div>
+      <div class="form-group"><label>Role</label>
+        <select class="select-inp" id="auRole">
+          <option value="admin">Admin</option>
+          <option value="manager">Manager</option>
+          <option value="accountant">Accountant</option>
+          <option value="driver">Driver</option>
+          <option value="cadet">Cadet</option>
+          <option value="field_user" selected>Field User</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>National ID number</label><input class="input" id="auNatId" placeholder="CMxxxxxxxxxxxxxxx"></div>
+      <div class="form-group"><label>Phone number</label><input class="input" id="auPhone" placeholder="+256 7XX XXXXXX"></div>
+    </div>
+    <div class="form-group"><label>Email address</label><input class="input" id="auEmail" type="email" placeholder="user@lapok.ug" required></div>
+    <div class="form-section">Account password</div>
+    <div class="form-group">
+      <label>Temporary password</label>
+      <input class="input" id="auPassword" type="password" placeholder="Min 8 characters" required minlength="8">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" type="button" onclick="closeModal('addUserModal')">Cancel</button>
+      <button class="btn btn-red" type="submit">Create account</button>
+    </div>
+  </form>
+</div></div>
+
+<!-- ══ EDIT USER MODAL (live API) ══ -->
+<div class="modal-overlay" id="editUserModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Edit user</div>
+  <div class="alert a-danger" id="editUserErr" style="display:none"></div>
+  <form onsubmit="submitEditUser(event)">
+    <input type="hidden" id="euId">
+    <div class="form-row">
+      <div class="form-group"><label>Full name</label><input class="input" id="euName" required></div>
+      <div class="form-group"><label>Role</label>
+        <select class="select-inp" id="euRole">
+          <option value="admin">Admin</option>
+          <option value="manager">Manager</option>
+          <option value="accountant">Accountant</option>
+          <option value="driver">Driver</option>
+          <option value="cadet">Cadet</option>
+          <option value="field_user">Field User</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>National ID</label><input class="input" id="euNatId" placeholder="CMxxxxxxxxxxxxxxx"></div>
+      <div class="form-group"><label>Phone</label><input class="input" id="euPhone" placeholder="+256 7XX XXXXXX"></div>
+    </div>
+    <div class="form-group"><label>Email address</label><input class="input" id="euEmail" type="email" required></div>
+    <div class="form-section">Reset password (optional)</div>
+    <div class="form-group">
+      <label>New password <span style="font-weight:400;color:var(--gray-mid)">(leave blank to keep current)</span></label>
+      <input class="input" id="euNewPassword" type="password" placeholder="Min 8 characters" minlength="8" autocomplete="new-password">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" type="button" onclick="closeModal('editUserModal')">Cancel</button>
+      <button class="btn btn-red" type="submit">Save changes</button>
+    </div>
+  </form>
+</div></div>
+
+<div class="modal-overlay" id="incomingModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Record Coca-Cola delivery</div>
+  <div class="form-section">Delivery details</div>
+  <div class="form-row"><div class="form-group"><label>Delivery date</label><input class="input" type="date" value="2026-05-07"></div><div class="form-group"><label>Delivery time</label><input class="input" type="time" value="09:00"></div></div>
+  <div class="form-row"><div class="form-group"><label>Waybill / delivery note ref</label><input class="input" placeholder="WB-2026-0507-001"></div><div class="form-group"><label>Invoice number</label><input class="input" placeholder="INV-CC-0507-XXXX"></div></div>
+  <div class="form-row"><div class="form-group"><label>Coca-Cola truck plate</label><input class="input" placeholder="e.g. UBA 223K"></div><div class="form-group"><label>Coca-Cola driver name</label><input class="input" placeholder="Driver name"></div></div>
+  <div class="form-row"><div class="form-group"><label>Received by</label><input class="input" value="Sarah Nakato" readonly></div><div class="form-group"><label>Outlet warehouse</label><input class="input" value="Kampala Branch" readonly></div></div>
+  <div class="form-section">Products delivered</div>
+  <div class="tbl-wrap"><table style="margin-bottom:.8rem;min-width:360px">
+    <tr><th>Product</th><th>Qty ordered</th><th>Qty delivered</th><th>Batch no.</th><th>Expiry date</th><th>Unit cost</th></tr>
+    <tr><td>Coke 500ml</td><td><input class="qty-inp" type="number" value="200"></td><td><input class="qty-inp" type="number" value="200"></td><td><input class="input" style="min-height:36px;padding:6px 8px" placeholder="CC500-JUN26-A"></td><td><input class="input" style="min-height:36px;padding:6px 8px" type="date" value="2026-08-15"></td><td>12,000</td></tr>
+    <tr><td>Coke 1L</td><td><input class="qty-inp" type="number" value="0"></td><td><input class="qty-inp" type="number" value="0"></td><td><input class="input" style="min-height:36px;padding:6px 8px" placeholder="Batch"></td><td><input class="input" style="min-height:36px;padding:6px 8px" type="date"></td><td>14,000</td></tr>
+    <tr><td>Fanta Orange</td><td><input class="qty-inp" type="number" value="100"></td><td><input class="qty-inp" type="number" value="98"></td><td><input class="input" style="min-height:36px;padding:6px 8px" placeholder="FTOR-JUN26-B"></td><td><input class="input" style="min-height:36px;padding:6px 8px" type="date" value="2026-07-20"></td><td>11,000</td></tr>
+    <tr><td>Sprite 500ml</td><td><input class="qty-inp" type="number" value="0"></td><td><input class="qty-inp" type="number" value="0"></td><td><input class="input" style="min-height:36px;padding:6px 8px" placeholder="Batch"></td><td><input class="input" style="min-height:36px;padding:6px 8px" type="date"></td><td>11,500</td></tr>
+    <tr><td>Sprite 1L</td><td><input class="qty-inp" type="number" value="200"></td><td><input class="qty-inp" type="number" value="200"></td><td><input class="input" style="min-height:36px;padding:6px 8px" placeholder="SP1L-JUN26-E"></td><td><input class="input" style="min-height:36px;padding:6px 8px" type="date" value="2026-07-10"></td><td>13,000</td></tr>
+    <tr><td>Novida</td><td><input class="qty-inp" type="number" value="0"></td><td><input class="qty-inp" type="number" value="0"></td><td><input class="input" style="min-height:36px;padding:6px 8px" placeholder="Batch"></td><td><input class="input" style="min-height:36px;padding:6px 8px" type="date"></td><td>12,000</td></tr>
+  </table></div>
+  <div class="form-section">Condition & notes</div>
+  <div class="form-row"><div class="form-group"><label>Delivery condition</label><select class="select-inp"><option>Good — all cartons intact</option><option>Minor damage — noted below</option><option>Short delivery — noted below</option></select></div><div class="form-group"><label>Temperature on arrival</label><select class="select-inp"><option>Cold (correct)</option><option>Room temperature</option><option>Warm (issue reported)</option></select></div></div>
+  <div class="form-group"><label>Notes / discrepancies</label><textarea class="textarea-inp" placeholder="e.g. 2 cartons Fanta short-delivered. Reported to Coca-Cola rep John Doe."></textarea></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('incomingModal')">Cancel</button><button class="btn btn-red" onclick="saveDelivery()">Save delivery</button></div>
+</div></div>
+
+<div class="modal-overlay" id="dispatchModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Dispatch vehicle</div>
+  <div class="form-row"><div class="form-group"><label>Vehicle</label><select class="select-inp"><option>🚛 KCA 201T — Ruth Nambi (Truck)</option><option>🚛 KCB 774Y — Grace Apio (Truck)</option><option>🛺 TUK-001 — David Ssemuju (Tuktuk)</option><option>🛺 TUK-002 — Joseph Okello (Tuktuk)</option></select></div><div class="form-group"><label>Dispatch time</label><input class="input" type="time" value="09:00"></div></div>
+  <div class="form-row"><div class="form-group"><label>Driver</label><select class="select-inp"><option>David Ssemuju</option><option>Grace Apio</option><option>Ruth Nambi</option><option>Joseph Okello</option></select></div><div class="form-group"><label>Cadet</label><select class="select-inp"><option>Amina Kirabo</option><option>Moses Otieno</option></select></div></div>
+  <div class="form-row"><div class="form-group"><label>Route / area</label><input class="input" placeholder="e.g. Owino / Katwe"></div><div class="form-group"><label>Odometer start (km)</label><input class="input" type="number" placeholder="e.g. 12050"></div></div>
+  <div class="form-group"><label>Trip notes (optional)</label><textarea class="textarea-inp" placeholder="Special instructions for driver/cadet…"></textarea></div>
+  <div class="tbl-wrap"><table style="margin-bottom:.8rem;min-width:280px"><tr><th>Product</th><th>Cartons to load</th></tr>
+    <tr><td>Coke 500ml</td><td><input class="qty-inp" type="number" value="10"></td></tr>
+    <tr><td>Coke 1L</td><td><input class="qty-inp" type="number" value="5"></td></tr>
+    <tr><td>Fanta Orange</td><td><input class="qty-inp" type="number" value="8"></td></tr>
+    <tr><td>Novida</td><td><input class="qty-inp" type="number" value="5"></td></tr>
+  </table></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('dispatchModal')">Cancel</button><button class="btn btn-red" onclick="closeModal('dispatchModal');alert('Vehicle dispatched. Load logged.')">Confirm dispatch</button></div>
+</div></div>
+
+<div class="modal-overlay" id="addVehicleModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Add vehicle</div>
+  <div class="form-row"><div class="form-group"><label>Vehicle type</label><select class="select-inp"><option>Truck</option><option>Tuktuk</option></select></div><div class="form-group"><label>Registration / ID</label><input class="input" placeholder="e.g. UAP 445Z or TUK-003"></div></div>
+  <div class="form-row"><div class="form-group"><label>Make / model</label><input class="input" placeholder="e.g. Isuzu NPR"></div><div class="form-group"><label>Capacity (cartons)</label><input class="input" type="number" placeholder="e.g. 150"></div></div>
+  <div class="form-row"><div class="form-group"><label>Assign driver / rider</label><select class="select-inp"><option>None</option><option>David Ssemuju</option><option>Grace Apio</option><option>Ruth Nambi</option><option>Joseph Okello</option></select></div><div class="form-group"><label>Status</label><select class="select-inp"><option>Active</option><option>Inactive</option></select></div></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('addVehicleModal')">Cancel</button><button class="btn btn-red" onclick="closeModal('addVehicleModal');alert('Vehicle added to fleet.')">Save vehicle</button></div>
+</div></div>
+
+<div class="modal-overlay" id="vehicleDetailModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Vehicle — KCA 201T</div>
+  <div class="tbl-wrap"><table style="min-width:240px">
+    <tr><td style="color:var(--gray-mid);width:130px;font-size:12px">Registration</td><td><strong>KCA 201T</strong></td></tr>
+    <tr><td style="color:var(--gray-mid);font-size:12px">Type</td><td><span class="badge b-truck">Truck</span></td></tr>
+    <tr><td style="color:var(--gray-mid);font-size:12px">Model</td><td>Isuzu NPR</td></tr>
+    <tr><td style="color:var(--gray-mid);font-size:12px">Assigned to</td><td>Ruth Nambi</td></tr>
+    <tr><td style="color:var(--gray-mid);font-size:12px">Capacity</td><td>150 cartons</td></tr>
+    <tr><td style="color:var(--gray-mid);font-size:12px">Current load</td><td>120 cartons</td></tr>
+    <tr><td style="color:var(--gray-mid);font-size:12px">Route today</td><td>Kampala Central</td></tr>
+    <tr><td style="color:var(--gray-mid);font-size:12px">Status</td><td><span class="badge bs">On route</span></td></tr>
+  </table></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('vehicleDetailModal')">Close</button><button class="btn btn-red" onclick="closeModal('vehicleDetailModal');alert('Vehicle marked inactive.')">Mark inactive</button></div>
+</div></div>
+
+<div class="modal-overlay" id="addCustModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Add new customer</div>
+  <div class="form-row"><div class="form-group"><label>Business name</label><input class="input" placeholder="e.g. Nakumatt Supermarket"></div><div class="form-group"><label>Category</label><select class="select-inp"><option>Occasional</option><option>Regular</option><option>VIP</option></select></div></div>
+  <div class="form-row"><div class="form-group"><label>Phone</label><input class="input" placeholder="+256 7XX XXXXXX"></div><div class="form-group"><label>Location</label><input class="input" placeholder="Street, shop number"></div></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('addCustModal')">Cancel</button><button class="btn btn-red" onclick="closeModal('addCustModal');alert('Customer saved.')">Save</button></div>
+</div></div>
+
+<div class="modal-overlay" id="editSaleModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Request sale edit</div>
+  <div class="alert a-warning"><span>⚠</span>Goes to manager for approval. Sale unchanged until approved.</div>
+  <div class="form-group"><label>Reason</label><select class="select-inp"><option>Customer returned cartons</option><option>Wrong qty entered</option><option>Other</option></select></div>
+  <div class="form-group"><label>Details of change</label><input class="input" placeholder="e.g. Coke 500ml ×5 → ×3"></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('editSaleModal')">Cancel</button><button class="btn btn-red" onclick="closeModal('editSaleModal');alert('Edit request sent to manager.')">Submit</button></div>
+</div></div>
+
+<div class="modal-overlay" id="cancelSaleModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Request sale cancellation</div>
+  <div class="alert a-danger"><span>⚠</span>Requires manager approval. Sale stays active until then.</div>
+  <div class="form-group"><label>Reason</label><select class="select-inp"><option>Customer refused delivery</option><option>Customer did not pay</option><option>Wrong product</option><option>Other</option></select></div>
+  <div class="form-group"><label>Notes</label><textarea class="textarea-inp" placeholder="Provide details…"></textarea></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('cancelSaleModal')">Cancel</button><button class="btn btn-red" onclick="closeModal('cancelSaleModal');alert('Cancellation request sent.')">Submit</button></div>
+</div></div>
+
+<div class="modal-overlay" id="notifModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Notifications</div>
+  <div class="alert a-danger" style="margin-bottom:8px"><span>⚠</span>Coke 500ml — 42 cartons (below 80 min)</div>
+  <div class="alert a-danger" style="margin-bottom:8px"><span>⚠</span>Sprite 1L — 18 cartons (below 80 min)</div>
+  <div class="alert a-warning" style="margin-bottom:8px"><span>⚠</span>2 edit / cancel requests pending approval</div>
+  <div class="alert a-info"><span>ℹ</span>5 sales awaiting manager confirmation</div>
+  <div class="modal-actions"><button class="btn btn-red" onclick="closeModal('notifModal')">Dismiss all</button></div>
+</div></div>
+
+<script src="js/lapok.js"></script>
+<script>
+const ICONS={
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  fleet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
+  box:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>',
+  chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  cart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>',
+  receipt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+  map:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>',
+  custs:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  eod:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+  ret:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
+};
+
+const ROLES={
+  admin:{name:'John Okello',email:'admin@ccoutlet.ug',pill:'rp-admin',badge:'Admin',nav:[
+    {id:'admin-dashboard',l:'Dashboard',i:'home'},
+    {id:'admin-users',l:'User management',i:'users'},
+    {id:'admin-fleet',l:'Fleet & vehicles',i:'fleet'},
+    {id:'admin-editreqs',l:'Edit requests',i:'edit'},
+    {id:'admin-order',l:'Order to Coca-Cola',i:'cart'},
+    {id:'admin-reports',l:'Reports & analytics',i:'chart'},
+    {id:'admin-audit',l:'Audit log',i:'receipt'},
+    {id:'admin-efris',l:'EFRIS / URA',i:'chart',muted:true}
+  ]},
+  manager:{name:'Sarah Nakato',email:'manager@ccoutlet.ug',pill:'rp-manager',badge:'Manager',nav:[
+    {id:'manager-dashboard',l:'Dashboard',i:'home'},
+    {id:'manager-stock',l:'Stock management',i:'box'},
+    {id:'manager-reports',l:'Reports',i:'chart'},
+    {id:'admin-efris',l:'EFRIS / URA',i:'chart',muted:true}
+  ]},
+  accountant:{name:'Peter Mugisha',email:'accountant@ccoutlet.ug',pill:'rp-manager',badge:'Accountant',nav:[
+    {id:'accountant-dashboard',l:'Dashboard',i:'home'},
+    {id:'accountant-cash',l:'Cash handover',i:'receipt'},
+    {id:'accountant-reports',l:'Financial reports',i:'chart'},
+    {id:'admin-efris',l:'EFRIS / URA',i:'chart',muted:true}
+  ]},
+  driver:{name:'David Ssemuju',email:'david@ccoutlet.ug',pill:'rp-user',badge:'Driver',nav:[
+    {id:'driver-dashboard',l:'My trip',i:'home'},
+    {id:'user-route',l:"Today's route",i:'map'},
+    {id:'user-eod',l:'End-of-day report',i:'eod'}
+  ]},
+  cadet:{name:'Amina Kirabo',email:'amina@ccoutlet.ug',pill:'rp-user',badge:'Cadet',nav:[
+    {id:'user-dashboard',l:'My dashboard',i:'home'},
+    {id:'user-customers',l:'My customers',i:'custs'},
+    {id:'user-receipt',l:'Generate receipt',i:'receipt'},
+    {id:'user-eod',l:'End-of-day report',i:'eod'},
+    {id:'user-returns',l:'Return stock',i:'ret'}
+  ]},
+  user:{name:'David Ssemuju',email:'david@ccoutlet.ug',pill:'rp-user',badge:'Field User',nav:[
+    {id:'user-dashboard',l:'My dashboard',i:'home'},
+    {id:'user-customers',l:'My customers',i:'custs'},
+    {id:'user-route',l:"Today's route",i:'map'},
+    {id:'user-receipt',l:'Generate receipt',i:'receipt'},
+    {id:'user-eod',l:'End-of-day report',i:'eod'},
+    {id:'user-returns',l:'Return stock',i:'ret'}
+  ]}
+};
+const LABELS={};Object.values(ROLES).forEach(r=>r.nav.forEach(n=>{LABELS[n.id]=n.l}));
+
+function switchRole(r,sessionUser){
+  const rd=ROLES[r];
+  if(!rd)return;
+  if(sessionUser){
+    document.getElementById('sidebarName').textContent=sessionUser.name;
+    document.getElementById('sidebarEmail').textContent=sessionUser.email;
+    const rb=document.getElementById('roleBadge');
+    rb.textContent=roleBadgeLabel(sessionUser.role);
+    rb.className='role-pill '+roleBadgeClass(sessionUser.role);
+    const av=document.getElementById('sidebarAvatar');
+    if(av)av.textContent=sessionUser.name.split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();
+  }
+  document.getElementById('navMenu').innerHTML='<div class="nav-section">Navigation</div>'+rd.nav.map(n=>`<div class="nav-item${n.muted?' muted-nav':''}" onclick="showPage('${n.id}');closeSidebar()" id="nav-${n.id}">${ICONS[n.i]||''}${n.l}${n.muted?' <span class="badge bg" style="margin-left:auto;font-size:9px">Soon</span>':''}</div>`).join('');
+  showPage(rd.nav[0].id);closeSidebar();
+}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg=document.getElementById('page-'+id);if(pg)pg.classList.add('active');
+  const nav=document.getElementById('nav-'+id);if(nav)nav.classList.add('active');
+  document.getElementById('topbarTitle').textContent=LABELS[id]||id;
+  if(id==='admin-dashboard')setTimeout(drawCharts,100);
+  if(id==='admin-reports')setTimeout(drawReportChart,100);
+  if(id==='admin-audit'&&typeof loadAuditLog==='function')loadAuditLog();
+  if(id==='admin-users'&&typeof loadUserManagement==='function')loadUserManagement();
+  window.scrollTo(0,0);
+}
+
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebarOverlay').classList.add('show')}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('show')}
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}));
+
+function confirmSale(btn){btn.textContent='✓ Done';btn.className='btn btn-sm';btn.disabled=true;btn.closest('tr').style.opacity='.5'}
+function approveReq(btn,action){
+  const row=btn.closest('tr');row.style.opacity='.5';
+  row.querySelectorAll('button').forEach(b=>b.disabled=true);
+  const last=row.cells[row.cells.length-1];
+  last.innerHTML=action==='approved'?'<span class="badge bs">Approved</span>':'<span class="badge bd">Rejected</span>';
+}
+function filterTable(tid,q){document.querySelectorAll('#'+tid+' tr:not(:first-child)').forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(q.toLowerCase())?'':'none'})}
+function searchCustomers(q){document.querySelectorAll('#customerList .cust-card').forEach(c=>{c.style.display=c.textContent.toLowerCase().includes(q.toLowerCase())?'':'none'})}
+function selectCustomer(el,name,phone,loc){
+  document.querySelectorAll('.cust-card').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');
+  setTimeout(()=>{showPage('user-receipt');['custName','custPhone','custLoc'].forEach((id,i)=>{const e=document.getElementById(id);if(e)e.value=[name,phone,loc][i]})},200);
+}
+function markStopDone(btn){
+  const stop=btn.closest('.stop');stop.querySelector('.stop-dot').className='stop-dot done';
+  btn.closest('div').innerHTML='<span class="badge bs">Arrived</span>';
+  const next=stop.nextElementSibling;if(next&&next.classList.contains('stop'))next.querySelector('.stop-dot').className='stop-dot active';
+}
+const OP=[20000,22000,18000,20000,20000];
+function calcOrderCost(){
+  const inps=document.querySelectorAll('#page-admin-order .qty-inp');let t=0;
+  inps.forEach((inp,i)=>{const v=parseInt(inp.value)||0,c=v*(OP[i]||20000);t+=c;const el=document.getElementById('c'+(i+1));if(el)el.textContent=c.toLocaleString()});
+  const el=document.getElementById('orderTotal');if(el)el.textContent='UGX '+t.toLocaleString();
+}
+function calcCashVariance(inp,reported,id){
+  const received=parseInt(inp.value)||0;
+  const variance=received-reported;
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.textContent=variance.toLocaleString();
+  el.className=variance===0?'surplus':'deficit';
+}
+function calcVariance(inp,taken,sold,id){
+  const ret=parseInt(inp.value)||0,v=ret-(taken-sold);
+  const el=document.getElementById(id);if(!el)return;
+  el.textContent=v===0?'0':v>0?'+'+v:v;el.className=v<0?'deficit':'surplus';
+}
+function generateReceipt(){
+  const n=document.getElementById('custName').value||'Customer';
+  const p=document.getElementById('custPhone').value||'—';
+  const l=document.getElementById('custLoc').value||'—';
+  const inps=document.querySelectorAll('#page-user-receipt .qty-inp');
+  let lines=[],total=0;
+  inps.forEach(i=>{const q=parseInt(i.value)||0;if(q>0){const pr=parseInt(i.dataset.price),sub=q*pr;total+=sub;lines.push(`  ${i.dataset.prod.padEnd(16)} x${String(q).padStart(2)}   UGX ${sub.toLocaleString()}`)}});
+  if(!lines.length)return alert('Enter at least one quantity');
+  const now=new Date(),ref='RCP-'+now.toISOString().slice(0,10).replace(/-/g,'')+'-'+Math.floor(Math.random()*9000+1000);
+  document.getElementById('receiptPreview').textContent=
+`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  COCA-COLA OUTLET — RECEIPT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Ref:      ${ref}
+Date:     ${now.toLocaleDateString('en-UG')}
+Time:     ${now.toLocaleTimeString('en-UG',{hour:'2-digit',minute:'2-digit'})}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Customer: ${n}
+Phone:    ${p}
+Location: ${l}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRODUCT         QTY   AMOUNT
+${lines.join('\n')}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TOTAL       UGX ${total.toLocaleString()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PAYMENT — Bank Transfer only:
+  Bank:    Stanbic Bank Uganda
+  Acc:     9030005678901
+  Name:    Coca-Cola Outlet Ltd
+  Ref:     ${ref}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Rep:   David Ssemuju
+Veh:   TUK-001 (UAN 441R)
+Thank you for your business!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+}
+function printReceipt(){if(document.getElementById('receiptPreview').textContent.includes('Fill in'))return alert('Generate a receipt first');alert('Receipt sent to printer / WhatsApp')}
+function saveDelivery(){
+  closeModal('incomingModal');
+  const now=new Date();
+  const entry=document.createElement('div');entry.className='delivery-card';
+  entry.innerHTML=`<div class="delivery-header"><div><strong>Delivery — ${now.toLocaleDateString('en-UG')}</strong><div style="font-size:12px;color:var(--gray-mid);margin-top:2px">Waybill: WB-2026-0507-NEW · Recorded at ${now.toLocaleTimeString('en-UG',{hour:'2-digit',minute:'2-digit'})}</div><div style="font-size:12px;color:var(--gray-mid)">Received by: Sarah Nakato · Kampala Branch</div></div><span class="badge bs">Recorded</span></div><p style="font-size:12px;color:var(--gray-mid);margin-top:8px">Stock levels updated. Delivery record saved.</p>`;
+  const list=document.getElementById('deliveryList');if(list)list.prepend(entry);
+  alert('Delivery recorded.\nStock levels updated.\nActivity log entry created.');
+}
+
+/* ── CHARTS ── */
+const days=Array.from({length:30},(_,i)=>String(i+1));
+const sales=  [3.1,3.8,4.2,3.9,4.8,5.1,4.4,3.6,4.0,4.7,5.2,4.9,3.8,4.1,4.5,5.0,4.8,3.9,4.2,4.6,5.1,4.4,3.7,4.0,4.9,5.3,4.6,4.1,4.5,3.72];
+const expenses=[2.1,2.5,2.8,2.6,3.1,3.3,2.9,2.4,2.7,3.1,3.4,3.2,2.5,2.7,3.0,3.2,3.1,2.6,2.8,3.0,3.3,2.9,2.5,2.7,3.2,3.4,3.0,2.7,2.9,2.51];
+const profit=sales.map((s,i)=>+(s-expenses[i]).toFixed(2));
+
+function rRect(ctx,x,y,w,h,r){
+  if(h<0){y+=h;h=-h}r=Math.min(r,h/2,w/2);
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+let chartsDrawn=false;
+function drawCharts(){if(chartsDrawn)return;chartsDrawn=true;drawMainChart();drawDonutChart();drawProfitChart()}
+
+function drawMainChart(){
+  const canvas=document.getElementById('mainChart');if(!canvas)return;
+  const W=canvas.offsetWidth||500,H=180;canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
+  const pad={t:15,r:15,b:30,l:38};const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  const maxV=Math.ceil(Math.max(...sales,...expenses,...profit)*1.15);
+  const xStep=cw/(days.length-1);
+  ctx.clearRect(0,0,W,H);ctx.font='10px Inter,system-ui';
+  for(let i=0;i<=4;i++){
+    const y=pad.t+ch-ch*(i/4);
+    ctx.strokeStyle='rgba(0,0,0,.06)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
+    ctx.fillStyle='#9A9A9A';ctx.textAlign='right';ctx.fillText((maxV*i/4).toFixed(1),pad.l-5,y+3);
+  }
+  [0,6,13,19,24,29].forEach(i=>{ctx.fillStyle='#9A9A9A';ctx.textAlign='center';ctx.fillText(days[i],pad.l+i*xStep,H-5)});
+  const profPts=profit.map((v,i)=>[pad.l+i*xStep,pad.t+ch-(v/maxV)*ch]);
+  const g=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);g.addColorStop(0,'rgba(22,163,74,.12)');g.addColorStop(1,'rgba(22,163,74,0)');
+  ctx.beginPath();profPts.forEach((p,i)=>i===0?ctx.moveTo(...p):ctx.lineTo(...p));
+  ctx.lineTo(pad.l+cw,pad.t+ch);ctx.lineTo(pad.l,pad.t+ch);ctx.closePath();ctx.fillStyle=g;ctx.fill();
+  [[sales,'#D42B2B',false],[expenses,'#374151',true],[profit,'#16a34a',false]].forEach(([data,color,dash])=>{
+    const pts=data.map((v,i)=>[pad.l+i*xStep,pad.t+ch-(v/maxV)*ch]);
+    ctx.setLineDash(dash?[5,4]:[]);ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.lineCap='round';
+    ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(...p):ctx.lineTo(...p));ctx.stroke();ctx.setLineDash([]);
+    const last=pts[pts.length-1];
+    ctx.beginPath();ctx.arc(last[0],last[1],4,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+    ctx.beginPath();ctx.arc(last[0],last[1],2,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+  });
+}
+
+function drawDonutChart(){
+  const canvas=document.getElementById('donutChart');if(!canvas)return;
+  const W=canvas.offsetWidth||260,H=180;canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
+  const data=[1840,820,610,520,420],colors=['#D42B2B','#374151','#D97706','#1d4ed8','#16a34a'];
+  const total=data.reduce((a,b)=>a+b,0),cx=W/2,cy=H/2-5,r=Math.min(cx,cy)-18,ir=r*0.58;
+  let angle=-Math.PI/2;
+  data.forEach((v,i)=>{const s=(v/total)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,angle,angle+s);ctx.closePath();ctx.fillStyle=colors[i];ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();angle+=s});
+  ctx.beginPath();ctx.arc(cx,cy,ir,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+  ctx.font='bold 13px Inter,system-ui';ctx.fillStyle='#0D0D0D';ctx.textAlign='center';ctx.fillText('4,210',cx,cy+2);
+  ctx.font='10px Inter,system-ui';ctx.fillStyle='#9A9A9A';ctx.fillText('cartons',cx,cy+14);
+}
+
+function drawProfitChart(){
+  const canvas=document.getElementById('profitChart');if(!canvas)return;
+  const W=canvas.offsetWidth||700,H=130;canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
+  const months=['Jan','Feb','Mar','Apr','May*'],mp=[18.2,21.4,24.8,22.9,26.1],me=[13.1,15.3,17.6,16.1,18.4];
+  const mpr=mp.map((v,i)=>+(v-me[i]).toFixed(1));
+  const pad={t:10,r:15,b:28,l:38},cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  const barW=cw/months.length,bw=Math.min(barW*0.22,18),maxV=Math.ceil(Math.max(...mp)*1.15);
+  ctx.clearRect(0,0,W,H);ctx.font='10px Inter,system-ui';
+  for(let i=0;i<=3;i++){const y=pad.t+ch-ch*(i/3);ctx.strokeStyle='rgba(0,0,0,.06)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();ctx.fillStyle='#9A9A9A';ctx.textAlign='right';ctx.fillText((maxV*i/3).toFixed(0),pad.l-5,y+3)}
+  months.forEach((m,i)=>{
+    const cx=pad.l+i*barW+barW/2;
+    [[mp[i],-bw*1.1,'#D42B2B'],[me[i],0,'#374151'],[mpr[i],bw*1.1,'#16a34a']].forEach(([val,off,color])=>{
+      const bh=(val/maxV)*ch,x=cx+off-bw/2,y=pad.t+ch-bh;
+      const g=ctx.createLinearGradient(0,y,0,y+bh);g.addColorStop(0,color);g.addColorStop(1,color+'88');
+      ctx.fillStyle=g;rRect(ctx,x,y,bw,bh,3);ctx.fill();
+    });
+    ctx.fillStyle='#9A9A9A';ctx.textAlign='center';ctx.fillText(m,cx,H-5);
+  });
+}
+
+function drawReportChart(){
+  const canvas=document.getElementById('reportChart');if(!canvas)return;
+  const W=canvas.offsetWidth||600,H=180;canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
+  const s7=sales.slice(0,7),e7=expenses.slice(0,7),p7=profit.slice(0,7);
+  const pad={t:15,r:15,b:30,l:38},cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  const maxV=Math.ceil(Math.max(...s7,...e7)*1.15),xStep=cw/6;
+  ctx.clearRect(0,0,W,H);ctx.font='10px Inter,system-ui';
+  for(let i=0;i<=4;i++){const y=pad.t+ch-ch*(i/4);ctx.strokeStyle='rgba(0,0,0,.06)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();ctx.fillStyle='#9A9A9A';ctx.textAlign='right';ctx.fillText((maxV*i/4).toFixed(1),pad.l-5,y+3)}
+  s7.forEach((_,i)=>{ctx.fillStyle='#9A9A9A';ctx.textAlign='center';ctx.fillText('May '+days[i],pad.l+i*xStep,H-5)});
+  [[s7,'#D42B2B',false],[e7,'#374151',true],[p7,'#16a34a',false]].forEach(([data,color,dash])=>{
+    const pts=data.map((v,i)=>[pad.l+i*xStep,pad.t+ch-(v/maxV)*ch]);
+    ctx.setLineDash(dash?[5,4]:[]);ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.lineCap='round';
+    ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(...p):ctx.lineTo(...p));ctx.stroke();ctx.setLineDash([]);
+    const last=pts[pts.length-1];ctx.beginPath();ctx.arc(last[0],last[1],4,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+    ctx.beginPath();ctx.arc(last[0],last[1],2,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+  });
+}
+
+setInterval(()=>{const el=document.getElementById('clockChip');if(el)el.textContent=new Date().toLocaleTimeString('en-UG',{hour:'2-digit',minute:'2-digit'})},1000);
+window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementById('page-admin-dashboard').classList.contains('active'))setTimeout(drawCharts,150)});
+</script>
+</body>
+</html>
