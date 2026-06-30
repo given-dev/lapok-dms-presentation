@@ -26,6 +26,12 @@ $items = $body['items'] ?? [];
 if (!is_array($items) || count($items) === 0) {
     json_error('At least one product line is required');
 }
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $deliveryDate)) {
+    json_error('delivery_date must be YYYY-MM-DD');
+}
+if ($waybill !== '' && strlen($waybill) > 80) {
+    json_error('waybill is too long');
+}
 
 $pdo = db();
 $pdo->beginTransaction();
@@ -56,6 +62,15 @@ try {
 
         if ($productId <= 0 || $qtyDelivered <= 0 || $batchNumber === '' || $expiryDate === '') {
             throw new RuntimeException('Each item needs product_id, qty_delivered, batch_number, expiry_date');
+        }
+        if ($qtyOrdered < 0 || $unitCost < 0) {
+            throw new RuntimeException('qty_ordered and unit_cost must be non-negative');
+        }
+        if ($qtyOrdered > 0 && $qtyDelivered > ($qtyOrdered * 2)) {
+            throw new RuntimeException('qty_delivered is unexpectedly high compared to qty_ordered');
+        }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $expiryDate)) {
+            throw new RuntimeException('expiry_date must be YYYY-MM-DD');
         }
 
         $itemStmt = $pdo->prepare(
@@ -93,6 +108,9 @@ try {
     $pdo->commit();
 
     json_ok(['delivery_id' => $deliveryId], 201);
+} catch (RuntimeException $e) {
+    $pdo->rollBack();
+    json_error($e->getMessage(), 422);
 } catch (Throwable $e) {
     $pdo->rollBack();
     json_error($e->getMessage(), 500);

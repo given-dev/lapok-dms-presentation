@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/report_packets.php';
 
-$user = require_roles(['admin', 'accountant', 'manager', 'executive']);
+$user = require_permission('reports');
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
     json_error('Method not allowed', 405);
@@ -29,6 +29,20 @@ try {
     } else {
         $inbox = report_inbox($role);
     }
+
+    $inbox = array_map(
+        static function (array $packet): array {
+            $sentAt = strtotime((string) ($packet['sent_at'] ?? ''));
+            $ageHours = $sentAt > 0 ? (int) floor((time() - $sentAt) / 3600) : 0;
+            $isOverdue = in_array($packet['status'], ['sent', 'read'], true) && $ageHours >= 24;
+            $isCritical = $isOverdue || in_array(($packet['report_type'] ?? ''), ['manager_brief', 'accountant_pack'], true);
+            $packet['age_hours'] = $ageHours;
+            $packet['is_overdue'] = $isOverdue;
+            $packet['is_critical'] = $isCritical;
+            return $packet;
+        },
+        $inbox
+    );
 
     json_ok([
         'role' => $role,

@@ -30,24 +30,23 @@ button:disabled{opacity:.6;cursor:not-allowed}
   <div class="err" id="err"></div>
   <form id="loginForm">
     <label for="email">Email</label>
-    <input type="email" id="email" name="email" required autocomplete="username" value="admin@lapok.ug">
+    <input type="email" id="email" name="email" required autocomplete="username" placeholder="name@company.com">
     <label for="password">Password</label>
-    <input type="password" id="password" name="password" required autocomplete="current-password" value="password123">
+    <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Enter your password">
     <button type="submit" id="btn">Sign in</button>
   </form>
-  <p class="hint">Password for all accounts: <code>password123</code></p>
-  <ul class="hint accounts" style="margin-top:.6rem;padding-left:1.1rem;line-height:1.7">
-    <li><code>admin@lapok.ug</code> — Admin</li>
-    <li><code>executive@lapok.ug</code> — Executive</li>
-    <li><code>manager@lapok.ug</code> — Manager</li>
-    <li><code>accountant@lapok.ug</code> — Accountant (RDC)</li>
-    <li><code>cadet@lapok.ug</code> — Cadet</li>
-    <li><code>driver@lapok.ug</code> — Driver</li>
-  </ul>
+  <p class="hint">Use your assigned account. Contact the system admin if you need access.</p>
 </div>
+<script src="assets/presentation-config.js"></script>
 <script src="assets/api.js"></script>
 <script>
 (async () => {
+  const params = new URLSearchParams(location.search);
+  if (params.get('role') === 'disabled') {
+    const err = document.getElementById('err');
+    err.textContent = 'This role is disabled for now. Use cadet@lapok.ug for field access.';
+    err.style.display = 'block';
+  }
   try {
     const me = await LapokAPI.get('/api/auth/me.php');
     if (me.user) location.href = 'index.html';
@@ -62,10 +61,21 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   btn.disabled = true;
   btn.textContent = 'Signing in…';
   try {
-    await LapokAPI.post('/api/auth/login.php', {
+    const data = await LapokAPI.post('/api/auth/login.php', {
       email: document.getElementById('email').value.trim(),
       password: document.getElementById('password').value,
     });
+    const role = data?.user?.role;
+    const allowed = window.LAPOK_ALLOWED_ROLES || [];
+    const disabled = window.LAPOK_DISABLED_ROLES || [];
+    if (disabled.includes(role) || (allowed.length && !allowed.includes(role))) {
+      try { await LapokAPI.post('/api/auth/logout.php', {}); } catch (_) {}
+      err.textContent = 'This role is disabled for now. Use cadet@lapok.ug for field access.';
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Sign in';
+      return;
+    }
     location.href = 'index.html';
   } catch (ex) {
     err.textContent = ex.message || 'Login failed';

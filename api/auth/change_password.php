@@ -10,11 +10,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 }
 
 $body = read_json_body();
-$current = $body['current_password'] ?? '';
-$new = $body['new_password'] ?? '';
+$current = (string) ($body['current_password'] ?? '');
+$new = (string) ($body['new_password'] ?? '');
 
-if ($current === '' || strlen($new) < 6) {
-    json_error('Current password and new password (min 6 chars) are required');
+if ($current === '' || !password_meets_policy($new)) {
+    json_error('Use a strong new password (min 10 chars with upper, lower, and number)');
 }
 
 $stmt = db()->prepare('SELECT password_hash FROM users WHERE id = ?');

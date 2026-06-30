@@ -23,11 +23,17 @@ $stmt->execute([$email]);
 $user = $stmt->fetch();
 
 if (!$user || !(int) $user['is_active']) {
+    usleep(250000);
     json_error('Invalid credentials', 401);
 }
 
 if (!password_verify($password, $user['password_hash'])) {
+    usleep(250000);
     json_error('Invalid credentials', 401);
+}
+
+if ($user['role'] === 'driver') {
+    json_error('Driver access is disabled in this build', 403);
 }
 
 login_user($user);

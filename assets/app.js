@@ -3,8 +3,7 @@
  */
 let currentUser = null;
 let productCatalog = [];
-const LEADERSHIP_DEMO_MODE = true;
-const LEADERSHIP_DEMO_ROLES = ['executive', 'manager', 'accountant'];
+const PRIMARY_SYSTEM_ROLES = ['admin', 'executive', 'manager', 'accountant'];
 
 function isExecutiveUser() {
   return currentUser?.role === 'executive';
@@ -15,11 +14,8 @@ function applyExecutiveReadOnlyMode() {
 
   // Hide mutating actions on executive-visible pages for board/MD read-only access.
   const selectors = [
-    '#page-admin-customers .btn-group .btn.btn-red', // + Add customer
-    '#page-admin-customers .btn-group .btn.btn-black', // Assign collector
     '#page-admin-exceptions .btn.btn-sm', // queue action buttons
     '#page-admin-exceptions .btn.btn-red', // any red action buttons
-    '#page-admin-efris .btn.btn-red', // future action buttons if added
   ];
 
   selectors.forEach((selector) => {
@@ -37,9 +33,15 @@ async function initApp() {
     location.href = 'login.html';
     return;
   }
-  if (LEADERSHIP_DEMO_MODE && !LEADERSHIP_DEMO_ROLES.includes(currentUser.role)) {
-    alert('This presentation build is limited to Executive, Manager, and Accountant accounts.');
-    location.href = 'login.html';
+  if (!PRIMARY_SYSTEM_ROLES.includes(currentUser.role)) {
+    console.info(`Role "${currentUser.role}" logged in with limited access in this release.`);
+  }
+  const allowed = window.LAPOK_ALLOWED_ROLES;
+  const disabled = window.LAPOK_DISABLED_ROLES || [];
+  if ((Array.isArray(allowed) && allowed.length && !allowed.includes(currentUser.role))
+    || disabled.includes(currentUser.role)) {
+    try { await LapokAPI.post('/api/auth/logout.php', {}); } catch (_) {}
+    location.href = 'login.html?role=disabled';
     return;
   }
   applyUserSession(currentUser);
@@ -107,7 +109,7 @@ window.expandNavGroupForPage = expandNavGroupForPage;
 
 function applyUserSession(user) {
   const role = user.role;
-  const nav = LapokAPI.roleNav[role] || LapokAPI.roleNav.field_user;
+  const nav = LapokAPI.roleNav[role] || LapokAPI.roleNav.field_user || [];
   const items = LapokAPI.navItems(nav);
   document.getElementById('sidebarName').textContent = user.full_name;
   document.getElementById('sidebarEmail').textContent = user.email;
@@ -116,8 +118,12 @@ function applyUserSession(user) {
   rb.className = 'role-pill ' + (LapokAPI.rolePill[role] || 'rp-user');
   document.getElementById('navMenu').innerHTML = renderNavMenu(nav);
   items.forEach((n) => { LABELS[n.id] = n.l; });
-  showPage(items[0].id);
+  const homePage = LapokAPI.roleHomePage?.[role] || items[0]?.id;
+  if (homePage) {
+    showPage(homePage);
+  }
   applyExecutiveReadOnlyMode();
+  if (typeof initNotifications === 'function') initNotifications();
 }
 
 async function refreshDashboardData() {
@@ -310,7 +316,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (id === 'manager-dashboard') { loadPendingOrders(); loadLowStockAlerts(); if (typeof loadManagerDashboardExtras === 'function') loadManagerDashboardExtras(); }
       if (id === 'admin-editreqs') loadEditRequests();
       if (id === 'admin-exceptions' && typeof loadExceptionsPage === 'function') loadExceptionsPage();
-      if (id === 'manager-fleet-map' && typeof loadDispatchLog === 'function') loadDispatchLog();
       if (id === 'admin-dashboard') { loadLowStockAlerts(); setTimeout(drawCharts, 100); }
     };
   }

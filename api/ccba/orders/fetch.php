@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 3) . '/includes/bootstrap.php';
 
-$user = require_roles(['admin', 'manager', 'executive']);
+$user = require_permission('ccba_view');
 
 $status = trim($_GET['status'] ?? '');
 $limit = min(100, max(10, (int) ($_GET['limit'] ?? 50)));

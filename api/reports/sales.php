@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/permissions.php';
 
-require_roles(['admin', 'executive', 'manager', 'accountant']);
+require_permission('reports_sales');
 
 $from = $_GET['from'] ?? date('Y-m-01');
 $to = $_GET['to'] ?? date('Y-m-d');
@@ -12,6 +12,7 @@ $vehicleId = (int) ($_GET['vehicle_id'] ?? 0);
 $routeId = (int) ($_GET['route_id'] ?? 0);
 $driverId = (int) ($_GET['driver_id'] ?? 0);
 $cadetId = (int) ($_GET['cadet_id'] ?? 0);
+$userId = (int) ($_GET['user_id'] ?? 0);
 $groupBy = $_GET['group_by'] ?? 'day';
 
 $params = [$from, $to . ' 23:59:59'];
@@ -32,6 +33,10 @@ if ($driverId > 0) {
 if ($cadetId > 0) {
     $where .= ' AND o.user_id = ?';
     $params[] = $cadetId;
+}
+if ($userId > 0) {
+    $where .= ' AND o.user_id = ?';
+    $params[] = $userId;
 }
 
 $dateFmt = match ($groupBy) {

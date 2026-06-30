@@ -16,8 +16,13 @@ $stmt = db()->query(
      JOIN vehicles v ON v.id = dt.vehicle_id
      LEFT JOIN users cadet ON cadet.id = dt.cadet_id
      LEFT JOIN users driver ON driver.id = dt.driver_id
-     WHERE dt.status = 'returned'
-     ORDER BY dt.returned_at DESC"
+     WHERE dt.status IN ('returned', 'completed')
+       AND (
+         dt.cash_collected IS NULL
+         OR DATE(dt.returned_at) = CURDATE()
+       )
+     ORDER BY dt.returned_at DESC
+     LIMIT 80"
 );
 
 $trips = $stmt->fetchAll();

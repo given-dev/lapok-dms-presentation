@@ -21,10 +21,10 @@ try {
     }
 
     $admin = $pdo->query("SELECT email, password_hash, role FROM users WHERE role = 'admin' LIMIT 1")->fetch();
-    if ($admin && password_verify('password123', $admin['password_hash'])) {
-        echo "[OK] Admin password verifies (password123)\n";
+    if ($admin && !empty($admin['password_hash'])) {
+        echo "[OK] Admin account exists with password hash\n";
     } else {
-        echo "[WARN] Run: php scripts/setup_passwords.php to reset demo passwords\n";
+        echo "[WARN] Admin account missing or password hash not set\n";
     }
 
     echo "\nAll Phase 1 checks passed.\n";

@@ -9,8 +9,23 @@ require_roles(['admin', 'manager']);
 $pdo = db();
 $today = date('Y-m-d');
 
-$pendingOrders = (int) $pdo->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetchColumn();
-$pendingEdits = (int) $pdo->query("SELECT COUNT(*) FROM edit_requests WHERE status = 'pending'")->fetchColumn();
+$cacheKey = 'manager_dashboard:' . $today;
+if (function_exists('apcu_fetch')) {
+    $cached = apcu_fetch($cacheKey);
+    if (is_array($cached)) {
+        json_ok($cached);
+    }
+}
+
+$counts = $pdo->query(
+    "SELECT
+        (SELECT COUNT(*) FROM orders WHERE status = 'pending') AS pending_orders,
+        (SELECT COUNT(*) FROM edit_requests WHERE status = 'pending') AS pending_edit_requests,
+        (SELECT COUNT(*) FROM delivery_trips WHERE status = 'returned' AND cash_collected IS NULL) AS cash_pending_confirmation"
+)->fetch() ?: [];
+
+$pendingOrders = (int) ($counts['pending_orders'] ?? 0);
+$pendingEdits = (int) ($counts['pending_edit_requests'] ?? 0);
 
 $lowStock = $pdo->query(
     'SELECT p.name, p.sku,
@@ -24,9 +39,7 @@ $lowStock = $pdo->query(
      LIMIT 10'
 )->fetchAll();
 
-$cashPending = (int) $pdo->query(
-    "SELECT COUNT(*) FROM delivery_trips WHERE status = 'returned' AND cash_collected IS NULL"
-)->fetchColumn();
+$cashPending = (int) ($counts['cash_pending_confirmation'] ?? 0);
 
 $accountantPack = $pdo->prepare(
     "SELECT id, packet_ref, title, status, sent_at FROM report_packets
@@ -56,16 +69,48 @@ $occdDash = $pdo->prepare(
 $occdDash->execute([$today]);
 $occdBoard = $occdDash->fetch();
 
-json_ok([
+$cadetReportFlags = 0;
+$welfareOpenCount = 0;
+try {
+    require_once dirname(__DIR__, 2) . '/includes/cadet_reports.php';
+    $cadetRows = $pdo->query(
+        "SELECT dt.notes FROM delivery_trips dt
+         WHERE dt.status = 'returned' AND DATE(dt.returned_at) = CURDATE()
+           AND dt.notes LIKE '%[CADET_REPORT]%'"
+    )->fetchAll();
+    foreach ($cadetRows as $row) {
+        $parsed = cadet_parse_report_note($row['notes'] ?? null);
+        if (!empty($parsed['flags'])) {
+            $cadetReportFlags++;
+        }
+    }
+} catch (Throwable) {
+}
+
+try {
+    require_once dirname(__DIR__, 2) . '/includes/staff_welfare.php';
+    $welfareOpenCount = welfare_summary()['open_count'] ?? 0;
+} catch (Throwable) {
+}
+
+$payload = [
     'pending_orders' => $pendingOrders,
     'pending_edit_requests' => $pendingEdits,
     'low_stock_count' => count($lowStock),
     'low_stock' => $lowStock,
     'cash_pending_confirmation' => $cashPending,
+    'cadet_report_flags' => $cadetReportFlags,
+    'welfare_open_count' => $welfareOpenCount,
     'accountant_pack' => $pack,
     'executive_brief_today' => $brief,
     'boards_today' => [
         'inventory' => $occdInv['status'] ?? null,
         'occd' => $occdBoard['status'] ?? null,
     ],
-]);
+];
+
+if (function_exists('apcu_store')) {
+    apcu_store($cacheKey, $payload, 15);
+}
+
+json_ok($payload);

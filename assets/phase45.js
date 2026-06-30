@@ -3,24 +3,116 @@
  */
 
 let liveChartData = null;
+let adminUsersCache = [];
+let adminAuditCache = [];
+let adminReportFiltersInitialized = false;
+
+function adminToast(message, isError = false) {
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.style.position = 'fixed';
+  toast.style.right = '20px';
+  toast.style.bottom = '20px';
+  toast.style.zIndex = '9999';
+  toast.style.padding = '10px 14px';
+  toast.style.borderRadius = '10px';
+  toast.style.background = isError ? '#991B1B' : '#0F766E';
+  toast.style.color = '#fff';
+  toast.style.fontSize = '12px';
+  toast.style.boxShadow = '0 10px 24px rgba(0,0,0,.18)';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2400);
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function getAdminReportFilters() {
+  return {
+    from: document.getElementById('reportFrom')?.value || '',
+    to: document.getElementById('reportTo')?.value || '',
+    route_id: document.getElementById('reportRouteFilter')?.value || '',
+    vehicle_id: document.getElementById('reportVehicleFilter')?.value || '',
+    user_id: document.getElementById('reportUserFilter')?.value || '',
+    group_by: document.getElementById('reportGroupBy')?.value || 'day',
+  };
+}
+
+function queryFromFilters(filters) {
+  const q = new URLSearchParams();
+  Object.entries(filters).forEach(([k, v]) => {
+    if (v !== '' && v !== null && v !== undefined) q.set(k, String(v));
+  });
+  return q.toString();
+}
 
 async function loadAdminDashboard() {
   if (!currentUser || !['admin', 'executive', 'manager', 'accountant'].includes(currentUser.role)) return;
   try {
-    const d = await LapokAPI.get('/api/dashboard/admin.php');
+    const dashboardPath = currentUser.role === 'executive'
+      ? '/api/dashboard/executive.php'
+      : '/api/dashboard/admin.php';
+    const d = await LapokAPI.get(dashboardPath);
     const set = (sel, v) => { const el = document.querySelector(sel); if (el) el.textContent = v; };
-    set('#page-admin-dashboard .metric-card.hi .metric-value', Number(d.warehouse_cartons).toLocaleString());
-    set('#page-admin-dashboard .metric-grid .metric-card:nth-child(2) .metric-value', LapokAPI.formatM(d.revenue_today));
-    set('#page-admin-dashboard .metric-grid .metric-card:nth-child(3) .metric-value', Number(d.cartons_today).toLocaleString());
-    set('#page-admin-dashboard .metric-grid .metric-card:nth-child(4) .metric-value', LapokAPI.formatM(d.revenue_mtd));
-    set('#page-admin-dashboard .metric-grid .metric-card:nth-child(5) .metric-value',
-      d.vehicles_out + '/' + d.vehicles_total);
-    set('#page-admin-dashboard .metric-grid .metric-card:nth-child(6) .metric-value', d.pending_requests);
+    const setTrend = (cardIndex, deltaPct, baseLabel) => {
+      const card = document.querySelector(`#page-admin-dashboard .metric-grid .metric-card:nth-child(${cardIndex})`);
+      if (!card) return;
+      let trend = card.querySelector('.metric-trend');
+      if (!trend) {
+        trend = document.createElement('div');
+        trend.className = 'metric-trend';
+        card.appendChild(trend);
+      }
+      const up = Number(deltaPct || 0) >= 0;
+      trend.className = 'metric-trend ' + (up ? 'trend-up' : 'trend-dn');
+      trend.textContent = `${up ? '↑' : '↓'} ${Math.abs(Number(deltaPct || 0)).toFixed(1)}%`;
+      const sub = card.querySelector('.metric-sub');
+      if (sub) sub.textContent = baseLabel;
+    };
+    setText('admMetricWarehouse', Number(d.warehouse_cartons).toLocaleString());
+    setText('admMetricRevenueToday', LapokAPI.formatM(d.revenue_today));
+    setText('admMetricCartonsToday', Number(d.cartons_today).toLocaleString());
+    setText('admMetricRevenueMtd', LapokAPI.formatM(d.revenue_mtd));
+    setText('admMetricVehiclesOut', d.vehicles_out + '/' + d.vehicles_total);
+    setText('admMetricPendingRequests', d.pending_requests);
     set('#page-manager-dashboard .metric-card.hi .metric-value', Number(d.warehouse_cartons).toLocaleString());
     set('#page-manager-dashboard .metric-grid .metric-card:nth-child(2) .metric-value', Number(d.cartons_today).toLocaleString());
     set('#page-manager-dashboard .metric-grid .metric-card:nth-child(2) .metric-sub', LapokAPI.formatUgx(d.revenue_today));
     set('#page-manager-dashboard .metric-grid .metric-card:nth-child(4) .metric-value', d.pending_requests);
+    if (currentUser.role === 'executive') {
+      setTrend(2, d.revenue_today_delta_pct, 'vs yesterday');
+      setTrend(3, d.cartons_today_delta_pct, 'vs yesterday');
+      setTrend(4, d.revenue_mtd_delta_pct, 'vs same days last month');
+      set('#page-admin-dashboard .metric-grid .metric-card:nth-child(6) .metric-sub', `${d.pending_orders} sales pending`);
+    }
+    if (currentUser.role === 'admin') {
+      loadAdminActionCenter(d);
+    }
   } catch (e) { console.warn('Admin dashboard:', e.message); }
+}
+
+async function loadAdminActionCenter(cachedDashboard = null) {
+  if (currentUser?.role !== 'admin') return;
+  const tbody = document.getElementById('adminActionCenterBody');
+  if (!tbody) return;
+  try {
+    const d = cachedDashboard || await LapokAPI.get('/api/dashboard/admin.php');
+    const exc = await LapokAPI.get('/api/exceptions/fetch.php');
+    const rows = [
+      ['High', 'Pending edit requests', d.pending_requests || 0, "showPage('admin-editreqs')"],
+      ['High', 'Exception queue items', (exc.items || []).length, "showPage('admin-exceptions')"],
+      ['Medium', 'Low stock alerts', (d.low_stock || []).length, "showPage('admin-exceptions')"],
+      ['Medium', 'Vehicles out now', d.vehicles_out || 0, "showPage('admin-dashboard')"],
+      ['Low', 'Receivables follow-up', 'Open', "showPage('admin-customers')"],
+    ];
+    tbody.innerHTML = rows.map((r) =>
+      `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td><button class="btn btn-sm" onclick="${r[3]}">Open</button></td></tr>`
+    ).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red)">Action center load failed: ${e.message}</td></tr>`;
+  }
 }
 
 async function loadFieldDashboard() {
@@ -98,7 +190,26 @@ async function loadAdminCustomers(q = '') {
   try {
     const path = '/api/customers/fetch_customers.php' + (q ? '?search=' + encodeURIComponent(q) : '');
     const d = await LapokAPI.get(path);
-    const rows = (d.customers || []).map((c) => {
+    const customers = d.customers || [];
+
+    if (!q) {
+      const owing = customers.filter((c) => Number(c.credit_balance) > 0);
+      const total = owing.reduce((s, c) => s + Number(c.credit_balance || 0), 0);
+      const totalEl = document.getElementById('recvTotalValue');
+      const totalSub = document.getElementById('recvTotalSub');
+      const countEl = document.getElementById('recvCountValue');
+      const totalCard = document.getElementById('recvTotalCard');
+      if (totalEl) totalEl.textContent = LapokAPI.formatM(total);
+      if (totalSub) {
+        totalSub.textContent = total >= 8000000
+          ? 'Above 8M UGX — prioritize collections'
+          : 'UGX ' + total.toLocaleString();
+      }
+      if (countEl) countEl.textContent = String(owing.length);
+      if (totalCard) totalCard.classList.toggle('rdc-variance-warn', total >= 8000000);
+    }
+
+    const rows = customers.map((c) => {
       const bal = Number(c.credit_balance);
       const balCell = bal > 0 ? `<span class="badge bd">${bal.toLocaleString()}</span>` : '0';
       return `<tr><td>${c.name}</td><td>${c.phone || '—'}</td><td>${c.location || '—'}</td><td><span class="badge bg">${c.category}</span></td><td>${balCell}</td><td><button class="btn btn-sm" onclick="viewCustomerHistory(${c.id},'${c.name.replace(/'/g, "\\'")}')">History</button></td></tr>`;
@@ -135,7 +246,7 @@ async function viewCustomerHistory(id, name) {
       `<h4 style="margin-bottom:.8rem">${name} — Balance: ${LapokAPI.formatUgx(d.customer.credit_balance)}</h4>
       <table><tr><th>Ref</th><th>Status</th><th>Amount</th><th>Date</th></tr>${rows || '<tr><td colspan="4">No orders</td></tr>'}</table>`;
     showPage('admin-reports');
-  } catch (e) { alert(e.message); }
+  } catch (e) { adminToast(e.message, true); }
 }
 
 async function loadRoutes() {
@@ -155,16 +266,59 @@ async function loadRoutes() {
 }
 
 async function loadAuditLog() {
-  const table = document.getElementById('auditTable');
-  if (!table) return;
+  const tbody = document.getElementById('auditTableBody');
+  if (!tbody || currentUser?.role !== 'admin') return;
+  const params = new URLSearchParams({
+    per_page: document.getElementById('auditPerPage')?.value || '50',
+  });
+  const action = document.getElementById('auditActionFilter')?.value || '';
+  const table = document.getElementById('auditTableFilter')?.value || '';
+  const user = document.getElementById('auditUserFilter')?.value || '';
+  const from = document.getElementById('auditFrom')?.value || '';
+  const to = document.getElementById('auditTo')?.value || '';
+  if (action) params.set('action', action);
+  if (table) params.set('table', table);
+  if (user) params.set('user', user);
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr>';
   try {
-    const d = await LapokAPI.get('/api/audit/fetch_log.php');
-    const rows = (d.entries || []).map((e) => {
-      const ch = e.new_values ? JSON.stringify(e.new_values).slice(0, 80) : '—';
-      return `<tr><td>${LapokAPI.formatTime(e.created_at)}</td><td>${e.user_name || '—'}</td><td>${e.table_name}</td><td>${e.action}</td><td style="font-size:11px;font-family:monospace">${ch}</td></tr>`;
+    const d = await LapokAPI.get('/api/audit/fetch_log.php?' + params.toString());
+    adminAuditCache = d.entries || [];
+    setText('auditCountChip', `${adminAuditCache.length} entries`);
+    const rows = adminAuditCache.map((e, idx) => {
+      const when = LapokAPI.formatDate(e.created_at) + ' ' + LapokAPI.formatTime(e.created_at);
+      const ch = e.new_values ? JSON.stringify(e.new_values).slice(0, 120) : (e.old_values ? JSON.stringify(e.old_values).slice(0, 120) : '—');
+      return `<tr>
+        <td>${when}</td>
+        <td>${e.user_name || 'System'}</td>
+        <td>${e.table_name}${e.record_id ? ` #${e.record_id}` : ''}</td>
+        <td><span class="badge bg">${e.action}</span></td>
+        <td style="font-size:11px;font-family:monospace">${ch}</td>
+        <td><button class="btn btn-sm" onclick="showAuditDetail(${idx})">View</button></td>
+      </tr>`;
     }).join('');
-    table.innerHTML = '<tr><th>When</th><th>User</th><th>Table</th><th>Action</th><th>Changes</th></tr>' + rows;
-  } catch (e) { console.warn('Audit:', e.message); }
+    tbody.innerHTML = rows || '<tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">No entries.</td></tr>';
+  } catch (e) {
+    console.warn('Audit:', e.message);
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red)">${e.message}</td></tr>`;
+  }
+}
+
+function showAuditDetail(index) {
+  const item = adminAuditCache[index];
+  if (!item) return;
+  const el = document.getElementById('auditDetailBody');
+  if (!el) return;
+  el.textContent = JSON.stringify(item, null, 2);
+  openModal('auditDetailModal');
+}
+
+function initAuditFilters() {
+  const from = document.getElementById('auditFrom');
+  const to = document.getElementById('auditTo');
+  if (from && !from.value) from.value = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+  if (to && !to.value) to.value = new Date().toISOString().slice(0, 10);
 }
 
 async function loadUsersTable() {
@@ -172,43 +326,149 @@ async function loadUsersTable() {
   if (!table || currentUser?.role !== 'admin') return;
   try {
     const d = await LapokAPI.get('/api/users/fetch_users.php');
-    const roleBadge = (r) => `<span class="badge ${r === 'admin' || r === 'executive' ? 'br' : r === 'manager' ? 'bw' : 'bi'}">${LapokAPI.roleLabel[r] || r}</span>`;
-    const rows = (d.users || []).map((u) => {
-      const ini = u.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2);
-      return `<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar av-red">${ini}</div>${u.full_name}</div></td>
-        <td>${roleBadge(u.role)}</td><td>${u.national_id || '—'}</td><td>${u.phone || '—'}</td>
-        <td>${u.vehicle_reg ? `<span class="badge b-tuk">${u.vehicle_reg}</span>` : '—'}</td>
-        <td><label class="toggle"><input type="checkbox" ${u.is_active ? 'checked' : ''} disabled><span class="slider"></span></label></td>
-        <td><button class="btn btn-sm">Edit</button></td></tr>`;
-    }).join('');
-    table.innerHTML = '<tr><th>Name</th><th>Role</th><th>National ID</th><th>Phone</th><th>Vehicle</th><th>Active</th><th>Actions</th></tr>' + rows;
+    adminUsersCache = d.users || [];
+    applyUsersFilter();
+    hydrateUserVehicleOptions();
   } catch (e) { console.warn('Users:', e.message); }
 }
 
-async function loadPendingCash() {
-  const table = document.getElementById('cashConfirmTable');
+function applyUsersFilter() {
+  const table = document.getElementById('userTable');
   if (!table) return;
-  try {
-    const d = await LapokAPI.get('/api/trips/pending_cash.php');
-    const rows = (d.trips || []).map((t) =>
-      `<tr><td>#${t.id}</td><td>${t.cadet_name || '—'}</td><td>${t.vehicle_reg}</td>
-      <td>${LapokAPI.formatUgx(t.cash_reported)}</td>
-      <td><input class="qty-inp" type="number" id="cash-${t.id}" value="${t.cash_reported}" style="width:100px"></td>
-      <td><button class="btn btn-sm btn-red" onclick="confirmCash(${t.id})">Confirm</button></td></tr>`
-    ).join('');
-    table.innerHTML = '<tr><th>Trip</th><th>Cadet</th><th>Vehicle</th><th>Reported</th><th>Received</th><th>Action</th></tr>' +
-      (rows || '<tr><td colspan="6">No pending confirmations</td></tr>');
-  } catch (e) { console.warn('Cash:', e.message); }
+  const q = (document.getElementById('adminUserSearch')?.value || '').toLowerCase();
+  const roleFilter = document.getElementById('adminUserRoleFilter')?.value || '';
+  const roleBadge = (r) => `<span class="badge ${r === 'admin' || r === 'executive' ? 'br' : r === 'manager' ? 'bw' : 'bi'}">${LapokAPI.roleLabel[r] || r}</span>`;
+  const filtered = adminUsersCache.filter((u) => {
+    const text = [u.full_name, u.email, u.national_id, u.phone, u.role].join(' ').toLowerCase();
+    return (!q || text.includes(q)) && (!roleFilter || u.role === roleFilter);
+  });
+  const rows = filtered.map((u) => {
+      const ini = u.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2);
+      return `<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar av-red">${ini}</div><div><div>${u.full_name}</div><div style="font-size:11px;color:var(--gray-mid)">${u.email}</div></div></div></td>
+        <td>${roleBadge(u.role)}</td><td>${u.national_id || '—'}</td><td>${u.phone || '—'}</td>
+        <td>${u.vehicle_reg ? `<span class="badge b-tuk">${u.vehicle_reg}</span>` : '—'}</td>
+        <td><label class="toggle"><input type="checkbox" ${u.is_active ? 'checked' : ''} onchange="toggleUserActive(${u.id}, this.checked)"><span class="slider"></span></label></td>
+        <td><button class="btn btn-sm" onclick="openEditUserModal(${u.id})">Edit</button></td></tr>`;
+  }).join('');
+  table.innerHTML = '<tr><th>Name</th><th>Role</th><th>National ID</th><th>Phone</th><th>Vehicle</th><th>Active</th><th>Actions</th></tr>' +
+    (rows || '<tr><td colspan="7" style="text-align:center;color:var(--gray-mid)">No users found</td></tr>');
 }
 
-async function confirmCash(tripId) {
-  const inp = document.getElementById('cash-' + tripId);
-  const amount = parseFloat(inp?.value) || 0;
+function hydrateUserVehicleOptions() {
+  LapokAPI.get('/api/vehicles/fetch_vehicles.php').then((d) => {
+    const opts = ['<option value="">None / unassigned</option>'].concat((d.vehicles || []).map((v) =>
+      `<option value="${v.id}">${v.registration} (${v.vehicle_type})</option>`
+    )).join('');
+    const addSel = document.getElementById('addUserVehicleId');
+    const editSel = document.getElementById('editUserVehicleId');
+    if (addSel) addSel.innerHTML = opts;
+    if (editSel) editSel.innerHTML = opts;
+  }).catch(() => {});
+}
+
+async function toggleUserActive(id, isActive) {
   try {
-    const r = await LapokAPI.post('/api/trips/cash_confirm.php', { trip_id: tripId, cash_collected: amount });
-    alert(`Confirmed. Variance: ${LapokAPI.formatUgx(r.variance)}`);
-    loadPendingCash();
-  } catch (e) { alert(e.message); }
+    await LapokAPI.post('/api/users/edit_user.php', { id, is_active: isActive ? 1 : 0 });
+    const row = adminUsersCache.find((u) => u.id === id);
+    if (row) row.is_active = isActive ? 1 : 0;
+    adminToast(isActive ? 'User activated' : 'User deactivated');
+  } catch (e) {
+    adminToast(e.message, true);
+    loadUsersTable();
+  }
+}
+
+function openEditUserModal(id) {
+  const u = adminUsersCache.find((x) => x.id === id);
+  if (!u) return;
+  document.getElementById('editUserId').value = String(u.id);
+  document.getElementById('editUserFullName').value = u.full_name || '';
+  document.getElementById('editUserEmail').value = u.email || '';
+  document.getElementById('editUserRole').value = u.role || 'field_user';
+  document.getElementById('editUserNationalId').value = u.national_id || '';
+  document.getElementById('editUserPhone').value = u.phone || '';
+  document.getElementById('editUserDefaultRoute').value = u.default_route || '';
+  document.getElementById('editUserPassword').value = '';
+  const idField = document.getElementById('editUserVehicleId');
+  if (idField) idField.value = u.vehicle_id || '';
+  setText('editUserTitle', `Edit user — ${u.full_name || 'User'}`);
+  const err = document.getElementById('editUserErr');
+  if (err) err.style.display = 'none';
+  openModal('editUserModal');
+}
+
+async function submitAddUser() {
+  const payload = {
+    full_name: document.getElementById('addUserFullName')?.value?.trim() || '',
+    email: document.getElementById('addUserEmail')?.value?.trim() || '',
+    password: document.getElementById('addUserPassword')?.value || '',
+    role: document.getElementById('addUserRole')?.value || 'field_user',
+    national_id: document.getElementById('addUserNationalId')?.value?.trim() || '',
+    phone: document.getElementById('addUserPhone')?.value?.trim() || '',
+    vehicle_id: document.getElementById('addUserVehicleId')?.value || null,
+    default_route: document.getElementById('addUserDefaultRoute')?.value?.trim() || '',
+  };
+  try {
+    await LapokAPI.post('/api/users/create_user.php', payload);
+    closeModal('addUserModal');
+    ['addUserFullName', 'addUserNationalId', 'addUserPhone', 'addUserEmail', 'addUserDefaultRoute', 'addUserPassword']
+      .forEach((field) => { const el = document.getElementById(field); if (el) el.value = ''; });
+    adminToast('User created');
+    await loadUsersTable();
+  } catch (e) {
+    const err = document.getElementById('addUserErr');
+    if (err) { err.style.display = 'block'; err.textContent = e.message; }
+  }
+}
+
+async function submitEditUser() {
+  const id = Number(document.getElementById('editUserId')?.value || 0);
+  const payload = {
+    id,
+    full_name: document.getElementById('editUserFullName')?.value?.trim() || '',
+    email: document.getElementById('editUserEmail')?.value?.trim() || '',
+    role: document.getElementById('editUserRole')?.value || 'field_user',
+    national_id: document.getElementById('editUserNationalId')?.value?.trim() || '',
+    phone: document.getElementById('editUserPhone')?.value?.trim() || '',
+    vehicle_id: document.getElementById('editUserVehicleId')?.value || null,
+    default_route: document.getElementById('editUserDefaultRoute')?.value?.trim() || '',
+  };
+  const pw = document.getElementById('editUserPassword')?.value || '';
+  if (pw) payload.password = pw;
+  try {
+    await LapokAPI.post('/api/users/edit_user.php', payload);
+    closeModal('editUserModal');
+    adminToast('User updated');
+    await loadUsersTable();
+  } catch (e) {
+    const err = document.getElementById('editUserErr');
+    if (err) { err.style.display = 'block'; err.textContent = e.message; }
+  }
+}
+
+async function deactivateEditingUser() {
+  const id = Number(document.getElementById('editUserId')?.value || 0);
+  if (!id) return;
+  await toggleUserActive(id, false);
+  closeModal('editUserModal');
+  loadUsersTable();
+}
+
+function exportUsersCsv() {
+  const rows = [['Full name', 'Email', 'Role', 'National ID', 'Phone', 'Vehicle', 'Active']];
+  adminUsersCache.forEach((u) => {
+    rows.push([u.full_name, u.email, u.role, u.national_id || '', u.phone || '', u.vehicle_reg || '', u.is_active ? 'Yes' : 'No']);
+  });
+  const csv = rows.map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'lapok-users-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  adminToast('Users CSV exported');
+}
+
+async function loadPendingCash() {
+  if (typeof loadCashHandoverPage === 'function') return loadCashHandoverPage();
 }
 
 async function loadLiveCharts() {
@@ -229,7 +489,8 @@ async function loadLiveCharts() {
 
 async function loadFinancialReports() {
   try {
-    const d = await LapokAPI.get('/api/reports/financial.php');
+    const filters = getAdminReportFilters();
+    const d = await LapokAPI.get('/api/reports/financial.php?' + queryFromFilters(filters));
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = LapokAPI.formatM(v); };
     set('rptRevenueMtd', d.revenue);
     set('rptExpensesMtd', d.expenses);
@@ -252,7 +513,8 @@ async function loadFinancialReports() {
 
 async function loadSalesReports() {
   try {
-    const d = await LapokAPI.get('/api/reports/sales.php');
+    const filters = getAdminReportFilters();
+    const d = await LapokAPI.get('/api/reports/sales.php?' + queryFromFilters(filters));
     const st = document.getElementById('mgrSalesTable');
     if (st) {
       st.innerHTML = '<tr><th>Period</th><th>Cartons</th><th>Revenue</th></tr>' +
@@ -277,7 +539,8 @@ async function loadSalesReports() {
 
 async function loadStockReports() {
   try {
-    const d = await LapokAPI.get('/api/reports/stock.php');
+    const filters = getAdminReportFilters();
+    const d = await LapokAPI.get('/api/reports/stock.php?' + queryFromFilters(filters));
     const body = document.getElementById('reportsDetailBody');
     if (!body) return;
     const low = (d.low_stock || []).map((l) => `<tr><td>${l.name}</td><td class="deficit">${l.warehouse_qty}</td><td>${l.min_stock}</td></tr>`).join('');
@@ -291,6 +554,47 @@ function loadReportsTab(tab) {
   if (tab === 'financial') loadFinancialReports();
   else if (tab === 'sales') loadSalesReports();
   else if (tab === 'stock') loadStockReports();
+}
+
+async function initAdminReportFilters() {
+  if (adminReportFiltersInitialized) return;
+  const fromEl = document.getElementById('reportFrom');
+  const toEl = document.getElementById('reportTo');
+  if (fromEl && !fromEl.value) fromEl.value = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+  if (toEl && !toEl.value) toEl.value = new Date().toISOString().slice(0, 10);
+  try {
+    const [routes, vehicles, users] = await Promise.all([
+      LapokAPI.get('/api/routes/fetch_routes.php'),
+      LapokAPI.get('/api/vehicles/fetch_vehicles.php'),
+      LapokAPI.get('/api/users/fetch_users.php'),
+    ]);
+    const routeSel = document.getElementById('reportRouteFilter');
+    if (routeSel) routeSel.innerHTML = '<option value="">All routes</option>' + (routes.routes || []).map((r) => `<option value="${r.id}">${r.name}</option>`).join('');
+    const vehicleSel = document.getElementById('reportVehicleFilter');
+    if (vehicleSel) vehicleSel.innerHTML = '<option value="">All vehicles</option>' + (vehicles.vehicles || []).map((v) => `<option value="${v.id}">${v.registration}</option>`).join('');
+    const userSel = document.getElementById('reportUserFilter');
+    if (userSel) userSel.innerHTML = '<option value="">All users</option>' + (users.users || []).map((u) => `<option value="${u.id}">${u.full_name}</option>`).join('');
+  } catch (_) {}
+  adminReportFiltersInitialized = true;
+}
+
+function applyAdminReportFilters() {
+  loadFinancialReports();
+}
+
+function resetAdminReportFilters() {
+  ['reportRouteFilter', 'reportVehicleFilter', 'reportUserFilter'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const gb = document.getElementById('reportGroupBy');
+  if (gb) gb.value = 'day';
+  applyAdminReportFilters();
+}
+
+function exportFilteredSalesCsv() {
+  const q = queryFromFilters(getAdminReportFilters());
+  window.open('/api/reports/export_csv.php?type=sales&' + q, '_blank');
 }
 
 async function saveNewCustomer() {
@@ -338,14 +642,25 @@ async function changePassword() {
       new_password: document.getElementById('pwdNew').value,
     });
     closeModal('profileModal');
-    alert('Password updated.');
-  } catch (e) { alert(e.message); }
+    adminToast('Password updated');
+  } catch (e) { adminToast(e.message, true); }
 }
 
 const _origOpenModal = typeof openModal === 'function' ? openModal : null;
 if (_origOpenModal) {
   window.openModal = function (id) {
     if (id === 'profileModal') openProfileModal();
+    if (id === 'addUserModal') {
+      const err = document.getElementById('addUserErr');
+      if (err) err.style.display = 'none';
+      ['addUserFullName', 'addUserNationalId', 'addUserPhone', 'addUserEmail', 'addUserDefaultRoute', 'addUserPassword']
+        .forEach((field) => { const el = document.getElementById(field); if (el) el.value = ''; });
+      const role = document.getElementById('addUserRole');
+      if (role) role.value = 'field_user';
+      const vehicle = document.getElementById('addUserVehicleId');
+      if (vehicle) vehicle.value = '';
+      hydrateUserVehicleOptions();
+    }
     _origOpenModal(id);
   };
 }
@@ -358,37 +673,34 @@ document.addEventListener('DOMContentLoaded', () => {
   const phase45Pages = {
     'admin-dashboard': () => { loadAdminDashboard(); loadLiveCharts(); },
     'manager-dashboard': () => { loadAdminDashboard(); loadManagerDashboardExtras(); },
-    'manager-ccba-boards': () => loadManagerOccdBoards(),
-    'manager-fleet-map': () => { loadFleetMapPage(); loadDispatchLog(); },
     'report-exchange': () => loadReportExchangePage(),
     'user-dashboard': () => loadFieldDashboard(),
     'user-route': () => loadMyRoute(),
+    'cadet-dashboard': () => { if (typeof loadCadetDashboardPage === 'function') loadCadetDashboardPage(); },
+    'cadet-daily': () => { if (typeof loadCadetDailyPage === 'function') loadCadetDailyPage(); },
     'user-customers': () => loadUserCustomers(),
     'admin-customers': () => loadAdminCustomers(),
     'admin-routes': () => loadRoutes(),
-    'admin-audit': () => loadAuditLog(),
-    'admin-reports': () => { loadFinancialReports(); loadLiveCharts(); },
+    'admin-audit': () => { initAuditFilters(); loadAuditLog(); },
+    'admin-reports': () => { initAdminReportFilters(); loadFinancialReports(); loadLiveCharts(); },
     'manager-reports': () => loadSalesReports(),
+    'manager-rdc-review': () => loadRdcReviewPage(),
+    'accountant-rdc-hub': () => loadRdcHubPage(),
     'accountant-rdc': () => loadRdcBalancingPage(),
-    'accountant-cash': () => loadPendingCash(),
+    'accountant-cash': () => loadCashHandoverPage(),
+    'accountant-improvements': () => { if (typeof loadAccountantImprovementsPage === 'function') loadAccountantImprovementsPage(); },
+    'accountant-welfare': () => loadAccountantWelfarePage(),
     'admin-users': () => loadUsersTable(),
-    'manager-ccba-order': () => loadCcbaPage(),
     'admin-exceptions': () => loadExceptionsPage(),
     'admin-editreqs': () => loadEditRequests(),
-    'manager-stock': () => { loadStockTable(); loadDeliveryList(); },
+    'manager-stock': () => { loadStockTable(); loadDeliveryList(); if (typeof loadManagerOpeningStock === 'function') loadManagerOpeningStock(); if (typeof loadManagerFixedCosts === 'function') loadManagerFixedCosts(); },
+    'director-brief': () => { if (typeof loadDirectorBriefPage === 'function') loadDirectorBriefPage(); },
   };
 
   const prev = hook;
   window.showPage = function (id) {
-    let occdTab = null;
-    if (id === 'manager-ccba-map') {
-      id = 'manager-ccba-boards';
-      occdTab = 'sku-map';
-    }
-    if (id !== 'manager-fleet-map' && typeof stopFleetMapRefresh === 'function') stopFleetMapRefresh();
     prev(id);
     if (phase45Pages[id]) phase45Pages[id]();
-    if (occdTab && typeof switchOccdTab === 'function') switchOccdTab(occdTab);
   };
 
   // Enrich init

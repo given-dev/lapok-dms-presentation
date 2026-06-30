@@ -26,12 +26,19 @@ if (!$row) {
     json_error('Save the sheet as draft before submitting', 400);
 }
 
-if ($row['status'] === 'submitted') {
-    json_error('Already submitted for this date', 400);
+if (!in_array($row['status'], ['draft', 'reopened'], true)) {
+    json_error('Only draft or reopened sheets can be submitted', 400);
 }
 
 $upd = $pdo->prepare(
-    "UPDATE rdc_daily_sheets SET status = 'submitted', submitted_by = ?, submitted_at = NOW() WHERE id = ?"
+    "UPDATE rdc_daily_sheets
+     SET status = 'submitted',
+         submitted_by = ?,
+         submitted_at = NOW(),
+         reviewed_by = NULL,
+         reviewed_at = NULL,
+         review_note = NULL
+     WHERE id = ?"
 );
 $upd->execute([(int) $user['id'], (int) $row['id']]);
 

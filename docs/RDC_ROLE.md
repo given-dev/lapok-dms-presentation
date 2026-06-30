@@ -2,7 +2,8 @@
 
 **LAPOK internal title:** Accountant (RDC) in Lapok DMS  
 **System user:** `accountant@lapok.ug`  
-**Primary daily tool:** RDC daily balancing (replaces Excel workbook)
+**Primary daily tool:** RDC daily balancing (replaces Excel workbook)  
+**Feature tracker:** [`MODULE_TRACKER.md`](MODULE_TRACKER.md) — live, planned, and suggested modules
 
 ---
 
@@ -22,7 +23,7 @@ The RDC is the **resident authority at the depot** — not only bookkeeping. She
 | **Coordinate staff ↔ directors ↔ clients ↔ community** | Bridge between field, management, customers | PDF report exchange, receivables, daily balancing submit | Live |
 | **Transparent, secure storage** | Storage under directors’ oversight | Stock levels, future audit trail | Live / planned |
 | **Accounting** | Daily balancing, cash, receivables | **RDC daily balancing**, cash handover, financial reports | Live |
-| **Welfare** | Staff welfare matters | Staff welfare register | Placeholder — Phase 2 |
+| **Welfare** | Staff welfare matters | Staff welfare register | **Live** — local register in More menu |
 
 ---
 
@@ -48,7 +49,7 @@ End of day → RDC daily balancing → Submit to manager
 | **Receivables** | Customer balances |
 | **Site monitoring** | Low stock, pending issues |
 | **Stock & assets** | View warehouse / vehicle stock (read-only focus) |
-| **Staff welfare** | Welfare notes (coming soon) |
+| **Staff welfare** | Welfare register (More menu) |
 | **PDF reports** | Send packs to manager |
 | **Financial reports** | Summaries and exports |
 

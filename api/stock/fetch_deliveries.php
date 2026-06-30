@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 
-require_roles(['admin', 'manager', 'accountant', 'executive']);
+require_permission('stock_view');
 
 $date = trim($_GET['date'] ?? date('Y-m-d'));
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {

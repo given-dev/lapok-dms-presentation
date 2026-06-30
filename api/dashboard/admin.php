@@ -5,7 +5,10 @@ require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/permissions.php';
 require_once dirname(__DIR__, 2) . '/includes/stock.php';
 
-require_roles(['admin', 'executive', 'manager', 'accountant']);
+$user = require_permission('dashboard');
+if (!in_array($user['role'], ['admin', 'manager', 'accountant'], true)) {
+    json_error('Insufficient permissions', 403);
+}
 
 $pdo = db();
 

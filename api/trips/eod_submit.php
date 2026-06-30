@@ -21,6 +21,13 @@ $fuelCost = isset($body['fuel_cost']) ? (float) $body['fuel_cost'] : null;
 $cashReported = (float) ($body['cash_reported'] ?? 0);
 $notes = trim($body['notes'] ?? '') ?: null;
 $returns = $body['returns'] ?? [];
+$closeMeta = $body['close_meta'] ?? null;
+if (is_array($closeMeta)) {
+    $metaText = json_encode($closeMeta, JSON_UNESCAPED_UNICODE);
+    if ($metaText) {
+        $notes = trim(($notes ? $notes . "\n" : '') . '[CADCLOSE] ' . $metaText);
+    }
+}
 
 $pdo = db();
 
@@ -67,7 +74,9 @@ if (is_array($returns)) {
 }
 
 audit_log($user['id'], 'delivery_trips', $tripId, 'eod_submit', null, [
-    'cash_reported' => $cashReported, 'status' => 'returned',
+    'cash_reported' => $cashReported,
+    'status' => 'returned',
+    'checkpoint' => is_array($closeMeta) ? ($closeMeta['checkpoint'] ?? 'close') : 'close',
 ]);
 
 try {

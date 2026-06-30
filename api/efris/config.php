@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/efris.php';
 
-require_roles(['admin', 'manager', 'executive']);
+require_permission('efris_view');
 
 $configKeys = ['integration_mode', 'seller_tin', 'default_device_serial'];
 $config = [];

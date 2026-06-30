@@ -5,7 +5,7 @@ require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/permissions.php';
 require_once dirname(__DIR__, 2) . '/includes/stock.php';
 
-require_roles(['admin', 'executive', 'manager', 'accountant']);
+require_permission('stock_view');
 
 $expiryDays = (int) ($_GET['expiry_days'] ?? 30);
 

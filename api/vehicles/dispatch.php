@@ -28,6 +28,12 @@ if ($vehicleId <= 0) {
 if (!is_array($loadItems) || count($loadItems) === 0) {
     json_error('At least one load item is required');
 }
+if (strlen($routeArea) > 120) {
+    json_error('route_area is too long');
+}
+if (!is_array($orderIds)) {
+    json_error('order_ids must be an array');
+}
 
 $pdo = db();
 $pdo->beginTransaction();
@@ -38,6 +44,9 @@ try {
     $vehicle = $vStmt->fetch();
     if (!$vehicle) {
         throw new RuntimeException('Vehicle not found');
+    }
+    if (in_array((string) $vehicle['status'], ['on_route', 'maintenance'], true)) {
+        throw new RuntimeException('Vehicle is not available for dispatch');
     }
 
     $tripStmt = $pdo->prepare(
@@ -56,6 +65,9 @@ try {
         $qty = (int) ($item['qty'] ?? 0);
         if ($productId <= 0 || $qty <= 0) {
             throw new RuntimeException('Each load item needs product_id and qty');
+        }
+        if ($qty > 100000) {
+            throw new RuntimeException('Load quantity is unreasonably high');
         }
 
         deduct_warehouse_stock($productId, $qty, $user['id'], 'trip', $tripId);
@@ -96,12 +108,34 @@ try {
 
     $pdo->commit();
 
+    if ($cadetId > 0) {
+        try {
+            require_once dirname(__DIR__, 2) . '/includes/notifications.php';
+            $loadLabel = $totalLoad > 0 ? "{$totalLoad} cartons loaded" : 'Stock loaded';
+            notify_user($cadetId, 'Vehicle dispatched', sprintf(
+                '%s assigned on %s. %s — open your dashboard and submit today\'s report when you return.',
+                $vehicle['registration'],
+                $routeArea ?: ($vehicle['current_route'] ?: 'route'),
+                $loadLabel
+            ), [
+                'sender_id' => (int) $user['id'],
+                'sender_role' => $user['role'],
+                'severity' => 'info',
+                'link_page' => 'cadet-dashboard',
+            ]);
+        } catch (Throwable) {
+        }
+    }
+
     json_ok([
         'trip_id' => $tripId,
         'vehicle_id' => $vehicleId,
         'total_load' => $totalLoad,
         'status' => 'dispatched',
     ], 201);
+} catch (RuntimeException $e) {
+    $pdo->rollBack();
+    json_error($e->getMessage(), 422);
 } catch (Throwable $e) {
     $pdo->rollBack();
     json_error($e->getMessage(), 500);

@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 3) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 3) . '/includes/ccba.php';
 
-require_roles(['admin', 'manager', 'executive']);
+require_permission('ccba_view');
 
 $orderId = (int) ($_GET['id'] ?? 0);
 if ($orderId <= 0) {

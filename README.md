@@ -1,93 +1,256 @@
-# Lapok DMS — Leadership Presentation Build
+# Lapok DMS — Presentation Build
 
 **Folder:** `lapok-dms-presentation`  
-**Purpose:** Stakeholder demo for LAPOK Ventures — warehouse, finance, depot oversight (RDC), and reporting **without live integrations**.
+**Stack:** PHP APIs + MySQL + vanilla JS (`index.html`, `assets/*.js`)  
+**Purpose:** LAPOK Ventures depot operations and finance. The **accountant (RDC)** and **cadet** modules are live — daily close, cadet reports, manager pack, and review workflow work end-to-end without external integrations.
+
+External systems (CCBA, EFRIS, fleet GPS) are manual or deferred in this build.
+
+---
+
+## Quick start (XAMPP)
+
+1. Start **Apache** and **MySQL** in XAMPP.
+2. Create and seed the database (see [Database setup](#database-setup) below).
+3. Open **http://localhost/project/lapok-dms-presentation/login.html**
+4. Sign in as `accountant@lapok.ug` / `password123`
+5. After JS changes, hard refresh with **Ctrl+F5**.
+
+---
 
 ## Who can log in
 
-| Email | Role |
-|-------|------|
-| manager@lapok.ug | Manager |
-| accountant@lapok.ug | Accountant (RDC) |
-| executive@lapok.ug | Executive |
+| Role | Allowed in this build |
+|------|------------------------|
+| Admin | Yes |
+| Manager | Yes |
+| Accountant (RDC) | Yes |
+| Executive | Yes |
+| Cadet | Yes |
+| Driver | Blocked (`presentation-config.js`) |
+| Field user | Limited subset |
 
-Password: **`password123`**
+All demo users share password **`password123`** (see [Demo accounts](#demo-accounts)).
 
-Cadet, driver, and admin accounts are **blocked** in this build.
+---
 
-## What works (no external integrations)
+## Demo accounts
 
-| Role | Live features |
-|------|----------------|
-| **Manager** | Dashboard, edit requests, exception center, customers, stock & deliveries, dispatch, PDF report exchange, sales/financial reports, **view submitted RDC daily sheets** |
-| **Accountant (RDC)** | **RDC overview hub**, **daily balancing** (replaces Excel workbook), cash handover, receivables, **site monitoring**, **stock & assets (view)**, financial reports, PDF pack to manager |
-| **Executive** | Read-only dashboard, PDF inbox, reports, exception overview |
+| Role | Email |
+|------|-------|
+| Accountant (RDC) | `accountant@lapok.ug` |
+| Manager | `manager@lapok.ug` |
+| Executive | `executive@lapok.ug` |
+| Admin | `admin@lapok.ug` |
+| Cadet | `cadet@lapok.ug` |
 
-### Accountant (RDC) — Resident Depot Commissioner
+---
 
-The **Accountant (RDC)** login covers the full depot commissioner role at LAPOK — not bookkeeping alone. On login she lands on **RDC overview**, a hub linking all duty areas:
+## What works
 
-| Duty (LAPOK) | Lapok page |
-|--------------|------------|
-| Law & order / site monitoring | Site monitoring (exception center) |
-| Protect premises & assets | Stock & assets (view) |
-| Monitor daily activities | Operations dashboard + exceptions |
-| Coordinate staff ↔ directors ↔ clients | PDF reports, receivables, daily balancing submit |
-| Accounting | **Daily balancing**, cash handover, financial reports |
-| Staff welfare | Staff welfare register (Phase 2 placeholder) |
+### Cadet
 
-Role documentation: [`docs/RDC_ROLE.md`](docs/RDC_ROLE.md)
+| Area | Page | Notes |
+|------|------|-------|
+| Dashboard (home) | `cadet-dashboard` | Trip status, load summary, messages from depot |
+| Today's report | `cadet-daily` | All depot products grouped like LAPOK book (CSD, ENERGY, JUICE, VAD, WATER, OTHER) |
+| Notifications | Bell icon | Receive messages from manager / RDC / admin |
 
-**Key files:** `assets/rdc-balancing.js`, `includes/rdc_balancing.php`, `api/rdc/*`, `page-accountant-rdc-hub` in `index.html`
+On submit, sales, expenses, and cash **auto-sync** into the accountant's **Today's close** sheet on the **vehicle column** for the assigned trip.
 
-## Placeholders (Phase 2 — full build)
+### Manager
 
-These appear in the sidebar under **Phase 2 — integrations** with a “coming in full build” card:
+Dashboard, edit requests, **exception center** (depot alerts), customers & receivables, stock & deliveries (including 7am opening stock + monthly fixed costs), PDF report exchange, sales/financial reports, **RDC daily sheets review** (approve / reject / reopen), **month-end** (view), **staff welfare** (add / resolve).
+
+### Accountant (RDC)
+
+| Area | Page | Notes |
+|------|------|-------|
+| Home (default) | `accountant-rdc-hub` | 2-step EOD checklist, cadet intake nudge, depot/welfare/cash nudges |
+| Today's close | `accountant-rdc` | 3-step wizard, products grouped like LAPOK book, cadet data by vehicle column, auto-save |
+| Manager pack | `report-exchange` | One-tap send; gated on submitted balancing |
+| Cash handover | `accountant-cash` | Confirm field trip cash |
+| Month-end | `accountant-improvements` | Checklist + monthly notes — **DB sync** across roles |
+| Staff welfare | `accountant-welfare` | Welfare register — **DB sync** across roles |
+| Closing stock (7pm) | `accountant-rdc-hub` | Manual snapshot on Home |
+| Depot alerts | `admin-exceptions` | Live exception queue (see below) |
+
+**Sidebar — Today:** Home, Today's close  
+**Sidebar — More:** Cash handover, Month-end, Staff welfare, Depot alerts
+
+Receivables (`admin-customers`) are **manager-only**. Accountants see a Home nudge when outstanding credit ≥ **8M UGX**.
+
+### Executive
+
+Read-only dashboard, PDF inbox, reports, exception center, receivables overview, month-end (view), staff welfare (view).
+
+### Depot alerts (exception center)
+
+**Not a separate ticket system** — a live radar built on each refresh from real depot data:
+
+| Type | Source | Fix in |
+|------|--------|--------|
+| Stock | Products below minimum | Stock & deliveries |
+| Cash | Returned trip, cash not confirmed | Cash handover |
+| Cadet report | Today's flagged cadet report | Today's close |
+| Welfare | Open welfare entry | Staff welfare |
+| Edit request | Pending field edit | Edit requests |
+| Sale | Pending order | Manager dashboard |
+
+When the underlying issue is fixed, the row disappears on refresh. Manager dashboard and accountant Home also surface summary counts.
+
+### Daily close flow (accountant)
+
+```
+Manager dispatches vehicle → Cadet submits today's report
+  → Auto-sync into RDC sheet (vehicle column: sales, fuel/other, cash)
+
+Accountant: Home → Continue
+  → Today's close (wizard: sales → expenses/cash → review) → Submit
+  → Finish panel → Send manager pack (one tap) OR Back to Home
+
+Manager: RDC daily sheets → Approve / reject / reopen
+```
+
+Optional nudges on Home: field cash, high receivables, depot alerts, open welfare, cadet flags.  
+Month-end banner (last 3 days of month) → Month-end tools.
+
+Home shows a **Module live** chip when core migrations are applied (`api/rdc/health.php`).
+
+---
+
+## Glossary
+
+| Term | Meaning |
+|------|---------|
+| **MTD** | Month To Date — from the 1st of this month through today |
+| **YTD** | Year To Date — from 1 January through today |
+| **RDC** | Resident depot accountant role (accountant login) |
+| **LAPOK book** | Product grouping: CSD, ENERGY, JUICE, VAD, WATER, OTHER |
+
+---
+
+## Database setup
+
+Database name: **`lapok_dms`**
+
+From the `lapok-dms-presentation` folder in PowerShell:
+
+```powershell
+# Schema + seed (first-time only — drops and recreates tables)
+Get-Content database\schema.sql | C:\xampp\mysql\bin\mysql.exe -u root
+Get-Content database\seed.sql | C:\xampp\mysql\bin\mysql.exe -u root lapok_dms
+
+# Migrations (run in order)
+1..12 | ForEach-Object {
+  $f = "database\migrations\{0:D3}_*.sql" -f $_
+  Get-ChildItem $f -ErrorAction SilentlyContinue | ForEach-Object {
+    Get-Content $_.FullName | C:\xampp\mysql\bin\mysql.exe -u root lapok_dms
+  }
+}
+```
+
+**Minimum for accountant module:**
+
+| Migration | Purpose |
+|-----------|---------|
+| **008** | RDC daily balancing tables |
+| **009** | Manager review workflow (approve / reject) |
+
+**Recommended for full depot flow:**
+
+| Migration | Purpose |
+|-----------|---------|
+| **010** | Opening/closing stock snapshots, monthly fixed costs |
+| **011** | In-app notifications (cadet bell, depot messages) |
+| **012** | Month-end workspace + staff welfare register (server sync) |
+
+```powershell
+Get-Content database\migrations\008_rdc_daily_balancing.sql | C:\xampp\mysql\bin\mysql.exe -u root lapok_dms
+Get-Content database\migrations\009_rdc_review_workflow.sql | C:\xampp\mysql\bin\mysql.exe -u root lapok_dms
+Get-Content database\migrations\010_depot_finance.sql | C:\xampp\mysql\bin\mysql.exe -u root lapok_dms
+Get-Content database\migrations\011_user_notifications.sql | C:\xampp\mysql\bin\mysql.exe -u root lapok_dms
+Get-Content database\migrations\012_rdc_ops_sync.sql | C:\xampp\mysql\bin\mysql.exe -u root lapok_dms
+```
+
+Reset all demo passwords to `password123`:
+
+```powershell
+C:\xampp\php\php.exe scripts\setup_passwords.php
+```
+
+Verify RDC tables:
+
+```powershell
+C:\xampp\mysql\bin\mysql.exe -u root lapok_dms -e "SHOW TABLES LIKE 'rdc_daily_sheets'; SHOW TABLES LIKE 'staff_welfare_entries';"
+```
+
+---
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| Home shows **Setup needed** | Run migrations 008 and 009 |
+| Month-end / welfare save fails | Run migration **012** |
+| Cadet notifications empty | Run migration **011** |
+| Balancing save/submit 500 | Confirm `rdc_daily_sheets` table exists |
+| Cadet report not in RDC sheet | Vehicle must be dispatched; sheet must not be locked (submitted) |
+| Stale UI after edits | Hard refresh **Ctrl+F5** (cache-busted `?v=` on key JS files) |
+| Login fails | Run `scripts/setup_passwords.php`; check Apache + MySQL are running |
+| API returns HTML instead of JSON | Check PHP errors in XAMPP; confirm URL matches your `htdocs` path |
+| `php` not found in terminal | Use `C:\xampp\php\php.exe` full path |
+
+---
+
+## Reporting hierarchy
+
+```
+Cadet (field)  →  Accountant (RDC)  →  Manager  →  Executive
+  daily report      daily balancing        (daily brief)   (PDF inbox)
+                    + finance pack
+```
+
+---
+
+## Phase 2 placeholders
+
+Sidebar items under **Phase 2 — integrations** show a “coming in full build” card:
 
 - Fleet map (GPS)
 - CCBA daily boards
 - Order via MyCCBA
 - EFRIS / URA fiscal receipts
-- Staff welfare register (full module)
 
-## Run locally
+---
 
-Same database as the full project (`lapok_dms`). From XAMPP:
+## Key files
 
-**http://localhost/lapok-dms-presentation/login.html**
+| Area | Files |
+|------|-------|
+| Nav / API client | `assets/api.js`, `assets/app.js`, `assets/phase45.js` |
+| Build config | `assets/presentation-config.js` |
+| Depot product catalog | `includes/depot_catalog.php` |
+| Cadet | `assets/cadet-dashboard.js`, `assets/cadet-daily.js`, `api/cadet/*`, `includes/cadet_reports.php` |
+| Notifications | `assets/notifications.js`, `includes/notifications.php`, `api/notifications/*` |
+| Accountant Home | `assets/rdc-hub.js`, `#page-accountant-rdc-hub` |
+| Daily balancing | `assets/rdc-balancing.js`, `includes/rdc_balancing.php`, `api/rdc/*` |
+| Stock snapshots | `assets/depot-snapshots.js`, `includes/depot_finance.php`, `api/depot/*` |
+| Manager pack | `assets/report-exchange.js` |
+| Cash handover | `assets/cash-handover.js` |
+| Month-end | `assets/accountant-improvements.js`, `includes/rdc_month_end.php`, `api/rdc/fetch_month_end.php` |
+| Staff welfare | `assets/accountant-welfare.js`, `includes/staff_welfare.php`, `api/welfare/*` |
+| Depot alerts | `api/exceptions/fetch.php`, `assets/manager-ops.js` (`loadExceptionsPage`) |
+| Manager RDC review | `assets/rdc-review.js` |
 
-### Database setup
+---
 
-Use the same DB steps as [`lapok-dms-full/README.md`](../lapok-dms-full/README.md). At minimum run schema, seed, and migrations **002–008** (008 adds RDC daily balancing):
-
-```powershell
-Get-Content database\migrations\008_rdc_daily_balancing.sql | C:\xampp\mysql\bin\mysql.exe -u root lapok_dms
-```
-
-## Reporting hierarchy
-
-```
-Field agents  →  Accountant (RDC)  →  Manager  →  Executive
-     (EOD)         daily balancing         (daily brief)   (PDF inbox)
-                   + finance pack
-```
-
-## Business case document
-
-See **`docs/LAPOK_PROJECT_PROPOSAL.md`** — timeline, production costs, and expected value for LAPOK.
-
-## Integration blueprints
+## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [`docs/EFRIS_FISCAL_INTEGRATION_BLUEPRINT.md`](docs/EFRIS_FISCAL_INTEGRATION_BLUEPRINT.md) | Fiscal cash register + URA EFRIS — fiscal-first workflow |
-| [`../lapok-dms-full/docs/CCBA_INTEGRATION_BLUEPRINT.md`](../lapok-dms-full/docs/CCBA_INTEGRATION_BLUEPRINT.md) | CCBA MyCCBA replenishment (full repo) |
-| [`docs/RDC_ROLE.md`](docs/RDC_ROLE.md) | RDC duties → Lapok modules |
-
-## Related folders
-
-| Folder | Description |
-|--------|-------------|
-| `lapok-dms-full` | Complete system — all roles, CCBA, EFRIS, fleet, field cadet/driver |
-| `lapok-dms-presentation` | This demo (3 leadership roles, integration placeholders) |
-| `lapok-dms` | Active development workspace (same scope as full) |
+| [`docs/MODULE_TRACKER.md`](docs/MODULE_TRACKER.md) | Live, planned, and suggested features by module |
+| [`docs/RDC_ROLE.md`](docs/RDC_ROLE.md) | RDC duties mapped to Lapok modules |
+| [`docs/LAPOK_PROJECT_PROPOSAL.md`](docs/LAPOK_PROJECT_PROPOSAL.md) | Timeline, costs, and business case |
+| [`docs/EFRIS_FISCAL_INTEGRATION_BLUEPRINT.md`](docs/EFRIS_FISCAL_INTEGRATION_BLUEPRINT.md) | EFRIS / fiscal device integration plan |
+| [`docs/CCBA_INTEGRATION_BLUEPRINT.md`](docs/CCBA_INTEGRATION_BLUEPRINT.md) | CCBA MyCCBA replenishment plan |

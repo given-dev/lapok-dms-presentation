@@ -26,6 +26,7 @@ $cashActual = $body['cash_actual'] ?? [];
 $expectedOverride = isset($body['expected_amount']) ? (float) $body['expected_amount'] : null;
 $notes = trim($body['notes'] ?? '');
 
+try {
 $totals = rdc_compute_totals([
     'sales' => $sales,
     'recoveries' => $recoveries,
@@ -39,11 +40,11 @@ $existing = $pdo->prepare('SELECT id, status FROM rdc_daily_sheets WHERE balance
 $existing->execute([$date]);
 $prev = $existing->fetch();
 
-if ($prev && $prev['status'] === 'submitted' && $user['role'] !== 'admin') {
+if ($prev && in_array($prev['status'], ['submitted', 'under_review', 'approved', 'rejected'], true) && $user['role'] !== 'admin') {
     json_error('Submitted sheets cannot be edited. Contact admin to reopen.', 403);
 }
 
-$payload = [
+$sheetFields = [
     json_encode($sales, JSON_UNESCAPED_UNICODE),
     json_encode($recoveries, JSON_UNESCAPED_UNICODE),
     json_encode($expenses, JSON_UNESCAPED_UNICODE),
@@ -58,7 +59,6 @@ $payload = [
     $totals['variance'],
     json_encode($columns, JSON_UNESCAPED_UNICODE),
     $notes !== '' ? $notes : null,
-    (int) $user['id'],
 ];
 
 if ($prev) {
@@ -70,7 +70,7 @@ if ($prev) {
             columns_json = ?, notes = ?, updated_at = NOW()
          WHERE id = ?'
     );
-    $upd->execute([...$payload, (int) $prev['id']]);
+    $upd->execute(array_merge($sheetFields, [(int) $prev['id']]));
     $id = (int) $prev['id'];
 } else {
     $ins = $pdo->prepare(
@@ -80,7 +80,7 @@ if ($prev) {
           variance, columns_json, notes, created_by)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
-    $ins->execute([$date, ...$payload]);
+    $ins->execute(array_merge([$date], $sheetFields, [(int) $user['id']]));
     $id = (int) $pdo->lastInsertId();
 }
 
@@ -94,3 +94,6 @@ $stmt->execute([$id]);
 $row = $stmt->fetch();
 
 json_ok(['sheet' => rdc_sheet_to_response($row), 'message' => 'Daily balancing saved']);
+} catch (Throwable $e) {
+    json_error('Could not save sheet: ' . $e->getMessage(), 500);
+}

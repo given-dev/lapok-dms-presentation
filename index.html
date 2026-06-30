@@ -93,6 +93,87 @@ html,body{height:100%;font-family:'Inter',system-ui,-apple-system,sans-serif;bac
 .metric-sub{font-size:11px;color:var(--gray-mid);margin-top:3px}
 .metric-trend{font-size:11px;font-weight:600;margin-top:3px}
 .trend-up{color:#16a34a}.trend-dn{color:var(--red)}
+.rdc-duty-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem}
+.rdc-duty-card{background:var(--white);border:1px solid var(--gray-light);border-radius:var(--rl);padding:1rem;box-shadow:var(--shadow);cursor:pointer;transition:var(--transition);min-height:118px;display:flex;flex-direction:column;gap:6px}
+.rdc-duty-card:hover{border-color:var(--red);box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.rdc-duty-card.hi{border-color:var(--red);background:linear-gradient(135deg,#fff 0%,#fff5f5 100%)}
+.rdc-duty-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.rdc-duty-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-mid)}
+.rdc-duty-value{font-size:14px;font-weight:700;color:var(--black);line-height:1.35}
+.rdc-duty-sub{font-size:11px;color:var(--gray);line-height:1.45;margin-top:auto}
+.rdc-priority-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.05)}
+.rdc-priority-row:last-child{border-bottom:none}
+.rdc-priority-dot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0;background:var(--gray-light)}
+.rdc-priority-dot.done{background:#16a34a}.rdc-priority-dot.warn{background:var(--gold)}.rdc-priority-dot.alert{background:var(--red)}
+.rdc-bal-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:1rem}
+.rdc-bal-toolbar .chip{margin:0}
+.rdc-bal-steps{display:flex;gap:8px;margin-bottom:1rem}
+.rdc-bal-step{flex:1;text-align:center;padding:10px 8px;border-radius:var(--rl);font-size:11px;font-weight:700;background:var(--white);border:1px solid var(--gray-light);color:var(--gray-mid);cursor:pointer;transition:var(--transition)}
+.rdc-bal-step:hover{border-color:var(--red)}
+.rdc-bal-step.done{background:#f0fdf4;border-color:#86efac;color:#166534}
+.rdc-bal-step.active{border-color:var(--red);color:var(--black);box-shadow:0 0 0 2px var(--red-glow)}
+.rdc-bal-sticky{position:sticky;bottom:0;z-index:20;margin-top:1rem;padding:12px 14px;background:rgba(255,255,255,.95);border:1px solid var(--gray-light);border-radius:var(--rl);box-shadow:0 -4px 20px rgba(15,23,42,.08);display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end;backdrop-filter:blur(8px)}
+.cash-var{font-size:12px;font-weight:700}
+.cash-var.ok{color:#166534}
+.cash-var.warn{color:var(--red)}
+.rdc-section{margin-bottom:1rem;border:1px solid var(--gray-light);border-radius:var(--rl);background:var(--white);box-shadow:var(--shadow)}
+.rdc-section>summary{cursor:pointer;padding:12px 14px;font-size:13px;font-weight:700;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rdc-section>summary::-webkit-details-marker{display:none}
+.rdc-section>summary::after{content:'›';font-size:16px;color:var(--gray-mid);transition:transform .2s}
+.rdc-section[open]>summary::after{transform:rotate(90deg)}
+.rdc-section-body{padding:0 14px 14px}
+.rdc-hub-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem}
+.rdc-hub-step{background:var(--white);border:1px solid var(--gray-light);border-radius:var(--rl);padding:12px;cursor:pointer;text-align:center;transition:var(--transition)}
+.rdc-hub-step:hover{border-color:var(--red)}
+.rdc-hub-step.done{border-color:#86efac;background:#f0fdf4}
+.rdc-hub-step.active{border-color:var(--red);box-shadow:0 0 0 2px var(--red-glow)}
+.rdc-hub-step-num{font-size:10px;font-weight:700;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.06em}
+.rdc-hub-step-label{font-size:13px;font-weight:700;margin-top:4px}
+.rdc-hub-hero{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:1rem}
+.rdc-hub-greeting{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.rdc-hub-date{font-size:13px;color:var(--gray-mid);margin-top:2px}
+.rdc-hub-hero-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rdc-hub-progress{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-bottom:1rem}
+.rdc-hub-progress-seg{height:6px;border-radius:99px;background:var(--gray-light);overflow:hidden;position:relative}
+.rdc-hub-progress-seg span{position:absolute;inset:0;font-size:0}
+.rdc-hub-progress-seg.done{background:#22c55e}
+.rdc-hub-progress-seg.active{background:linear-gradient(90deg,#22c55e 50%,var(--red) 50%)}
+.rdc-hub-primary{margin-bottom:1rem;padding:14px 16px;border-radius:var(--rl);border:1px solid var(--gray-light);background:var(--white);display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+.rdc-hub-primary.done{border-color:#86efac;background:#f0fdf4}
+.rdc-hub-primary-text{flex:1;min-width:180px}
+.rdc-hub-primary-title{font-size:14px;font-weight:700}
+.rdc-hub-primary-sub{font-size:12px;color:var(--gray-mid);margin-top:2px}
+.rdc-hub-primary .btn.btn-red{padding:12px 22px;font-size:14px;font-weight:700}
+.rdc-wizard-head{margin-bottom:1rem;padding:12px 14px;background:var(--white);border:1px solid var(--gray-light);border-radius:var(--rl)}
+.rdc-wizard-title{font-size:15px;font-weight:700}
+.rdc-wizard-sub{font-size:12px;color:var(--gray-mid);margin-top:4px}
+.rdc-hub-checklist{list-style:none;margin:0 0 1rem;padding:0}
+.rdc-hub-check-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--white);border:1px solid var(--gray-light);border-radius:var(--rl);margin-bottom:8px;transition:var(--transition)}
+.rdc-hub-check-item[role=button]{cursor:pointer}
+.rdc-hub-check-item[role=button]:hover{border-color:var(--red)}
+.rdc-hub-check-item.done{border-color:#86efac;background:#f0fdf4}
+.rdc-hub-check-item.active{border-color:var(--red);box-shadow:0 0 0 2px var(--red-glow)}
+.rdc-hub-check-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--gray-light);flex-shrink:0;color:var(--gray-mid)}
+.rdc-hub-check-item.done .rdc-hub-check-num{background:#22c55e;color:#fff}
+.rdc-hub-check-item.active .rdc-hub-check-num{background:var(--red);color:#fff}
+.rdc-hub-cash-nudge{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:1rem;padding:12px 14px;border-radius:var(--rl);border:1px solid #fcd34d;background:#fffbeb}
+.rdc-hub-recv-nudge{border-color:#fca5a5;background:#fff5f5}
+.rdc-hub-depot-nudge{border-color:#fdba74;background:#fff7ed}
+.rdc-hub-month-end{margin-bottom:1rem;padding:12px 14px;border-radius:var(--rl);border:1px solid var(--gray-light);background:var(--white);display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.rdc-hub-pack-view{margin:0 0 1rem;padding:0;list-style:none}
+.rdc-hub-pack-view .btn{width:100%}
+.rdc-finish-today{margin-bottom:1rem;padding:16px;border-radius:var(--rl);border:1px solid #86efac;background:#f0fdf4}
+.rdc-demo-banner{margin-bottom:1rem}
+.rdc-hub-cash-nudge-text{flex:1;min-width:180px;font-size:13px}
+.rdc-hub-cash-nudge-text strong{display:block;font-size:14px;margin-bottom:2px}
+.metric-card.rdc-variance-ok{border-color:#86efac;background:#f0fdf4}
+.metric-card.rdc-variance-ok .metric-value{color:#166534}
+.metric-card.rdc-variance-warn{border-color:#fca5a5;background:#fff5f5}
+.metric-card.rdc-variance-warn .metric-value{color:var(--red)}
+tr.rdc-hub-today td{background:rgba(229,62,62,.04);font-weight:600}
+@media(max-width:640px){.rdc-hub-steps{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){.rdc-duty-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.rdc-duty-grid{grid-template-columns:1fr}}
 
 /* ── TABLE ── */
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -149,6 +230,8 @@ tr:hover td{background:rgba(0,0,0,.012)}
 .occd-tbl th{font-size:9.5px;padding:6px 8px}
 .occd-tbl td{padding:5px 8px}
 .occd-cat-row td{background:#edf2f7;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.cadet-cat-row td,.rdc-cat-row td{background:#edf2f7;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-dark);font-weight:700}
+.rdc-cat-row td{background:#edf2f7;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-dark);font-weight:700}
 .occd-total-row td{background:#f7fafc;font-weight:700}
 .occd-grand-row td{background:#e2e8f0;font-weight:800}
 .occd-num-inp{width:72px;min-height:32px;padding:4px 6px;border:1px solid var(--gray-light);border-radius:5px;font-size:12px;text-align:right;font-family:inherit}
@@ -344,9 +427,9 @@ canvas{display:block;width:100%!important}
   <div class="topbar-right">
     <div class="tb-chip hide-sm" id="clockChip">--:--</div>
     <div class="tb-chip hide-sm" style="color:var(--red);border-color:#fca5a5;background:#fff0f0">07 May 2026</div>
-    <div class="notif-btn" onclick="openModal('notifModal')">
+    <div class="notif-btn" onclick="openNotifModal()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      <div class="notif-dot"></div>
+      <div class="notif-dot" id="notifUnreadDot" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -358,12 +441,24 @@ canvas{display:block;width:100%!important}
   <div class="alert a-danger"><span>⚠</span><div><strong>Low stock:</strong> Coke 500ml (42 crates) and Sprite 1L (18 crates) below minimum of 80. <a href="#" onclick="showPage('admin-exceptions');return false" style="color:var(--red);font-weight:600">Open exception center →</a></div></div>
   <div class="alert a-info"><span>ℹ</span><div><strong>Reporting line:</strong> Field agents submit to Accountant, Accountant consolidates for Manager, Manager submits executive brief to Managing Directors and Board.</div></div>
   <div class="metric-grid">
-    <div class="metric-card hi"><div class="metric-label">Warehouse</div><div class="metric-value">1,284</div><div class="metric-sub">crates total</div></div>
-    <div class="metric-card"><div class="metric-label">Revenue today</div><div class="metric-value">3.72M</div><div class="metric-sub">UGX</div><div class="metric-trend trend-up">↑ 8%</div></div>
-    <div class="metric-card"><div class="metric-label">Crates sold</div><div class="metric-value">186</div><div class="metric-sub">today</div></div>
-    <div class="metric-card"><div class="metric-label">Revenue MTD</div><div class="metric-value">84.2M</div><div class="metric-sub">UGX</div></div>
-    <div class="metric-card"><div class="metric-label">Vehicles out</div><div class="metric-value">3<span style="font-size:14px;font-weight:400;color:var(--gray-mid)">/4</span></div><div class="metric-sub">active now</div></div>
-    <div class="metric-card"><div class="metric-label">Edit requests</div><div class="metric-value">2</div><div class="metric-sub pending">pending</div></div>
+    <div class="metric-card hi"><div class="metric-label">Warehouse</div><div class="metric-value" id="admMetricWarehouse">1,284</div><div class="metric-sub">crates total</div></div>
+    <div class="metric-card"><div class="metric-label">Revenue today</div><div class="metric-value" id="admMetricRevenueToday">3.72M</div><div class="metric-sub">UGX</div><div class="metric-trend trend-up">↑ 8%</div></div>
+    <div class="metric-card"><div class="metric-label">Crates sold</div><div class="metric-value" id="admMetricCartonsToday">186</div><div class="metric-sub">today</div></div>
+    <div class="metric-card"><div class="metric-label">Revenue MTD</div><div class="metric-value" id="admMetricRevenueMtd">84.2M</div><div class="metric-sub">UGX</div></div>
+    <div class="metric-card"><div class="metric-label">Vehicles out</div><div class="metric-value" id="admMetricVehiclesOut">3/4</div><div class="metric-sub">active now</div></div>
+    <div class="metric-card"><div class="metric-label">Edit requests</div><div class="metric-value" id="admMetricPendingRequests">2</div><div class="metric-sub pending">pending</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Admin action center</span>
+      <button class="btn btn-sm" onclick="loadAdminActionCenter()">Refresh</button>
+    </div>
+    <div class="tbl-wrap"><table>
+      <tr><th>Priority</th><th>Item</th><th>Count</th><th>Action</th></tr>
+      <tbody id="adminActionCenterBody">
+        <tr><td colspan="4" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr>
+      </tbody>
+    </table></div>
   </div>
   <div class="two-col">
     <div class="card">
@@ -393,7 +488,7 @@ canvas{display:block;width:100%!important}
   </div>
   <div class="two-col">
     <div class="card">
-      <div class="card-header"><span class="card-title">Fleet status</span><button class="btn btn-sm btn-red" onclick="showPage('admin-fleet')">Manage fleet</button></div>
+      <div class="card-header"><span class="card-title">Fleet status</span><button class="btn btn-sm btn-red" onclick="showPage('admin-exceptions')">Open exception center</button></div>
       <div class="tbl-wrap"><table>
         <tr><th>Vehicle</th><th>Type</th><th>Driver / Rider</th><th>Status</th></tr>
         <tr><td><strong>KCA 201T</strong></td><td><span class="badge b-truck">Truck</span></td><td>James Wanyama</td><td><span class="badge bs">On route</span></td></tr>
@@ -426,8 +521,24 @@ canvas{display:block;width:100%!important}
 
 <!-- ADMIN USERS -->
 <div class="page" id="page-admin-users">
-  <div class="btn-group"><button class="btn btn-red" onclick="openModal('addUserModal')">+ Add user</button><button class="btn" onclick="alert('Exported as CSV')">Export CSV</button></div>
-  <div style="margin-bottom:.8rem"><input class="input" style="max-width:360px" type="text" placeholder="Search by name, ID or phone…" oninput="filterTable('userTable',this.value)"></div>
+  <div class="btn-group">
+    <button class="btn btn-red" onclick="openModal('addUserModal')">+ Add user</button>
+    <button class="btn" onclick="exportUsersCsv()">Export CSV</button>
+    <button class="btn btn-sm" onclick="loadUsersTable()">Refresh</button>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.8rem">
+    <input class="input" id="adminUserSearch" style="max-width:360px;flex:1" type="text" placeholder="Search by name, email, ID or phone…" oninput="applyUsersFilter()">
+    <select class="select-inp" id="adminUserRoleFilter" style="max-width:200px" onchange="applyUsersFilter()">
+      <option value="">All roles</option>
+      <option value="admin">Admin</option>
+      <option value="executive">Executive</option>
+      <option value="manager">Manager</option>
+      <option value="accountant">Accountant</option>
+      <option value="driver">Driver</option>
+      <option value="cadet">Cadet</option>
+      <option value="field_user">Field user</option>
+    </select>
+  </div>
   <div class="card"><div class="tbl-wrap"><table id="userTable">
     <tr><th>Name</th><th>Role</th><th>National ID</th><th>Phone</th><th>Vehicle assigned</th><th>Active</th><th>Actions</th></tr>
     <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar av-red">SN</div>Sarah Nakato</div></td><td><span class="badge br">Manager</span></td><td>CM90200145672</td><td>+256 772 100001</td><td>—</td><td><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td><td><button class="btn btn-sm" onclick="openModal('editUserModal')">Edit</button></td></tr>
@@ -545,7 +656,7 @@ canvas{display:block;width:100%!important}
 
 <!-- ADMIN EXCEPTIONS -->
 <div class="page" id="page-admin-exceptions">
-  <div class="alert a-info"><span>ℹ</span>Live exception queue — stock shortages, cash variances, edit requests, and sales awaiting manager confirmation.</div>
+  <div class="alert a-info"><span>ℹ</span>Live exception queue — aggregated from stock, cash, cadet flags, welfare, edit requests, and pending sales. Resolve each item in its linked screen.</div>
   <div class="metric-grid" id="excMetrics">
     <div class="metric-card"><div class="metric-label">Loading…</div><div class="metric-value">—</div></div>
   </div>
@@ -564,6 +675,25 @@ canvas{display:block;width:100%!important}
     <button class="btn btn-red" onclick="LapokAPI.exportCsv('sales')">Export sales CSV</button>
     <button class="btn" onclick="LapokAPI.exportCsv('stock')">Export stock CSV</button>
     <button class="btn btn-black" onclick="LapokAPI.exportCsv('receivables')">Export receivables</button>
+  </div>
+  <div class="card" style="margin-top:.8rem">
+    <div class="card-header"><span class="card-title">Report filters</span><button class="btn btn-sm" onclick="applyAdminReportFilters()">Apply</button></div>
+    <div class="form-row">
+      <div class="form-group"><label>From</label><input class="input" type="date" id="reportFrom"></div>
+      <div class="form-group"><label>To</label><input class="input" type="date" id="reportTo"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Route</label><select class="select-inp" id="reportRouteFilter"><option value="">All routes</option></select></div>
+      <div class="form-group"><label>Vehicle</label><select class="select-inp" id="reportVehicleFilter"><option value="">All vehicles</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Sales user</label><select class="select-inp" id="reportUserFilter"><option value="">All users</option></select></div>
+      <div class="form-group"><label>Group by</label><select class="select-inp" id="reportGroupBy"><option value="day">Day</option><option value="week">Week</option><option value="month">Month</option></select></div>
+    </div>
+    <div class="btn-group" style="margin-top:.4rem">
+      <button class="btn btn-sm" onclick="exportFilteredSalesCsv()">Export filtered sales</button>
+      <button class="btn btn-sm" onclick="resetAdminReportFilters()">Reset filters</button>
+    </div>
   </div>
   <div class="btn-group" style="margin-top:-.5rem">
     <button class="btn btn-sm btn-red" onclick="loadReportsTab('financial')">Financial</button>
@@ -590,14 +720,23 @@ canvas{display:block;width:100%!important}
 
 <!-- ADMIN CUSTOMERS -->
 <div class="page" id="page-admin-customers">
-  <div class="alert a-info"><span>ℹ</span>Stakeholder placeholder: this module combines customer profile management with receivables controls and collections follow-up.</div>
-  <div class="metric-grid" style="margin-top:.6rem">
-    <div class="metric-card"><div class="metric-label">Total receivables</div><div class="metric-value">12.6M</div><div class="metric-sub">UGX</div></div>
-    <div class="metric-card"><div class="metric-label">0-30 days</div><div class="metric-value">6.1M</div><div class="metric-sub">UGX</div></div>
-    <div class="metric-card"><div class="metric-label">31-60 days</div><div class="metric-value">4.0M</div><div class="metric-sub">UGX</div></div>
-    <div class="metric-card"><div class="metric-label">60+ days</div><div class="metric-value">2.5M</div><div class="metric-sub pending">high risk</div></div>
+  <div class="card" style="margin-bottom:1rem">
+    <div class="metric-grid" style="margin-bottom:0">
+      <div class="metric-card hi" id="recvTotalCard">
+        <div class="metric-label">Outstanding receivables</div>
+        <div class="metric-value" id="recvTotalValue">—</div>
+        <div class="metric-sub" id="recvTotalSub">Loading…</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Customers with balance</div>
+        <div class="metric-value" id="recvCountValue">—</div>
+        <div class="metric-sub">Active accounts owing</div>
+      </div>
+    </div>
   </div>
-  <div class="btn-group"><button class="btn btn-red" onclick="openModal('addCustModal')">+ Add customer</button><button class="btn" onclick="LapokAPI.exportCsv('receivables')">Export balances</button><button class="btn btn-black">Assign collector</button></div>
+  <div class="btn-group" style="margin-bottom:.8rem">
+    <button class="btn" type="button" onclick="LapokAPI.exportCsv('receivables')">Export balances</button>
+  </div>
   <div style="margin-bottom:.8rem"><input class="input" style="max-width:360px" type="text" placeholder="Search customers…" oninput="loadAdminCustomers(this.value)"></div>
   <div class="card"><div class="tbl-wrap"><table id="adminCustomerTable">
     <tr><th>Name</th><th>Phone</th><th>Location</th><th>Category</th><th>Balance (UGX)</th><th>Actions</th></tr>
@@ -612,8 +751,25 @@ canvas{display:block;width:100%!important}
 
 <!-- ADMIN AUDIT -->
 <div class="page" id="page-admin-audit">
-  <div class="card"><div class="card-header"><span class="card-title">System audit log</span><span class="chip">Admin only</span></div>
-  <div class="tbl-wrap"><table id="auditTable"><tr><th>When</th><th>User</th><th>Table</th><th>Action</th><th>Changes</th></tr></table></div></div>
+  <div class="card" style="margin-bottom:.8rem">
+    <div class="card-header"><span class="card-title">Audit filters</span><span class="chip">Admin only</span></div>
+    <div class="form-row">
+      <div class="form-group"><label>From</label><input class="input" type="date" id="auditFrom" onchange="loadAuditLog()"></div>
+      <div class="form-group"><label>To</label><input class="input" type="date" id="auditTo" onchange="loadAuditLog()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Action</label><select class="select-inp" id="auditActionFilter" onchange="loadAuditLog()"><option value="">All actions</option><option value="create">Create</option><option value="update">Update</option><option value="delete">Delete</option><option value="login">Login</option><option value="logout">Logout</option></select></div>
+      <div class="form-group"><label>Table</label><input class="input" id="auditTableFilter" placeholder="e.g. users, orders" oninput="loadAuditLog()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>User</label><input class="input" id="auditUserFilter" placeholder="Name or email" oninput="loadAuditLog()"></div>
+      <div class="form-group"><label>Rows</label><select class="select-inp" id="auditPerPage" onchange="loadAuditLog()"><option value="50">50</option><option value="100">100</option></select></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">System audit log</span><span class="chip" id="auditCountChip">0 entries</span></div>
+    <div class="tbl-wrap"><table id="auditTable"><tr><th>When</th><th>User</th><th>Table</th><th>Action</th><th>Changes</th><th>View</th></tr><tbody id="auditTableBody"><tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr></tbody></table></div>
+  </div>
 </div>
 
 <!-- EFRIS / FISCAL IMPORT -->
@@ -623,153 +779,364 @@ canvas{display:block;width:100%!important}
 
 <!-- RDC OVERVIEW HUB -->
 <div class="page" id="page-accountant-rdc-hub">
-  <div class="alert a-info"><span>ℹ</span><strong>Resident Depot Commissioner (RDC)</strong> — depot authority for order, assets, coordination, accounting, and staff welfare. Use the cards below for your daily tools.</div>
-  <div class="metric-grid" style="margin-bottom:1rem">
-    <div class="metric-card" style="cursor:pointer" onclick="showPage('admin-exceptions')">
-      <div class="metric-label">Site monitoring</div>
-      <div class="metric-value" style="font-size:14px">Law &amp; order · alerts</div>
-      <div class="metric-sub">Low stock &amp; exceptions</div>
+  <div class="alert a-warning" id="rdcHubAlert" style="display:none"></div>
+
+  <div class="rdc-hub-hero">
+    <div>
+      <div class="rdc-hub-greeting" id="rdcHubGreeting">Welcome back</div>
+      <div class="rdc-hub-date" id="rdcHubTodayLabel">—</div>
     </div>
-    <div class="metric-card" style="cursor:pointer" onclick="showPage('manager-stock')">
-      <div class="metric-label">Assets &amp; storage</div>
-      <div class="metric-value" style="font-size:14px">Protect premises</div>
-      <div class="metric-sub">View stock levels</div>
-    </div>
-    <div class="metric-card hi" style="cursor:pointer" onclick="showPage('accountant-rdc')">
-      <div class="metric-label">Accounting</div>
-      <div class="metric-value" style="font-size:14px">Daily balancing</div>
-      <div class="metric-sub">Replaces Excel workbook</div>
-    </div>
-    <div class="metric-card" style="cursor:pointer" onclick="showPage('accountant-cash')">
-      <div class="metric-label">Cash control</div>
-      <div class="metric-value" style="font-size:14px">Handover</div>
-      <div class="metric-sub">Field cash vs received</div>
-    </div>
-    <div class="metric-card" style="cursor:pointer" onclick="showPage('report-exchange')">
-      <div class="metric-label">Coordination</div>
-      <div class="metric-value" style="font-size:14px">Reports to manager</div>
-      <div class="metric-sub">Directors &amp; leadership pack</div>
-    </div>
-    <div class="metric-card" style="cursor:pointer" onclick="showPage('accountant-welfare')">
-      <div class="metric-label">Staff welfare</div>
-      <div class="metric-value" style="font-size:14px">Welfare register</div>
-      <div class="metric-sub">Coming soon</div>
+    <div class="rdc-hub-hero-right">
+      <span class="chip" id="rdcHubLiveChip" title="Database readiness">Checking…</span>
+      <span class="chip" id="rdcHubMonthChip">Loading…</span>
+      <button class="btn btn-sm" type="button" onclick="loadRdcHubPage()">Refresh</button>
     </div>
   </div>
-  <div class="card">
-    <div class="card-title" style="margin-bottom:.8rem">RDC responsibilities (LAPOK)</div>
-    <ul style="font-size:13px;line-height:1.85;color:var(--gray-dark);padding-left:1.2rem">
-      <li>Maintain <strong>law and order</strong> at the depot site</li>
-      <li><strong>Protect</strong> premises and company assets</li>
-      <li><strong>Monitor</strong> daily activities inside and outside the depot</li>
-      <li><strong>Coordinate</strong> depot staff with directors, clients, and the community</li>
-      <li>Ensure <strong>storage and operations</strong> stay transparent and secure under directors’ oversight</li>
-      <li><strong>Accounting</strong> — daily balancing, cash, and receivables</li>
-      <li><strong>Staff welfare</strong> — support and record welfare matters</li>
-    </ul>
+
+  <div class="rdc-hub-progress" id="rdcHubProgress" aria-hidden="true">
+    <div class="rdc-hub-progress-seg" id="rdcHubProgBal"><span>Balancing</span></div>
+    <div class="rdc-hub-progress-seg" id="rdcHubProgPack"><span>Pack</span></div>
   </div>
+
+  <div class="rdc-hub-primary" id="rdcHubPrimaryAction" style="display:none">
+    <div class="rdc-hub-primary-text">
+      <div class="rdc-hub-primary-title" id="rdcHubPrimaryTitle">—</div>
+      <div class="rdc-hub-primary-sub" id="rdcHubPrimarySub">—</div>
+    </div>
+    <button class="btn btn-red" type="button" id="rdcHubPrimaryBtn">Continue</button>
+  </div>
+
+  <ul class="rdc-hub-checklist" id="rdcHubChecklist" aria-label="End of day steps">
+    <li class="rdc-hub-check-item"><div class="rdc-hub-check-num">1</div><div><div style="font-weight:600;font-size:13px">Loading…</div></div></li>
+  </ul>
+
+  <div class="rdc-hub-cash-nudge" id="rdcHubCashNudge" style="display:none">
+    <div class="rdc-hub-cash-nudge-text">
+      <strong id="rdcHubCashNudgeTitle">Field cash pending</strong>
+      <span id="rdcHubCashNudgeSub">Confirm trip cash when cadets return — not part of today&apos;s close.</span>
+    </div>
+    <button class="btn btn-sm" type="button" onclick="showPage('accountant-cash')">Confirm cash</button>
+  </div>
+
+  <div class="rdc-hub-cash-nudge rdc-hub-recv-nudge" id="rdcHubRecvNudge" style="display:none">
+    <div class="rdc-hub-cash-nudge-text">
+      <strong id="rdcHubRecvNudgeTitle">High receivables</strong>
+      <span id="rdcHubRecvNudgeSub">Outstanding customer credit is elevated — your manager handles collections.</span>
+    </div>
+  </div>
+
+  <div class="rdc-hub-cash-nudge rdc-hub-depot-nudge" id="rdcHubCadetNudge" style="display:none">
+    <div class="rdc-hub-cash-nudge-text">
+      <strong id="rdcHubCadetNudgeTitle">Cadet reports flagged</strong>
+      <span id="rdcHubCadetNudgeSub">Sales, cash, or expense issues need RDC review.</span>
+    </div>
+    <button class="btn btn-sm" type="button" onclick="showPage('admin-exceptions')">Review</button>
+  </div>
+
+  <div class="rdc-hub-cash-nudge rdc-hub-depot-nudge" id="rdcHubDepotNudge" style="display:none">
+    <div class="rdc-hub-cash-nudge-text">
+      <strong id="rdcHubDepotNudgeTitle">Depot alerts</strong>
+      <span id="rdcHubDepotNudgeSub">Items need your attention.</span>
+    </div>
+    <button class="btn btn-sm" type="button" onclick="showPage('admin-exceptions')">Review alerts</button>
+  </div>
+
+  <div class="rdc-hub-month-end" id="rdcHubMonthEnd" style="display:none">
+    <div>
+      <div style="font-weight:600;font-size:13px">Month-end checklist</div>
+      <div style="font-size:12px;color:var(--gray-mid);margin-top:2px">Last days of the month — complete month-end notes and controls.</div>
+    </div>
+    <button class="btn btn-sm btn-red" type="button" onclick="showPage('accountant-improvements')">Open month-end</button>
+  </div>
+
+  <ul class="rdc-hub-pack-view" id="rdcHubPackView" style="display:none"></ul>
+
+  <details class="rdc-section" open>
+    <summary>7pm closing stock + director snapshot</summary>
+    <div class="rdc-section-body">
+      <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem" id="accClosingStatus">Loading closing status…</p>
+      <div class="tbl-wrap"><table id="accClosingStockTable"><tr><th>Product</th><th>SKU</th><th>Qty</th></tr><tr><td colspan="3" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
+      <div class="form-group" style="margin-top:.8rem"><label>Notes</label><textarea class="textarea-inp" id="accClosingNotes" rows="2" placeholder="Shortages, recount notes…"></textarea></div>
+      <button class="btn btn-sm btn-red" type="button" onclick="saveAccountantClosingStock()">Save 7pm closing stock</button>
+      <div id="directorBriefWidget" style="margin-top:1rem;font-size:13px"></div>
+    </div>
+  </details>
+
+  <details class="rdc-section">
+    <summary>History &amp; depot alerts</summary>
+    <div class="rdc-section-body">
+      <div id="rdcHubPriorities" style="margin-bottom:1rem"></div>
+      <p id="rdcHubWelfareNote" style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">
+        <strong>Staff welfare:</strong> log requests in the
+        <button class="btn btn-sm" type="button" style="margin-left:4px" onclick="showPage('accountant-welfare')">welfare register</button>
+        — synced for manager and leadership.
+      </p>
+      <div id="rdcHubHistoryTools" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:.8rem"></div>
+      <div class="page-section-label">Recent sheets</div>
+      <div class="tbl-wrap"><table id="rdcHubRecentTable"><tr><th>Date</th><th>Status</th><th>Variance</th><th></th></tr><tr><td colspan="4" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
+    </div>
+  </details>
 </div>
 
 <!-- ACCOUNTANT / RDC DAILY BALANCING -->
 <div class="page" id="page-accountant-rdc">
-  <div class="alert a-info"><span>ℹ</span><strong>Resident Depot Commissioner (RDC):</strong> Enter daily sales, recoveries, expenses, and cash balancing here — replaces the Excel daily workbook.</div>
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">RDC daily balancing</span>
-      <span class="badge bw" id="rdcStatusBadge">draft</span>
+  <div class="rdc-bal-toolbar">
+    <button class="btn btn-sm" onclick="showPage('accountant-rdc-hub')">← Home</button>
+    <input class="input" type="date" id="rdcDate" style="width:auto;min-height:36px" title="Change date">
+    <span class="badge bd" id="rdcUnsavedBadge" style="display:none">Unsaved</span>
+    <span class="chip" id="rdcMetaLine">Loading…</span>
+    <span class="badge bw" id="rdcStatusBadge" style="margin-left:auto">draft</span>
+  </div>
+
+  <div class="alert a-info rdc-demo-banner" id="rdcDemoBanner" style="display:none"><span>ℹ</span><div><strong>Training data</strong> — sample/demo entry. Replace with real figures before submit.</div></div>
+
+  <div id="rdcFinishToday" class="rdc-finish-today" style="display:none">
+    <div class="alert a-success" style="margin:0"><span>✓</span><div><strong>Balancing submitted</strong><div style="font-size:13px;margin-top:4px">Manager will review your sheet. Send today's pack to finish.</div></div></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+      <button class="btn btn-red" type="button" onclick="showPage('report-exchange')">Send manager pack now</button>
+      <button class="btn btn-sm" type="button" onclick="showPage('accountant-rdc-hub')">Back to Home</button>
+      <button class="btn btn-sm" type="button" onclick="rdcExportTodayCsv()">Export CSV</button>
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:1rem">
-      <label style="font-size:12px;font-weight:600">Date</label>
-      <input class="input" type="date" id="rdcDate" style="width:auto;min-height:36px">
-      <div id="rdcActions" style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="rdcSuggestSales()">Pull from Lapok sales</button>
-        <button class="btn btn-sm btn-red" onclick="rdcSaveSheet()">Save draft</button>
-        <button class="btn btn-sm btn-black" onclick="rdcSubmitSheet()">Submit to manager</button>
+  </div>
+
+  <div id="rdcBalancingMain">
+  <div class="rdc-bal-steps" id="rdcBalSteps">
+    <div class="rdc-bal-step" id="rdcBalStepSales" role="button" tabindex="0">① Sales</div>
+    <div class="rdc-bal-step" id="rdcBalStepCash" role="button" tabindex="0">② Cash</div>
+    <div class="rdc-bal-step" id="rdcBalStepSubmit" role="button" tabindex="0">③ Submit</div>
+  </div>
+
+  <div class="rdc-wizard-head" id="rdcWizardHead">
+    <div class="rdc-wizard-title" id="rdcWizardTitle">Step 1 of 3 — Sales</div>
+    <div class="rdc-wizard-sub" id="rdcWizardSub">Use sample data to practice, or import from Lapok orders.</div>
+  </div>
+
+  <div class="alert a-info" id="rdcReadOnlyBanner" style="display:none"><span>ℹ</span><div id="rdcReadOnlyText">This sheet is read-only.</div></div>
+  <div class="alert a-warning" id="rdcReviewBanner" style="display:none"></div>
+
+  <div id="rdcWizardPanel1" class="rdc-wizard-panel">
+    <div class="card" id="rdcSalesCard">
+      <div class="card-header"><span class="card-title">Sales by brand × vehicle</span></div>
+      <p style="font-size:12px;color:var(--gray-mid);margin:0 0 1rem">Products grouped like LAPOK book: <strong>CSD · ENERGY · JUICE · VAD · WATER · OTHER</strong>. Cadet data fills the matching vehicle column.</p>
+      <div class="tbl-wrap"><table><thead id="rdcSalesHead"></thead><tbody id="rdcSalesBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <div id="rdcWizardPanel2" class="rdc-wizard-panel" style="display:none">
+    <details class="rdc-section" open>
+      <summary>Expenses <button type="button" class="btn btn-sm rdc-add-row-btn" data-rdc-add-row="expense" onclick="event.stopPropagation()">+ Row</button></summary>
+      <div class="rdc-section-body"><div class="tbl-wrap"><table><thead id="rdcExpenseHead"></thead><tbody id="rdcExpenseBody"></tbody></table></div></div>
+    </details>
+    <div class="card" id="rdcCashCard">
+      <div class="card-header"><span class="card-title">Cash balance</span></div>
+      <div class="form-group"><label>Expected cash (UGX)</label><input class="input" type="number" id="rdcExpected" min="0" step="1" placeholder="Auto-filled on save"></div>
+      <div class="tbl-wrap"><table><thead id="rdcCashActualHead"></thead><tbody><tr id="rdcCashActualRow"></tr></tbody></table></div>
+    </div>
+    <details class="rdc-section">
+      <summary>Optional — recovery &amp; cash out</summary>
+      <div class="rdc-section-body">
+        <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">Recovery = cash collected <strong>today</strong> on routes. Outstanding customer balances are managed by your manager (not entered here).</p>
+        <details class="rdc-section">
+          <summary>Recovery (collections) <button type="button" class="btn btn-sm rdc-add-row-btn" data-rdc-add-row="recovery" onclick="event.stopPropagation()">+ Row</button></summary>
+          <div class="rdc-section-body"><div class="tbl-wrap"><table><thead id="rdcRecoveryHead"></thead><tbody id="rdcRecoveryBody"></tbody></table></div></div>
+        </details>
+        <details class="rdc-section">
+          <summary>Cash out <button type="button" class="btn btn-sm rdc-add-row-btn" data-rdc-add-row="cash_out" onclick="event.stopPropagation()">+ Row</button></summary>
+          <div class="rdc-section-body"><div class="tbl-wrap"><table><thead id="rdcCashOutHead"></thead><tbody id="rdcCashOutBody"></tbody></table></div></div>
+        </details>
       </div>
+    </details>
+  </div>
+
+  <div id="rdcWizardPanel3" class="rdc-wizard-panel" style="display:none">
+    <div class="card">
+      <div class="metric-grid" style="margin-bottom:0">
+        <div class="metric-card hi"><div class="metric-label">Grand total</div><div class="metric-value" id="rdcTotGrand">0</div></div>
+        <div class="metric-card"><div class="metric-label">Expenses</div><div class="metric-value" id="rdcTotExpenses">0</div></div>
+        <div class="metric-card"><div class="metric-label">Actual cash</div><div class="metric-value" id="rdcTotActual">0</div></div>
+        <div class="metric-card" id="rdcVarianceCard"><div class="metric-label">Variance</div><div class="metric-value" id="rdcTotVariance">0</div></div>
+      </div>
+      <div style="display:none"><span id="rdcTotSales">0</span><span id="rdcTotRecovery">0</span></div>
     </div>
-    <div class="metric-grid" style="margin-bottom:1rem">
-      <div class="metric-card"><div class="metric-label">Total sales</div><div class="metric-value" id="rdcTotSales">0</div></div>
-      <div class="metric-card"><div class="metric-label">Recovery</div><div class="metric-value" id="rdcTotRecovery">0</div></div>
-      <div class="metric-card"><div class="metric-label">Grand total</div><div class="metric-value" id="rdcTotGrand">0</div></div>
-      <div class="metric-card"><div class="metric-label">Expenses</div><div class="metric-value" id="rdcTotExpenses">0</div></div>
-      <div class="metric-card"><div class="metric-label">Actual cash</div><div class="metric-value" id="rdcTotActual">0</div></div>
-      <div class="metric-card"><div class="metric-label">Less / excess</div><div class="metric-value" id="rdcTotVariance">0</div></div>
+    <div class="card" id="rdcNotesCard">
+      <div class="card-header"><span class="card-title">Notes for manager</span></div>
+      <div class="form-group"><textarea class="textarea-inp" id="rdcNotes" rows="3" placeholder="Explain any variance or depot incidents…"></textarea></div>
     </div>
   </div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Sales by brand × vehicle</span></div>
-    <div class="tbl-wrap"><table><thead id="rdcSalesHead"></thead><tbody id="rdcSalesBody"></tbody></table></div>
   </div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Recovery (collections)</span><button class="btn btn-sm" onclick="rdcAddRow('recovery')">+ Row</button></div>
-    <div class="tbl-wrap"><table><thead id="rdcRecoveryHead"></thead><tbody id="rdcRecoveryBody"></tbody></table></div>
-  </div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Expenses</span><button class="btn btn-sm" onclick="rdcAddRow('expense')">+ Row</button></div>
-    <div class="tbl-wrap"><table><thead id="rdcExpenseHead"></thead><tbody id="rdcExpenseBody"></tbody></table></div>
-  </div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Cash balance</span></div>
-    <div class="form-group"><label>Expected amount (UGX)</label><input class="input" type="number" id="rdcExpected" min="0" step="1"></div>
-    <div class="tbl-wrap"><table><thead id="rdcCashActualHead"></thead><tbody><tr id="rdcCashActualRow"></tr></tbody></table></div>
-    <div class="form-group" style="margin-top:.8rem"><label>Notes</label><textarea class="textarea-inp" id="rdcNotes" placeholder="Optional notes for manager…"></textarea></div>
+
+  <div class="rdc-bal-sticky" id="rdcStickyActions">
+    <button class="btn btn-sm" type="button" id="rdcWizardBackBtn" onclick="rdcWizardBack()" style="display:none">← Back</button>
+    <span style="font-size:12px;color:var(--gray-mid);margin-right:auto" id="rdcStickyHint">—</span>
+    <span style="font-size:11px;color:var(--gray-mid)" id="rdcAutoSaveHint"></span>
+    <div id="rdcActions" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-sm" type="button" id="rdcSampleStickyBtn" onclick="rdcFillSampleData()">Sample data</button>
+      <button class="btn btn-sm" type="button" id="rdcImportStickyBtn" onclick="rdcSuggestSales()">Import sales</button>
+      <button class="btn btn-sm" type="button" onclick="rdcSaveSheet()">Save</button>
+      <button class="btn btn-sm btn-red" type="button" id="rdcWizardNextBtn" onclick="rdcWizardNext()">Next →</button>
+      <button class="btn btn-sm btn-black" type="button" id="rdcSubmitBtn" onclick="rdcSubmitSheet()" style="display:none">Submit to manager</button>
+    </div>
   </div>
 </div>
 
-<!-- RDC STAFF WELFARE (placeholder) -->
+<!-- RDC STAFF WELFARE -->
 <div class="page" id="page-accountant-welfare">
-  <div class="card" style="max-width:560px;margin:0 auto;text-align:center;padding:2.5rem 1.5rem">
-    <div style="font-size:48px;margin-bottom:1rem">🤝</div>
-    <div class="card-title" style="font-size:18px;margin-bottom:.5rem">Staff welfare register</div>
-    <span class="badge bg" style="margin-bottom:1rem;display:inline-block">Phase 2</span>
-    <p style="color:var(--gray-mid);line-height:1.6;margin-bottom:1rem">Record staff welfare requests, advances, and follow-ups — part of the RDC role alongside accounting.</p>
-    <p style="font-size:12px;color:var(--gray-mid)">For now, note welfare items in RDC daily balancing notes or coordinate offline until this module is configured with LAPOK HR.</p>
-    <button class="btn btn-sm" style="margin-top:1rem" onclick="showPage('accountant-rdc-hub')">← Back to RDC overview</button>
+  <div class="rdc-bal-toolbar">
+    <button class="btn btn-sm" onclick="showPage('accountant-rdc-hub')">← Home</button>
+    <span class="chip">Staff welfare register</span>
+    <span class="badge bw" id="welfareSummaryChip" style="margin-left:6px">—</span>
+    <button class="btn btn-sm" onclick="loadAccountantWelfarePage()" style="margin-left:auto">Refresh</button>
+  </div>
+
+  <div class="card" id="welfareFormCard" style="margin-bottom:1rem">
+    <div class="card-header"><span class="card-title">New entry</span></div>
+    <input type="hidden" id="welfareEditId" value="">
+    <div class="two-col">
+      <div class="form-group"><label>Date</label><input class="input" type="date" id="welfareDate"></div>
+      <div class="form-group"><label>Staff name</label><input class="input" type="text" id="welfareStaff" placeholder="Full name"></div>
+      <div class="form-group"><label>Type</label>
+        <select class="input" id="welfareType">
+          <option value="request">Welfare request</option>
+          <option value="advance">Salary advance</option>
+          <option value="medical">Medical support</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Amount (UGX)</label><input class="input" type="number" id="welfareAmount" min="0" step="1000" placeholder="0"></div>
+      <div class="form-group"><label>Status</label>
+        <select class="input" id="welfareStatus">
+          <option value="open">Open</option>
+          <option value="resolved">Resolved</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1"><label>Notes</label><textarea class="textarea-inp" id="welfareNotes" rows="2" placeholder="Brief description and follow-up…"></textarea></div>
+    </div>
+    <button class="btn btn-red" type="button" onclick="welfareAddEntry()">Save entry</button>
+    <p style="font-size:12px;color:var(--gray-mid);margin:.8rem 0 0">Saved to the depot database — visible to accountant, manager, and leadership on any device.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">Register</span></div>
+    <div class="tbl-wrap"><table id="welfareTable"><tr><th>Date</th><th>Staff</th><th>Type</th><th>Amount</th><th>Status</th><th>Notes</th><th></th></tr><tr><td colspan="7" style="color:var(--gray-mid);padding:1rem">Loading…</td></tr></table></div>
   </div>
 </div>
 
 <!-- ACCOUNTANT CASH -->
 <div class="page" id="page-accountant-cash">
-  <div class="alert a-info"><span>ℹ</span>Confirm cash physically received from field agents after end-of-day submission, then forward consolidated finance report to the manager via <a href="#" onclick="showPage('report-exchange');return false" style="font-weight:600">PDF reports</a>.</div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Direct reports from field agents</span><span class="badge bg">Finance intake</span></div>
-    <div class="tbl-wrap"><table>
-      <tr><th>Report source</th><th>Route</th><th>Submitted by</th><th>Status</th><th>Next step</th></tr>
-      <tr><td>EOD stock & cash</td><td>Owino / Katwe</td><td>David Ssemuju</td><td><span class="badge bs">Received</span></td><td>Include in manager pack</td></tr>
-      <tr><td>EOD stock & cash</td><td>Kampala Central</td><td>Ruth Nambi</td><td><span class="badge bw">Awaiting verification</span></td><td>Reconcile with trip records</td></tr>
-    </table></div>
+  <div class="rdc-bal-toolbar">
+    <button class="btn btn-sm" onclick="showPage('accountant-rdc-hub')">← Home</button>
+    <span class="chip" id="cashPageChip">Cash handover</span>
+    <button class="btn btn-sm" onclick="loadCashHandoverPage()" style="margin-left:auto">Refresh</button>
   </div>
-  <div class="card"><div class="card-header"><span class="card-title">Pending cash confirmations</span></div>
-  <div class="tbl-wrap"><table id="cashConfirmTable"><tr><th>Trip</th><th>Cadet</th><th>Vehicle</th><th>Reported</th><th>Received</th><th>Action</th></tr></table></div></div>
+
+  <div class="alert a-warning" id="cashLoadError" style="display:none"></div>
+
+  <div class="card" id="cashPendingCard">
+    <div class="card-header"><span class="card-title">Confirm field cash</span><span class="badge bg" id="cashPendingBadge">—</span></div>
+    <p style="font-size:12px;color:var(--gray-mid);margin:0 0 1rem">Enter what you physically received. Use <strong>Match</strong> if it equals the reported amount.</p>
+    <div class="tbl-wrap"><table id="cashConfirmTable"><tr><th>Trip</th><th>Cadet</th><th>Route</th><th>Returned</th><th>Reported</th><th>Received</th><th>Variance</th><th></th></tr><tr><td colspan="8" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
+  </div>
+
+  <details class="rdc-section" style="margin-top:1rem">
+    <summary>Confirmed today</summary>
+    <div class="rdc-section-body"><div class="tbl-wrap"><table id="cashConfirmedTable"><tr><th>Trip</th><th>Cadet</th><th>Reported</th><th>Received</th><th>Variance</th></tr><tr><td colspan="5" style="color:var(--gray-mid)">Loading…</td></tr></table></div></div>
+  </details>
+
+  <div class="rdc-bal-sticky" id="cashStickyBar">
+    <span style="font-size:12px;color:var(--gray-mid);margin-right:auto" id="cashStickyHint">Loading…</span>
+    <button class="btn btn-sm" type="button" id="cashNextBtn">← Home</button>
+  </div>
+</div>
+
+<div class="page" id="page-accountant-improvements">
+  <div class="rdc-bal-toolbar">
+    <button class="btn btn-sm" onclick="showPage('accountant-rdc-hub')">← Home</button>
+    <input class="input" type="month" id="accMonthPicker" style="width:auto;min-height:36px;margin-left:8px">
+    <span class="chip">Month-end</span>
+    <button class="btn btn-sm" onclick="refreshAccountantCommandCenter()" style="margin-left:auto">Refresh</button>
+  </div>
+  <p id="accMonthEndSync" style="font-size:12px;color:var(--gray-mid);margin:0 0 1rem">Loading…</p>
+  <div class="alert a-info"><span>ℹ</span>CCBA and EFRIS integrations are not connected in this build. Month-end notes and checklist sync to manager and leadership.</div>
+  <div class="two-col" style="margin-bottom:1rem">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Month-end checklist</span><button class="btn btn-sm btn-red" onclick="saveAccountantChecklist()">Save</button></div>
+      <div class="tbl-wrap"><table id="accChecklistTable"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Monthly notes</span><button class="btn btn-sm btn-red" onclick="saveAccountantNotes()">Save</button></div>
+      <div class="form-group"><label>Next process review</label><input class="input" type="date" id="accProcessReviewDate"></div>
+      <div class="form-group"><label>Monthly summary</label><textarea class="textarea-inp" id="accMonthlySummary" rows="4" placeholder="Brief summary for manager and depot teams…"></textarea></div>
+      <details class="rdc-section" style="margin-top:.5rem">
+        <summary>More notes (bottlenecks, SOP updates)</summary>
+        <div class="rdc-section-body">
+          <div class="form-group"><label>Bottlenecks</label><textarea class="textarea-inp" id="accBottlenecks" rows="2"></textarea></div>
+          <div class="form-group"><label>SOP updates</label><textarea class="textarea-inp" id="accSopUpdates" rows="2"></textarea></div>
+        </div>
+      </details>
+    </div>
+  </div>
+  <details class="rdc-section">
+    <summary>Advanced — automation, controls, alerts, P&amp;L template</summary>
+    <div class="rdc-section-body">
+      <div class="metric-grid" style="margin-bottom:1rem">
+        <div class="metric-card"><div class="metric-label">Cash flow (MTD)</div><div class="metric-value" id="accKpiCashFlow">UGX 0</div></div>
+        <div class="metric-card"><div class="metric-label">Receivables</div><div class="metric-value" id="accKpiReceivables">UGX 0</div></div>
+        <div class="metric-card"><div class="metric-label">Gross margin</div><div class="metric-value" id="accKpiMargin">0%</div></div>
+      </div>
+      <div class="two-col" style="margin-bottom:1rem">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Automation tracker</span><button class="btn btn-sm btn-red" onclick="saveAccountantAutomation()">Save</button></div>
+          <div id="accAutomationList"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Proactive alerts</span><button class="btn btn-sm btn-red" onclick="refreshAccountantCommandCenter()">Refresh</button></div>
+          <div id="accAlertsList"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header"><span class="card-title">Controls &amp; evidence</span></div>
+        <div class="form-group"><label>Approval matrix</label><select class="select-inp" id="accApprovalMatrix"><option value="green">Approved</option><option value="amber">Needs review</option><option value="red">Outdated</option></select></div>
+        <div class="page-section-label">Maker-checker <button class="btn btn-sm" onclick="addAccountantControlLog()">+ Log</button></div>
+        <div class="tbl-wrap"><table id="accControlsTable"></table></div>
+        <div class="page-section-label" style="margin-top:1rem">Documents <button class="btn btn-sm" onclick="addAccountantDocument()">+ Add</button></div>
+        <div class="tbl-wrap"><table id="accDocumentsTable"></table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">P&amp;L variance template</span><button class="btn btn-sm btn-red" onclick="saveAccountantTemplates()">Save</button></div>
+        <textarea class="textarea-inp" id="accTplPnL" rows="3" placeholder="Revenue vs costs, major variances…"></textarea>
+      </div>
+    </div>
+  </details>
 </div>
 
 <!-- ══════════ MANAGER PAGES ══════════ -->
+<div class="page" id="page-manager-rdc-review">
+  <div class="alert a-info"><span>ℹ</span>Review daily RDC submissions from Accountant. Approve final sheets, reject with comments, or reopen for correction.</div>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">RDC daily sheets review queue</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="input" type="month" id="rdcReviewMonth" style="width:auto;min-height:36px">
+        <button class="btn btn-sm btn-red" onclick="loadRdcReviewPage()">Refresh</button>
+      </div>
+    </div>
+    <div class="tbl-wrap"><table id="rdcReviewTable"><tr><th>Date</th><th>Status</th><th>Grand total</th><th>Variance</th><th>Submitted</th><th>Review</th><th>Action</th></tr><tr><td colspan="7" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
+  </div>
+</div>
+
 <div class="page" id="page-manager-dashboard">
   <div class="alert a-info"><span>ℹ</span><strong>Manager reporting role:</strong> Receive consolidated reports from Accountant and submit final daily brief to Executives.
-    <button class="btn btn-sm btn-black" style="margin-left:8px" onclick="showPage('manager-fleet-map')">Track fleet on map</button>
-    <button class="btn btn-sm" style="margin-left:6px" onclick="showPage('manager-ccba-boards')">CCBA daily boards</button>
+    <button class="btn btn-sm btn-black" style="margin-left:8px" onclick="showPage('report-exchange')">Open report exchange</button>
   </div>
-  <div class="alert a-danger"><span>⚠</span><strong>Low stock:</strong> Coke 500ml (42) and Sprite 1L (18).</div>
   <div class="metric-grid">
-    <div class="metric-card hi"><div class="metric-label">Warehouse</div><div class="metric-value">1,284</div><div class="metric-sub">crates</div></div>
-    <div class="metric-card"><div class="metric-label">Sales today</div><div class="metric-value">186</div><div class="metric-sub">UGX 3,720,000</div></div>
-    <div class="metric-card"><div class="metric-label">To confirm</div><div class="metric-value">5</div></div>
-    <div class="metric-card"><div class="metric-label">Edit requests</div><div class="metric-value">2</div></div>
+    <div class="metric-card hi"><div class="metric-label">Warehouse</div><div class="metric-value">—</div><div class="metric-sub">live</div></div>
+    <div class="metric-card"><div class="metric-label">Sales today</div><div class="metric-value">—</div><div class="metric-sub">live</div></div>
+    <div class="metric-card"><div class="metric-label">To confirm</div><div class="metric-value">—</div></div>
+    <div class="metric-card"><div class="metric-label">Edit requests</div><div class="metric-value">—</div></div>
   </div>
 
   <div class="page-section-label">Reporting &amp; handoff</div>
-  <div class="two-col" style="margin-bottom:1rem">
-    <div class="card" id="mgrHandoffCard"><div style="padding:1rem;color:var(--gray-mid)">Loading handoff…</div></div>
-    <div class="card">
-      <div class="card-header"><span class="card-title">Upward reporting pipeline</span><button class="btn btn-sm" onclick="showPage('report-exchange')">PDF report exchange</button></div>
-      <div class="tbl-wrap"><table>
-        <tr><th>From</th><th>To</th><th>Content</th><th>Status</th></tr>
-        <tr><td>Field agents</td><td>Accountant</td><td>EOD stock, cash, unpaid balances</td><td><span class="badge bs">In progress</span></td></tr>
-        <tr><td>Accountant</td><td>Manager</td><td>Cash reconciliation + receivables summary</td><td><span class="badge bw">Draft received</span></td></tr>
-        <tr><td>Manager</td><td>Executives / Board</td><td>Final operations and finance brief</td><td><span class="badge bg">Scheduled 17:00</span></td></tr>
-      </table></div>
-    </div>
-  </div>
+  <div class="card" id="mgrHandoffCard" style="margin-bottom:1rem"><div style="padding:1rem;color:var(--gray-mid)">Loading handoff…</div></div>
 
   <div class="page-section-label">Approvals &amp; alerts</div>
   <div class="two-col" style="margin-bottom:1rem">
@@ -811,7 +1178,7 @@ canvas{display:block;width:100%!important}
     <div class="btn-group">
       <button class="btn" onclick="loadCcbaProductMap()">Refresh</button>
       <button class="btn btn-black" onclick="runCcbaStockSync()">Save warehouse snapshot</button>
-      <button class="btn btn-red" onclick="showPage('manager-ccba-order')">Order via CCBA</button>
+      <button class="btn btn-red" onclick="showPage('manager-stock')">Back to stock operations</button>
     </div>
     <div class="card">
       <div class="card-header"><span class="card-title">Product SKU mapping</span></div>
@@ -859,7 +1226,29 @@ canvas{display:block;width:100%!important}
     <div class="btn-group">
       <button class="btn btn-red" onclick="openModal('incomingModal')">+ Record Coca-Cola delivery</button>
       <button class="btn" onclick="openModal('dispatchModal')">Dispatch vehicle</button>
-      <button class="btn btn-black" onclick="showPage('manager-fleet-map')">Fleet map &amp; dispatch log</button>
+      <button class="btn btn-black" onclick="showPage('admin-exceptions')">Review exceptions</button>
+    </div>
+  </div>
+  <div class="page-section">
+    <div class="page-section-label">Depot controls (manual)</div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Opening stock — 7:00 AM</span><button class="btn btn-sm btn-red" onclick="saveManagerOpeningStock()">Save opening</button></div>
+        <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem" id="mgrOpeningStatus">Loading…</p>
+        <div class="tbl-wrap"><table id="mgrOpeningStockTable"><tr><th>Product</th><th>SKU</th><th>Qty</th></tr><tr><td colspan="3" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
+        <div class="form-group" style="margin-top:.8rem"><label>Notes</label><textarea class="textarea-inp" id="mgrOpeningNotes" rows="2"></textarea></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Monthly fixed costs</span><button class="btn btn-sm btn-red" onclick="saveManagerFixedCosts()">Save</button></div>
+        <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">Director P&amp;L uses these as daily allocation (monthly ÷ days).</p>
+        <div class="form-group"><label>Rent (UGX / month)</label><input class="input" id="mgrFixedRent" type="number" min="0" step="1000"></div>
+        <div class="form-group"><label>Salaries (UGX / month)</label><input class="input" id="mgrFixedSalaries" type="number" min="0" step="1000"></div>
+        <div class="form-group"><label>Utilities (UGX / month)</label><input class="input" id="mgrFixedUtilities" type="number" min="0" step="1000"></div>
+        <div class="form-group"><label>Security (UGX / month)</label><input class="input" id="mgrFixedSecurity" type="number" min="0" step="1000"></div>
+        <div class="form-group"><label>Other fixed (UGX / month)</label><input class="input" id="mgrFixedOther" type="number" min="0" step="1000"></div>
+        <div class="recon-row"><span>Monthly total</span><strong id="mgrFixedMonthlyTotal">UGX 0</strong></div>
+        <div class="form-group"><label>Notes</label><textarea class="textarea-inp" id="mgrFixedNotes" rows="2"></textarea></div>
+      </div>
     </div>
   </div>
   <div class="page-section">
@@ -881,6 +1270,44 @@ canvas{display:block;width:100%!important}
       </div>
     </div>
     </div>
+  </div>
+</div>
+
+<!-- DIRECTOR BRIEF (Executive) -->
+<div class="page" id="page-director-brief">
+  <div class="alert a-info" id="directorBriefAlert" style="display:none"></div>
+  <div class="rdc-bal-toolbar">
+    <span class="chip">Director brief — <span id="dirBriefDate">today</span></span>
+    <button class="btn btn-sm" onclick="loadDirectorBriefPage()" style="margin-left:auto">Refresh</button>
+  </div>
+  <div class="metric-grid">
+    <div class="metric-card hi"><div class="metric-label">Revenue</div><div class="metric-value" id="dirRevenue">—</div></div>
+    <div class="metric-card"><div class="metric-label">Variable expenses</div><div class="metric-value" id="dirVariableExp">—</div></div>
+    <div class="metric-card"><div class="metric-label">Fixed (daily)</div><div class="metric-value" id="dirFixedDaily">—</div></div>
+    <div class="metric-card"><div class="metric-label">Total expenses</div><div class="metric-value" id="dirTotalExp">—</div></div>
+    <div class="metric-card"><div class="metric-label">Gross profit</div><div class="metric-value" id="dirGrossProfit">—</div></div>
+    <div class="metric-card"><div class="metric-label">Net operating</div><div class="metric-value" id="dirNetProfit">—</div></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-header"><span class="card-title">P&amp;L snapshot</span><span class="chip" id="dirExpenseRatioChip">—</span></div>
+      <div class="recon-row"><span>Expense ratio</span><strong id="dirExpenseRatio">—</strong></div>
+      <div id="dirFixedBreakdown"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Shortages &amp; variances</span></div>
+      <div class="recon-row"><span>Cash variance</span><strong id="dirCashShortage">—</strong></div>
+      <div class="recon-row"><span>Stock variance</span><strong id="dirStockShortage">—</strong></div>
+      <div class="recon-row"><span>RDC variance</span><strong id="dirRdcVariance">—</strong></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">7pm depot readiness</span></div>
+    <div class="recon-row"><span>Opening stock (7am)</span><strong id="dirOpeningStatus">—</strong></div>
+    <div class="recon-row"><span>Closing stock (7pm)</span><strong id="dirClosingStatus">—</strong></div>
+    <div class="recon-row"><span>RDC sheet</span><strong id="dirRdcStatus">—</strong></div>
+    <div class="recon-row"><span>Readiness</span><strong id="dirReadiness">—</strong></div>
+    <div class="recon-row"><span>Trips returned / still out</span><strong><span id="dirTripsReturned">0</span> / <span id="dirTripsOut">0</span></strong></div>
   </div>
 </div>
 
@@ -1028,41 +1455,96 @@ canvas{display:block;width:100%!important}
   </div>
 </div>
 
+<div class="page" id="page-cadet-dashboard">
+  <div id="cadetDashTripBanner" style="background:linear-gradient(135deg,#0D0D0D,#2A2A2A);border-radius:var(--rl);padding:1.1rem 1.3rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 4px 20px rgba(0,0,0,.2)">
+    <div style="font-size:32px" id="cadetDashVehicleIcon">🛺</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:16px;font-weight:700;color:#fff" id="cadetDashVehicleTitle">Loading…</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:3px" id="cadetDashVehicleDetail">—</div>
+      <div style="margin-top:6px" id="cadetDashStatusBadge"></div>
+    </div>
+    <button class="btn btn-red btn-sm" type="button" onclick="showPage('cadet-daily')">Today's report →</button>
+  </div>
+  <div class="alert a-warning" id="cadetDashLateBanner" style="display:none"><span>⚠</span><div>After 7:30 PM — submit soon and add a note if cash differs from sales.</div></div>
+  <div class="alert a-info" id="cadetDashNoTrip" style="display:none"><span>ℹ</span><div>No active trip. Ask your manager to dispatch your vehicle.</div></div>
+  <div class="alert a-success" id="cadetDashSubmitted" style="display:none"></div>
+  <div class="metric-grid" id="cadetDashMetrics">
+    <div class="metric-card hi"><div class="metric-label">Loaded today</div><div class="metric-value" id="cadetDashLoaded">—</div><div class="metric-sub">cartons on vehicle</div></div>
+    <div class="metric-card"><div class="metric-label">Depot products</div><div class="metric-value" id="cadetDashProducts">—</div><div class="metric-sub">lines to report</div></div>
+    <div class="metric-card"><div class="metric-label">Report</div><div class="metric-value" id="cadetDashReportStatus">—</div><div class="metric-sub" id="cadetDashReportSub">—</div></div>
+    <div class="metric-card"><div class="metric-label">Sales / cash</div><div class="metric-value" id="cadetDashSalesCash">—</div><div class="metric-sub" id="cadetDashSalesSub">After submit</div></div>
+  </div>
+  <div class="card" id="cadetDashNotifCard" style="margin-top:1rem;display:none">
+    <div class="card-header"><span class="card-title">Messages from depot</span><button class="btn btn-sm" type="button" onclick="openNotifModal()">View all</button></div>
+    <div id="cadetDashNotifList"><p style="color:var(--gray-mid);font-size:13px">Loading…</p></div>
+  </div>
+  <div class="card" style="margin-top:1rem">
+    <div class="card-header"><span class="card-title">Stock on vehicle (by group)</span></div>
+    <div class="tbl-wrap"><table id="cadetDashStockTable"><tr><th>Group</th><th>Product</th><th>Loaded</th></tr></table></div>
+  </div>
+</div>
+
+<div class="page" id="page-cadet-daily">
+  <div class="alert a-info" id="cadetDailyInfo"><span>ℹ</span>Enter today's sales and expenses. RDC is notified automatically if something needs attention.</div>
+  <div class="alert a-success" id="cadetDailyDone" style="display:none"></div>
+  <div class="card" style="max-width:640px;margin:0 auto">
+    <div class="card-header"><span class="card-title">Today's report</span><span class="chip" id="cadetDailyTripChip">—</span></div>
+    <div class="recon-row" style="margin-bottom:1rem"><span>Vehicle / route</span><strong id="cadetDailyVehicle">—</strong></div>
+    <div class="form-group">
+      <label>Sales per product (depot catalog)</label>
+      <div class="tbl-wrap"><table id="cadetSalesProductTable" class="cadet-sales-table">
+        <tr><th>Product</th><th>Loaded</th><th>Sold (qty)</th><th>Amount (UGX)</th></tr>
+        <tr><td colspan="4" style="color:var(--gray-mid)">Loading products…</td></tr>
+      </table></div>
+      <div class="recon-row" style="margin-top:.6rem"><span>Sales total</span><strong id="cadetSalesTotalDisplay">UGX 0</strong></div>
+    </div>
+    <div class="form-group"><label>Fuel expense (UGX)</label><input class="input" id="cadetFuelExpense" type="number" min="0" step="1000" value="0"></div>
+    <div class="form-group"><label>Other expense (UGX)</label><input class="input" id="cadetOtherExpense" type="number" min="0" step="1000" value="0" placeholder="Tolls, repairs, etc."></div>
+    <div class="form-group"><label>Cash handed to depot (UGX)</label><input class="input" id="cadetCashHanded" type="number" min="0" step="1000" placeholder="Cash you are handing over"></div>
+    <div class="form-group"><label>Note (required if cash ≠ sales)</label><textarea class="textarea-inp" id="cadetDailyNote" rows="2" placeholder="Short explanation for any mismatch"></textarea></div>
+    <p id="cadetDailyFlagsPreview" style="font-size:12px;color:var(--gray-mid);margin-bottom:.8rem"></p>
+    <button class="btn btn-red btn-full" id="cadetDailySubmitBtn" type="button" onclick="submitCadetDailyReport()">Submit to RDC</button>
+  </div>
+</div>
+
 <div class="page" id="page-user-eod">
-  <div class="alert a-info"><span>ℹ</span>End-of-day report — <strong>07 May 2026</strong>. Submit before returning TUK-001.</div>
+  <div class="alert a-info" id="cadetCloseInfo"><span>ℹ</span>7pm close snapshot for fast depot consolidation.</div>
+  <div class="alert a-warning" id="cadetCloseLate" style="display:none"></div>
   <div class="two-col">
     <div>
-      <div class="eod-sec"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-mid);margin-bottom:10px">Stock reconciliation</div>
-        <div class="tbl-wrap"><table>
-          <tr><th>Product</th><th>Loaded</th><th>Sold</th><th>Returning</th><th>Variance</th></tr>
-          <tr><td>Coke 500ml</td><td>15</td><td>12</td><td><input class="qty-inp" type="number" value="3" oninput="calcVariance(this,15,12,'v1')"></td><td id="v1" class="surplus">0</td></tr>
-          <tr><td>Fanta Orange</td><td>10</td><td>8</td><td><input class="qty-inp" type="number" value="2" oninput="calcVariance(this,10,8,'v2')"></td><td id="v2" class="surplus">0</td></tr>
-          <tr><td>Novida</td><td>10</td><td>6</td><td><input class="qty-inp" type="number" value="4" oninput="calcVariance(this,10,6,'v3')"></td><td id="v3" class="surplus">0</td></tr>
-          <tr><td>Sprite 500ml</td><td>5</td><td>2</td><td><input class="qty-inp" type="number" value="3" oninput="calcVariance(this,5,2,'v4')"></td><td id="v4" class="surplus">0</td></tr>
+      <div class="eod-sec"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-mid);margin-bottom:10px">Stock reconciliation (7pm snapshot)</div>
+        <div class="tbl-wrap"><table id="cadetCloseStockTable">
+          <tr><th>Product</th><th>Loaded</th><th>Sold</th><th>Counted now</th><th>Variance</th></tr>
+          <tr><td colspan="5" style="color:var(--gray-mid)">Loading…</td></tr>
         </table></div>
       </div>
-      <div class="card"><div class="card-title" style="margin-bottom:.8rem">Cash summary</div>
-        <div class="recon-row"><span>Total sales</span><strong>UGX 560,000</strong></div>
-        <div class="recon-row"><span>Bank confirmed</span><strong>UGX 400,000</strong></div>
-        <div class="recon-row"><span>Pending</span><strong style="color:var(--red)">UGX 160,000</strong></div>
-        <div class="form-group" style="margin-top:10px"><label>Remarks</label><textarea class="textarea-inp" placeholder="Any issues or incidents…"></textarea></div>
+      <div class="card"><div class="card-title" style="margin-bottom:.8rem">Cash and issues</div>
+        <div class="recon-row"><span>Sales today</span><strong id="cadetSalesToday">UGX 0</strong></div>
+        <div class="recon-row"><span>Cash to hand over</span><strong id="cadetCashExpected">UGX 0</strong></div>
+        <div class="form-group" style="margin-top:10px"><label>Cash reported (UGX)</label><input class="input" id="cadetCashReported" type="number" min="0" step="1000" placeholder="Enter cash amount"></div>
+        <div class="form-group"><label>Returns / damages notes</label><input class="input" id="cadetReturnsNote" placeholder="e.g. 2 damaged crates"></div>
+        <div class="form-group"><label>Variance reason (if any)</label><textarea class="textarea-inp" id="cadetVarianceReason" placeholder="Short reason if cash/stock differs"></textarea></div>
       </div>
     </div>
     <div>
-      <div class="card"><div class="card-title" style="margin-bottom:.8rem">Vehicle end-of-day</div>
-        <div class="recon-row"><span>Vehicle</span><strong>TUK-001</strong></div>
-        <div class="recon-row"><span>Stops completed</span><strong>6 / 6</strong></div>
-        <div class="recon-row"><span>Distance</span><strong>~18 km</strong></div>
-        <div class="recon-row"><span>Fuel submitted</span><label class="toggle" style="float:right"><input type="checkbox"><span class="slider"></span></label></div>
-        <div class="recon-row"><span>Vehicle damage reported</span><label class="toggle" style="float:right"><input type="checkbox"><span class="slider"></span></label></div>
+      <div class="card"><div class="card-title" style="margin-bottom:.8rem">Trip close</div>
+        <div class="recon-row"><span>Vehicle</span><strong id="cadetTripVehicle">—</strong></div>
+        <div class="recon-row"><span>Route</span><strong id="cadetTripRoute">—</strong></div>
+        <div class="recon-row"><span>Status</span><strong id="cadetTripStatus">—</strong></div>
+        <div class="form-group" style="margin-top:10px"><label>Close checkpoint</label>
+          <select class="select-inp" id="cadetCheckpointType">
+            <option value="checkpoint">Midday checkpoint</option>
+            <option value="close" selected>7pm close</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Late submission reason (if after 7:30pm)</label><input class="input" id="cadetLateReason" placeholder="Traffic, recount, breakdown..."></div>
       </div>
-      <div class="card"><div class="card-title" style="margin-bottom:.8rem">Unpaid balances</div>
-        <div class="tbl-wrap"><table>
-          <tr><th>Customer</th><th>Amount</th><th>Status</th></tr>
-          <tr><td>Katwe Shop</td><td>120,000</td><td><span class="badge bw">Unpaid</span></td></tr>
-        </table></div>
+      <div class="card"><div class="card-title" style="margin-bottom:.8rem">Close summary</div>
+        <div class="recon-row"><span>Returns lines</span><strong id="cadetReturnsCount">0</strong></div>
+        <div class="recon-row"><span>Stock variance units</span><strong id="cadetVarianceUnits">0</strong></div>
+        <div class="recon-row"><span>Cash variance</span><strong id="cadetCashVariance">UGX 0</strong></div>
       </div>
-      <button class="btn btn-red btn-full" onclick="alert('EOD submitted.\nRef: EOD-2026-0507-DS001\nManager notified.')">Submit end-of-day report</button>
+      <button class="btn btn-red btn-full" id="cadetCloseSubmitBtn" onclick="submitCadetClose()">Submit checkpoint</button>
     </div>
   </div>
 </div>
@@ -1086,25 +1568,37 @@ canvas{display:block;width:100%!important}
 <div class="modal-overlay" id="addUserModal"><div class="modal">
   <div class="modal-handle"></div>
   <div class="modal-title">Add new user</div>
+  <div class="alert a-danger" id="addUserErr" style="display:none"></div>
   <div class="form-section">Personal details</div>
-  <div class="form-row"><div class="form-group"><label>Full name</label><input class="input" placeholder="Full legal name"></div><div class="form-group"><label>Role</label><select class="select-inp"><option>Executive</option><option>Manager</option><option>Accountant</option><option selected>Field User</option></select></div></div>
-  <div class="form-row"><div class="form-group"><label>National ID number</label><input class="input" placeholder="CMxxxxxxxxxxxxxxx"></div><div class="form-group"><label>Phone number</label><input class="input" placeholder="+256 7XX XXXXXX"></div></div>
-  <div class="form-group"><label>Email address</label><input class="input" type="email" placeholder="user@email.com"></div>
+  <div class="form-row"><div class="form-group"><label>Full name</label><input class="input" id="addUserFullName" placeholder="Full legal name"></div><div class="form-group"><label>Role</label><select class="select-inp" id="addUserRole"><option value="admin">Admin</option><option value="executive">Executive</option><option value="manager">Manager</option><option value="accountant">Accountant</option><option value="driver">Driver</option><option value="cadet">Cadet</option><option value="field_user" selected>Field User</option></select></div></div>
+  <div class="form-row"><div class="form-group"><label>National ID number</label><input class="input" id="addUserNationalId" placeholder="CMxxxxxxxxxxxxxxx"></div><div class="form-group"><label>Phone number</label><input class="input" id="addUserPhone" placeholder="+256 7XX XXXXXX"></div></div>
+  <div class="form-group"><label>Email address</label><input class="input" id="addUserEmail" type="email" placeholder="user@email.com"></div>
   <div class="form-section">Vehicle assignment</div>
-  <div class="form-row"><div class="form-group"><label>Assign vehicle</label><select class="select-inp"><option value="">None / unassigned</option><option>🚛 KCA 201T (Truck — Isuzu NPR)</option><option>🚛 KCB 774Y (Truck — Sprinter)</option><option>🛺 TUK-001 (Tuktuk)</option><option>🛺 TUK-002 (Tuktuk)</option></select></div><div class="form-group"><label>Default route</label><input class="input" placeholder="e.g. Owino / Katwe"></div></div>
+  <div class="form-row"><div class="form-group"><label>Assign vehicle</label><select class="select-inp" id="addUserVehicleId"><option value="">None / unassigned</option></select></div><div class="form-group"><label>Default route</label><input class="input" id="addUserDefaultRoute" placeholder="e.g. Owino / Katwe"></div></div>
   <div class="form-section">Account</div>
-  <div class="form-row"><div class="form-group"><label>Temporary password</label><input class="input" type="password" placeholder="Set initial password"></div><div class="form-group"><label>Start date</label><input class="input" type="date"></div></div>
-  <div class="modal-actions"><button class="btn" onclick="closeModal('addUserModal')">Cancel</button><button class="btn btn-red" onclick="closeModal('addUserModal');alert('User added. Login credentials sent via SMS.')">Add user</button></div>
+  <div class="form-row"><div class="form-group"><label>Temporary password</label><input class="input" id="addUserPassword" type="password" placeholder="Set initial password"></div><div class="form-group"><label>Start date</label><input class="input" type="date"></div></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('addUserModal')">Cancel</button><button class="btn btn-red" onclick="submitAddUser()">Add user</button></div>
 </div></div>
 
 <div class="modal-overlay" id="editUserModal"><div class="modal">
   <div class="modal-handle"></div>
-  <div class="modal-title">Edit user — David Ssemuju</div>
-  <div class="form-row"><div class="form-group"><label>Full name</label><input class="input" value="David Ssemuju"></div><div class="form-group"><label>Role</label><select class="select-inp"><option>Executive</option><option>Manager</option><option>Accountant</option><option selected>Field User</option></select></div></div>
-  <div class="form-row"><div class="form-group"><label>National ID</label><input class="input" value="CM87101234567"></div><div class="form-group"><label>Phone</label><input class="input" value="+256 754 200002"></div></div>
-  <div class="form-group"><label>Assigned vehicle</label><select class="select-inp"><option>None</option><option>🚛 KCA 201T (Truck)</option><option>🚛 KCB 774Y (Truck)</option><option selected>🛺 TUK-001 (Tuktuk)</option><option>🛺 TUK-002 (Tuktuk)</option></select></div>
-  <div class="form-group"><label>Default route</label><input class="input" value="Owino / Katwe"></div>
-  <div class="modal-actions"><button class="btn" onclick="closeModal('editUserModal')">Cancel</button><button class="btn btn-red" onclick="closeModal('editUserModal');alert('User updated.')">Save changes</button></div>
+  <div class="modal-title" id="editUserTitle">Edit user</div>
+  <div class="alert a-danger" id="editUserErr" style="display:none"></div>
+  <input type="hidden" id="editUserId">
+  <div class="form-row"><div class="form-group"><label>Full name</label><input class="input" id="editUserFullName"></div><div class="form-group"><label>Role</label><select class="select-inp" id="editUserRole"><option value="admin">Admin</option><option value="executive">Executive</option><option value="manager">Manager</option><option value="accountant">Accountant</option><option value="driver">Driver</option><option value="cadet">Cadet</option><option value="field_user">Field User</option></select></div></div>
+  <div class="form-row"><div class="form-group"><label>National ID</label><input class="input" id="editUserNationalId"></div><div class="form-group"><label>Phone</label><input class="input" id="editUserPhone"></div></div>
+  <div class="form-group"><label>Email address</label><input class="input" id="editUserEmail" type="email"></div>
+  <div class="form-group"><label>Assigned vehicle</label><select class="select-inp" id="editUserVehicleId"><option value="">None</option></select></div>
+  <div class="form-group"><label>Default route</label><input class="input" id="editUserDefaultRoute"></div>
+  <div class="form-group"><label>New password (optional)</label><input class="input" id="editUserPassword" type="password" placeholder="Leave blank to keep current"></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('editUserModal')">Cancel</button><button class="btn" onclick="deactivateEditingUser()">Deactivate</button><button class="btn btn-red" onclick="submitEditUser()">Save changes</button></div>
+</div></div>
+
+<div class="modal-overlay" id="auditDetailModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Audit entry details</div>
+  <pre id="auditDetailBody" style="max-height:360px;overflow:auto;background:#0F172A;color:#E2E8F0;padding:.8rem;border-radius:10px;font-size:11px;line-height:1.5"></pre>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('auditDetailModal')">Close</button></div>
 </div></div>
 
 <div class="modal-overlay" id="incomingModal"><div class="modal">
@@ -1122,19 +1616,18 @@ canvas{display:block;width:100%!important}
   </table></div>
   <div class="form-section">Condition & notes</div>
   <div class="form-group"><label>Notes / discrepancies</label><textarea class="textarea-inp" id="incomingNotes" placeholder="e.g. 2 crates Fanta short-delivered. Reported to Coca-Cola rep."></textarea></div>
-  <div class="modal-actions"><button class="btn" onclick="closeModal('incomingModal')">Cancel</button><button class="btn btn-red" onclick="saveDelivery()">Save delivery</button></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('incomingModal')">Cancel</button><button class="btn btn-red" onclick="saveDeliveryEnhanced(this)">Save delivery</button></div>
 </div></div>
 
 <div class="modal-overlay" id="dispatchModal"><div class="modal">
   <div class="modal-handle"></div>
   <div class="modal-title">Dispatch vehicle</div>
-  <div class="form-row"><div class="form-group"><label>Vehicle</label><select class="select-inp" id="dispatchVehicle"><option value="">Loading…</option></select></div><div class="form-group"><label>Driver</label><select class="select-inp" id="dispatchDriver"><option value="">—</option></select></div></div>
-  <div class="form-row"><div class="form-group"><label>Cadet / rider</label><select class="select-inp" id="dispatchCadet"><option value="">—</option></select></div><div class="form-group"><label>Route</label><select class="select-inp" id="dispatchRoute"><option value="">—</option></select></div></div>
-  <div class="form-group"><label>Route / area</label><input class="input" id="dispatchRouteArea" placeholder="e.g. Owino / Katwe"></div>
+  <div class="form-row"><div class="form-group"><label>Vehicle</label><select class="select-inp" id="dispatchVehicle"><option value="">Loading…</option></select></div><div class="form-group" id="dispatchCadetGroup"><label>Cadet / rider</label><select class="select-inp" id="dispatchCadet"><option value="">—</option></select></div></div>
+  <div class="form-row"><div class="form-group"><label>Route</label><select class="select-inp" id="dispatchRoute"><option value="">—</option></select></div><div class="form-group"><label>Route area</label><input class="input" id="dispatchRouteArea" placeholder="e.g. Owino / Katwe"></div></div>
   <div class="tbl-wrap"><table style="margin-bottom:.8rem;min-width:280px"><tr><th>Product</th><th>In warehouse</th><th>Crates to load</th></tr>
     <tbody id="dispatchLoadBody"><tr><td colspan="3" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr></tbody>
   </table></div>
-  <div class="modal-actions"><button class="btn" onclick="closeModal('dispatchModal')">Cancel</button><button class="btn btn-red" onclick="saveDispatch()">Confirm dispatch</button></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('dispatchModal')">Cancel</button><button class="btn btn-red" onclick="saveDispatch(this)">Confirm dispatch</button></div>
 </div></div>
 
 <div class="modal-overlay" id="addVehicleModal"><div class="modal">
@@ -1222,15 +1715,13 @@ canvas{display:block;width:100%!important}
 <div class="modal-overlay" id="notifModal"><div class="modal">
   <div class="modal-handle"></div>
   <div class="modal-title">Notifications</div>
-  <div class="alert a-danger" style="margin-bottom:8px"><span>⚠</span>Coke 500ml — 42 crates (below 80 min)</div>
-  <div class="alert a-danger" style="margin-bottom:8px"><span>⚠</span>Sprite 1L — 18 crates (below 80 min)</div>
-  <div class="alert a-warning" style="margin-bottom:8px"><span>⚠</span>2 edit / cancel requests pending approval</div>
-  <div class="alert a-info"><span>ℹ</span>5 sales awaiting manager confirmation</div>
-  <div class="modal-actions"><button class="btn btn-red" onclick="closeModal('notifModal')">Dismiss all</button></div>
+  <div id="notifList"><p style="color:var(--gray-mid);font-size:13px">Loading…</p></div>
+  <div id="notifSendForm" style="display:none"></div>
+  <div class="modal-actions"><button class="btn" type="button" onclick="closeModal('notifModal')">Close</button><button class="btn btn-red" type="button" onclick="dismissAllNotifs()">Mark all read</button></div>
 </div></div>
 
-<script src="assets/presentation-config.js"></script>
-<script src="assets/api.js"></script>
+<script src="assets/presentation-config.js?v=20260629"></script>
+<script src="assets/api.js?v=20260629"></script>
 <script>
 const ICONS={
   home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
@@ -1251,8 +1742,6 @@ const ROLES={
   admin:{name:'John Okello',email:'admin@ccoutlet.ug',pill:'rp-admin',badge:'Admin',nav:[
     {id:'admin-dashboard',l:'Dashboard',i:'home'},
     {id:'admin-users',l:'User management',i:'users'},
-    {id:'admin-permissions',l:'Roles & permissions',i:'edit'},
-    {id:'admin-fleet',l:'Fleet & vehicles',i:'fleet'},
     {id:'admin-editreqs',l:'Edit requests',i:'edit'},
     {id:'admin-exceptions',l:'Exception center',i:'chart'},
     {id:'admin-customers',l:'Receivables & customers',i:'custs'},
@@ -1264,16 +1753,12 @@ const ROLES={
     {id:'admin-exceptions',l:'Exception center',i:'chart'},
     {id:'admin-customers',l:'Receivables & customers',i:'custs'},
     {id:'admin-reports',l:'Reports & analytics',i:'chart'},
-    {id:'admin-audit',l:'Audit log',i:'edit'},
-    {id:'admin-efris',l:'EFRIS / URA',i:'receipt'}
+    {id:'admin-audit',l:'Audit log',i:'edit'}
   ]},
   manager:{name:'Sarah Nakato',email:'manager@ccoutlet.ug',pill:'rp-manager',badge:'Manager',nav:[
     {id:'manager-dashboard',l:'Dashboard',i:'home'},
     {id:'report-exchange',l:'PDF reports',i:'receipt'},
-    {id:'manager-fleet-map',l:'Fleet map',i:'map'},
     {id:'manager-stock',l:'Stock management',i:'box'},
-    {id:'manager-ccba-boards',l:'CCBA daily boards',i:'chart'},
-    {id:'manager-ccba-order',l:'Order via CCBA',i:'cart'},
     {id:'manager-reports',l:'Reports',i:'chart'}
   ]},
   user:{name:'David Ssemuju',email:'david@ccoutlet.ug',pill:'rp-user',badge:'Field User',nav:[
@@ -1496,8 +1981,18 @@ window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementBy
 <script src="assets/app.js"></script>
 <script src="assets/phase45.js"></script>
 <script src="assets/integration-placeholders.js"></script>
-<script src="assets/report-exchange.js"></script>
+<script src="assets/report-exchange.js?v=20260703"></script>
 <script src="assets/manager-ops.js"></script>
-<script src="assets/rdc-balancing.js"></script>
+<script src="assets/rdc-balancing.js?v=20260703"></script>
+<script src="assets/cash-handover.js?v=20260701"></script>
+<script src="assets/rdc-hub.js?v=20260705"></script>
+<script src="assets/rdc-review.js"></script>
+<script src="assets/accountant-improvements.js"></script>
+<script src="assets/accountant-welfare.js?v=20260630"></script>
+<script src="assets/notifications.js?v=20260730"></script>
+<script src="assets/cadet-dashboard.js?v=20260730"></script>
+<script src="assets/cadet-daily.js?v=20260730"></script>
+<script src="assets/depot-snapshots.js?v=20260730"></script>
+<script src="assets/director-brief.js?v=20260730"></script>
 </body>
 </html>

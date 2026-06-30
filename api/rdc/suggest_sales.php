@@ -12,6 +12,7 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
     json_error('Invalid date');
 }
 
+try {
 $template = rdc_new_sheet_template($date);
 $suggested = rdc_suggest_sales_from_orders($date);
 
@@ -49,3 +50,6 @@ json_ok([
     'totals' => $totals,
     'order_count' => count($suggested['by_vehicle']) + count($suggested['depot']),
 ]);
+} catch (Throwable $e) {
+    json_error('Could not import sales: ' . $e->getMessage(), 500);
+}

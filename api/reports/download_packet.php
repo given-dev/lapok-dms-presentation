@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/report_packets.php';
 
-$user = require_roles(['admin', 'accountant', 'manager', 'executive']);
+$user = require_permission('reports');
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
     json_error('Method not allowed', 405);
