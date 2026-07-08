@@ -22,7 +22,7 @@ async function loadFiscalReceiptsPage() {
   if (!listEl) return;
 
   listEl.innerHTML = '<p style="color:var(--gray-mid)">Loading fiscal receipts…</p>';
-  if (detailEl) detailEl.innerHTML = '<p style="color:var(--gray-mid)">Select a receipt from the fiscal device to link it in Lapok.</p>';
+  if (detailEl) detailEl.innerHTML = '<p style="color:var(--gray-mid)">Select a receipt from the fiscal device to link it in Outpost.</p>';
 
   try {
     const [pending, customerData] = await Promise.all([
@@ -110,7 +110,7 @@ async function efrisShowReceipt(receiptId) {
         ${lines}
       </table></div>
       ${canLink ? `
-        <div class="alert a-info" style="margin-top:1rem"><span>ℹ</span>Sale already happened on the fiscal device. Pick the customer to record it in Lapok — no need to re-enter products.</div>
+        <div class="alert a-info" style="margin-top:1rem"><span>ℹ</span>Sale already happened on the fiscal device. Pick the customer to record it in Outpost — no need to re-enter products.</div>
         <div class="form-group" style="margin-top:.8rem">
           <label>Customer</label>
           <select class="select-inp" id="efrisCustomerSelectDetail" onchange="efrisSelectedCustomerId=parseInt(this.value)||null">
@@ -118,7 +118,7 @@ async function efrisShowReceipt(receiptId) {
             ${efrisCustomersCache.map((c) => `<option value="${c.id}"${efrisSelectedCustomerId === c.id ? ' selected' : ''}>${c.name}</option>`).join('')}
           </select>
         </div>
-        <button class="btn btn-red btn-full" style="margin-top:.8rem" onclick="confirmFiscalReceipt()" ${receipt.status === 'unmapped' ? 'disabled title="Unmapped products — ask admin"' : ''}>Record in Lapok</button>
+        <button class="btn btn-red btn-full" style="margin-top:.8rem" onclick="confirmFiscalReceipt()" ${receipt.status === 'unmapped' ? 'disabled title="Unmapped products — ask admin"' : ''}>Record in Outpost</button>
       ` : ''}
     `;
   } catch (e) {
@@ -138,7 +138,7 @@ async function confirmFiscalReceipt() {
       receipt_id: efrisActiveReceiptId,
       customer_id: customerId,
     });
-    alert(`Recorded in Lapok as ${r.order_ref}\nURA ref: ${r.efris_ref}`);
+    alert(`Recorded in Outpost as ${r.order_ref}\nURA ref: ${r.efris_ref}`);
     efrisActiveReceiptId = null;
     await loadFiscalReceiptsPage();
     if (typeof loadFieldDashboard === 'function') loadFieldDashboard();

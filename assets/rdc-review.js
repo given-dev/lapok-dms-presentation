@@ -18,9 +18,12 @@ function rdcReviewActionButtons(sheet) {
   if (['submitted', 'reopened'].includes(status)) {
     btns.push(`<button class="btn btn-sm" onclick="rdcReviewAction('${sheet.balance_date}','start_review')">Start review</button>`);
   }
+  if (['submitted', 'under_review'].includes(status)) {
+    btns.push(`<button class="btn btn-sm btn-red" onclick="rdcEditReceivedSheet('${sheet.balance_date}')">Edit report</button>`);
+  }
   if (['submitted', 'under_review', 'reopened'].includes(status)) {
     btns.push(`<button class="btn btn-sm btn-black" onclick="rdcReviewAction('${sheet.balance_date}','approve')">Approve</button>`);
-    btns.push(`<button class="btn btn-sm btn-red" onclick="rdcReviewAction('${sheet.balance_date}','reject')">Reject</button>`);
+    btns.push(`<button class="btn btn-sm" onclick="rdcReviewAction('${sheet.balance_date}','reject')">Reject</button>`);
   }
   if (['submitted', 'under_review', 'approved', 'rejected'].includes(status)) {
     btns.push(`<button class="btn btn-sm" onclick="rdcReviewAction('${sheet.balance_date}','reopen')">Reopen</button>`);
@@ -33,7 +36,10 @@ async function loadRdcReviewPage() {
   const table = document.getElementById('rdcReviewTable');
   if (!table) return;
   const monthEl = document.getElementById('rdcReviewMonth');
-  if (monthEl && !monthEl.value) monthEl.value = new Date().toISOString().slice(0, 7);
+  if (monthEl && !monthEl.value) {
+    const d = new Date();
+    monthEl.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
   const month = monthEl?.value || new Date().toISOString().slice(0, 7);
   table.innerHTML = '<tr><th>Date</th><th>Status</th><th>Grand total</th><th>Variance</th><th>Submitted</th><th>Review</th><th>Action</th></tr><tr><td colspan="7" style="color:var(--gray-mid)">Loading…</td></tr>';
   try {
@@ -78,6 +84,16 @@ async function rdcReviewAction(balanceDate, action) {
 }
 
 function rdcViewSheet(balanceDate) {
+  sessionStorage.removeItem('rdcManagerEdit');
+  if (typeof showPage === 'function') showPage('accountant-rdc');
+  if (typeof window.openRdcSheetDate === 'function') {
+    setTimeout(() => window.openRdcSheetDate(balanceDate), 120);
+  }
+}
+
+/** Open received sheet in manager edit mode (sales/expenses/cash writable). */
+function rdcEditReceivedSheet(balanceDate) {
+  sessionStorage.setItem('rdcManagerEdit', '1');
   if (typeof showPage === 'function') showPage('accountant-rdc');
   if (typeof window.openRdcSheetDate === 'function') {
     setTimeout(() => window.openRdcSheetDate(balanceDate), 120);
@@ -87,3 +103,4 @@ function rdcViewSheet(balanceDate) {
 window.loadRdcReviewPage = loadRdcReviewPage;
 window.rdcReviewAction = rdcReviewAction;
 window.rdcViewSheet = rdcViewSheet;
+window.rdcEditReceivedSheet = rdcEditReceivedSheet;

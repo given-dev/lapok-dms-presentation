@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
-<title>Lapok DMS — Leadership Demo</title>
+<title>Outpost DMS — Depot Management</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -27,7 +27,8 @@ html,body{height:100%;font-family:'Inter',system-ui,-apple-system,sans-serif;bac
 .sidebar::before{content:'';position:absolute;top:-60px;left:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(229,62,62,.1) 0%,transparent 70%);pointer-events:none}
 .sidebar-logo{padding:1.2rem 1rem 1rem;border-bottom:1px solid rgba(255,255,255,.06)}
 .logo-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.logo-mark{width:36px;height:36px;background:var(--gradient-primary);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0;box-shadow:0 8px 16px rgba(229,62,62,.3);transition:var(--transition)}
+.logo-mark{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:#fff;box-shadow:0 8px 16px rgba(229,62,62,.3);transition:var(--transition)}
+.logo-mark img{width:100%;height:100%;object-fit:contain;display:block}
 .logo-text{font-size:13px;font-weight:600;color:#fff}
 .logo-sub{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.05em;text-transform:uppercase}
 .user-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:10px 12px;margin-top:2px}
@@ -84,12 +85,12 @@ html,body{height:100%;font-family:'Inter',system-ui,-apple-system,sans-serif;bac
 .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
 
 /* ── METRICS ── */
-.metric-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:1.25rem}
-.metric-card{background:var(--white);border:1px solid var(--gray-light);border-radius:var(--rl);padding:1rem 1.1rem;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.metric-grid{display:grid;grid-template-columns:repeat(6,minmax(140px,1fr));gap:10px;margin-bottom:1.25rem}
+.metric-card{background:var(--white);border:1px solid var(--gray-light);border-radius:var(--rl);padding:1rem 1.1rem;box-shadow:var(--shadow);position:relative;overflow:visible;min-width:0}
 .metric-card.hi{background:linear-gradient(135deg,var(--red),#C41E1E);border-color:var(--red);box-shadow:0 4px 20px rgba(212,43,43,.3)}
 .metric-card.hi .metric-label,.metric-card.hi .metric-value,.metric-card.hi .metric-sub{color:#fff}
 .metric-label{font-size:10px;color:var(--gray-mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
-.metric-value{font-size:22px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.metric-value{font-size:clamp(14px,2.1vw,22px);font-weight:700;line-height:1.15;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:visible;word-break:keep-all;max-width:100%}
 .metric-sub{font-size:11px;color:var(--gray-mid);margin-top:3px}
 .metric-trend{font-size:11px;font-weight:600;margin-top:3px}
 .trend-up{color:#16a34a}.trend-dn{color:var(--red)}
@@ -298,6 +299,16 @@ tr:hover td{background:rgba(0,0,0,.012)}
 .divider{border:none;border-top:1px solid linear-gradient(90deg,transparent 0%,var(--gray-light) 50%,transparent 100%);margin:.8rem 0}
 .chip{display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;font-size:11.5px;background:var(--surface);border:1px solid var(--gray-light);color:var(--gray);font-weight:600;transition:var(--transition)}
 .qty-inp{width:65px;padding:7px 8px;border:1.5px solid var(--gray-light);border-radius:6px;font-size:13px;font-family:inherit;background:var(--white);color:var(--black);min-height:36px}
+#page-accountant-rdc .rdc-qty,#page-accountant-rdc input.qty-inp.rdc-qty{width:84px;min-width:84px;text-align:right;font-variant-numeric:tabular-nums}
+#page-accountant-rdc .rdc-price-inp{width:112px;min-width:112px;text-align:right;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+#page-accountant-rdc .rdc-price-locked{display:inline-block;min-width:96px;padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--black);background:var(--surface);border:1.5px solid var(--gray-light);border-radius:6px;min-height:36px;box-sizing:border-box}
+#page-accountant-rdc .rdc-calc{white-space:nowrap;font-variant-numeric:tabular-nums;min-width:72px}
+.cadet-sales-table{width:100%;min-width:520px}
+.cadet-sales-table .cadet-qty-sold{width:84px;min-width:84px;text-align:right;font-variant-numeric:tabular-nums}
+.cadet-sales-table .cadet-line-amount{width:132px;min-width:132px;text-align:right;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.cadet-sales-table td:nth-child(2),.cadet-sales-table th:nth-child(2){text-align:right;white-space:nowrap}
+.cadet-sales-table td:nth-child(3),.cadet-sales-table th:nth-child(3),
+.cadet-sales-table td:nth-child(4),.cadet-sales-table th:nth-child(4){white-space:nowrap}
 .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;background:var(--gradient-primary);color:#fff;box-shadow:0 4px 12px rgba(229,62,62,.25);transition:var(--transition)}
 .av-red{background:#fee2e2;color:var(--red)}.av-blk{background:#f3f4f6;color:#374151}
 .toggle{position:relative;display:inline-block;width:50px;height:28px;cursor:pointer;border-radius:14px;background:var(--gray-light);border:none;transition:var(--transition)}
@@ -400,8 +411,8 @@ canvas{display:block;width:100%!important}
 <div class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <div class="logo-top">
-      <div class="logo-mark">CC</div>
-      <div><div class="logo-text">Outlet IMS</div><div class="logo-sub">Kampala Branch</div></div>
+      <div class="logo-mark"><img src="assets/img/outpost-dms-logo.png" alt="Outpost DMS"></div>
+      <div><div class="logo-text">Outpost DMS</div><div class="logo-sub">Depot Management</div></div>
     </div>
     <div class="user-card" style="cursor:pointer" onclick="openModal('profileModal')" title="Profile & password">
       <div class="user-name" id="sidebarName">John Okello</div>
@@ -442,9 +453,9 @@ canvas{display:block;width:100%!important}
   <div class="alert a-info"><span>ℹ</span><div><strong>Reporting line:</strong> Field agents submit to Accountant, Accountant consolidates for Manager, Manager submits executive brief to Managing Directors and Board.</div></div>
   <div class="metric-grid">
     <div class="metric-card hi"><div class="metric-label">Warehouse</div><div class="metric-value" id="admMetricWarehouse">1,284</div><div class="metric-sub">crates total</div></div>
-    <div class="metric-card"><div class="metric-label">Revenue today</div><div class="metric-value" id="admMetricRevenueToday">3.72M</div><div class="metric-sub">UGX</div><div class="metric-trend trend-up">↑ 8%</div></div>
+    <div class="metric-card"><div class="metric-label">Revenue today</div><div class="metric-value" id="admMetricRevenueToday">—</div><div class="metric-sub">UGX</div><div class="metric-trend trend-up">↑ 8%</div></div>
     <div class="metric-card"><div class="metric-label">Crates sold</div><div class="metric-value" id="admMetricCartonsToday">186</div><div class="metric-sub">today</div></div>
-    <div class="metric-card"><div class="metric-label">Revenue MTD</div><div class="metric-value" id="admMetricRevenueMtd">84.2M</div><div class="metric-sub">UGX</div></div>
+    <div class="metric-card"><div class="metric-label">Revenue MTD</div><div class="metric-value" id="admMetricRevenueMtd">—</div><div class="metric-sub">UGX</div></div>
     <div class="metric-card"><div class="metric-label">Vehicles out</div><div class="metric-value" id="admMetricVehiclesOut">3/4</div><div class="metric-sub">active now</div></div>
     <div class="metric-card"><div class="metric-label">Edit requests</div><div class="metric-value" id="admMetricPendingRequests">2</div><div class="metric-sub pending">pending</div></div>
   </div>
@@ -779,6 +790,7 @@ canvas{display:block;width:100%!important}
 
 <!-- RDC OVERVIEW HUB -->
 <div class="page" id="page-accountant-rdc-hub">
+  <div class="alert a-warning" id="deadlineBannerRdc" style="display:none"></div>
   <div class="alert a-warning" id="rdcHubAlert" style="display:none"></div>
 
   <div class="rdc-hub-hero">
@@ -852,12 +864,22 @@ canvas{display:block;width:100%!important}
   <ul class="rdc-hub-pack-view" id="rdcHubPackView" style="display:none"></ul>
 
   <details class="rdc-section" open>
-    <summary>7pm closing stock + director snapshot</summary>
+    <summary>Depot stock status (view only) + director snapshot</summary>
     <div class="rdc-section-body">
+      <div class="alert a-info" style="margin:0 0 .8rem">
+        <span>ℹ</span>
+        <div style="font-size:12px">Opening and closing stock counts are entered by the <strong>manager</strong>. RDC reviews the figures here for balancing and the director pack.</div>
+      </div>
       <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem" id="accClosingStatus">Loading closing status…</p>
       <div class="tbl-wrap"><table id="accClosingStockTable"><tr><th>Product</th><th>SKU</th><th>Qty</th></tr><tr><td colspan="3" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
-      <div class="form-group" style="margin-top:.8rem"><label>Notes</label><textarea class="textarea-inp" id="accClosingNotes" rows="2" placeholder="Shortages, recount notes…"></textarea></div>
-      <button class="btn btn-sm btn-red" type="button" onclick="saveAccountantClosingStock()">Save 7pm closing stock</button>
+      <div class="form-group" style="margin-top:.8rem"><label>Manager notes</label><textarea class="textarea-inp" id="accClosingNotes" rows="2" readonly disabled placeholder="Visible after manager saves closing stock"></textarea></div>
+      <div id="rdcHubDeliveryConfirmStrip" class="alert a-info" style="margin-top:1rem;display:none">
+        <span>ℹ</span>
+        <div>
+          <strong>Manager delivery confirmation</strong>
+          <div id="rdcHubDeliveryConfirmMsg" style="font-size:12px;margin-top:2px">Loading…</div>
+        </div>
+      </div>
       <div id="directorBriefWidget" style="margin-top:1rem;font-size:13px"></div>
     </div>
   </details>
@@ -881,7 +903,7 @@ canvas{display:block;width:100%!important}
 <!-- ACCOUNTANT / RDC DAILY BALANCING -->
 <div class="page" id="page-accountant-rdc">
   <div class="rdc-bal-toolbar">
-    <button class="btn btn-sm" onclick="showPage('accountant-rdc-hub')">← Home</button>
+    <button class="btn btn-sm" type="button" id="rdcPageBackBtn" onclick="rdcPageBack()">← Back</button>
     <input class="input" type="date" id="rdcDate" style="width:auto;min-height:36px" title="Change date">
     <span class="badge bd" id="rdcUnsavedBadge" style="display:none">Unsaved</span>
     <span class="chip" id="rdcMetaLine">Loading…</span>
@@ -891,11 +913,24 @@ canvas{display:block;width:100%!important}
   <div class="alert a-info rdc-demo-banner" id="rdcDemoBanner" style="display:none"><span>ℹ</span><div><strong>Training data</strong> — sample/demo entry. Replace with real figures before submit.</div></div>
 
   <div id="rdcFinishToday" class="rdc-finish-today" style="display:none">
-    <div class="alert a-success" style="margin:0"><span>✓</span><div><strong>Balancing submitted</strong><div style="font-size:13px;margin-top:4px">Manager will review your sheet. Send today's pack to finish.</div></div></div>
+    <div class="alert a-success" style="margin:0"><span>✓</span><div><strong>Balancing submitted</strong><div style="font-size:13px;margin-top:4px">Manager will review your sheet. You can still open it read-only, or send today's pack.</div></div></div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
-      <button class="btn btn-red" type="button" onclick="showPage('report-exchange')">Send manager pack now</button>
+      <button class="btn btn-red" type="button" onclick="rdcOpenSubmittedView()">View submitted report</button>
+      <button class="btn btn-sm" type="button" onclick="showPage('report-exchange')">Send manager pack</button>
       <button class="btn btn-sm" type="button" onclick="showPage('accountant-rdc-hub')">Back to Home</button>
       <button class="btn btn-sm" type="button" onclick="rdcExportTodayCsv()">Export CSV</button>
+    </div>
+  </div>
+
+  <div class="card" id="rdcCadetVehicleCard" style="margin-bottom:1rem;display:none">
+    <div class="card-header">
+      <span class="card-title">Cadet reports received</span>
+      <span style="font-size:12px;color:var(--gray)">Edit if a cadet made a mistake</span>
+    </div>
+    <div class="tbl-wrap">
+      <table id="rdcCadetVehicleTable">
+        <tr><th>Vehicle</th><th>Cadet</th><th>Sales (UGX)</th><th>Cash (UGX)</th><th>Status</th><th></th></tr>
+      </table>
     </div>
   </div>
 
@@ -908,7 +943,7 @@ canvas{display:block;width:100%!important}
 
   <div class="rdc-wizard-head" id="rdcWizardHead">
     <div class="rdc-wizard-title" id="rdcWizardTitle">Step 1 of 3 — Sales</div>
-    <div class="rdc-wizard-sub" id="rdcWizardSub">Use sample data to practice, or import from Lapok orders.</div>
+    <div class="rdc-wizard-sub" id="rdcWizardSub">Use sample data to practice, or import from depot orders.</div>
   </div>
 
   <div class="alert a-info" id="rdcReadOnlyBanner" style="display:none"><span>ℹ</span><div id="rdcReadOnlyText">This sheet is read-only.</div></div>
@@ -917,7 +952,7 @@ canvas{display:block;width:100%!important}
   <div id="rdcWizardPanel1" class="rdc-wizard-panel">
     <div class="card" id="rdcSalesCard">
       <div class="card-header"><span class="card-title">Sales by brand × vehicle</span></div>
-      <p style="font-size:12px;color:var(--gray-mid);margin:0 0 1rem">Products grouped like LAPOK book: <strong>CSD · ENERGY · JUICE · VAD · WATER · OTHER</strong>. Cadet data fills the matching vehicle column.</p>
+      <p style="font-size:12px;color:var(--gray-mid);margin:0 0 1rem">Products grouped like the depot sales book: <strong>CSD · ENERGY · JUICE · VAD · WATER · OTHER</strong>. Cadet data fills the matching vehicle column. Unit prices are set by admin.</p>
       <div class="tbl-wrap"><table><thead id="rdcSalesHead"></thead><tbody id="rdcSalesBody"></tbody></table></div>
     </div>
   </div>
@@ -973,8 +1008,11 @@ canvas{display:block;width:100%!important}
       <button class="btn btn-sm" type="button" id="rdcSampleStickyBtn" onclick="rdcFillSampleData()">Sample data</button>
       <button class="btn btn-sm" type="button" id="rdcImportStickyBtn" onclick="rdcSuggestSales()">Import sales</button>
       <button class="btn btn-sm" type="button" onclick="rdcSaveSheet()">Save</button>
+      <button class="btn btn-sm" type="button" id="rdcMgrSaveBtn" onclick="rdcSaveSheet()" style="display:none">Save corrections</button>
       <button class="btn btn-sm btn-red" type="button" id="rdcWizardNextBtn" onclick="rdcWizardNext()">Next →</button>
       <button class="btn btn-sm btn-black" type="button" id="rdcSubmitBtn" onclick="rdcSubmitSheet()" style="display:none">Submit to manager</button>
+      <button class="btn btn-sm btn-black" type="button" id="rdcMgrApproveBtn" onclick="rdcManagerApproveFromSheet()" style="display:none">Approve sheet</button>
+      <button class="btn btn-sm" type="button" id="rdcCloseViewBtn" onclick="rdcCloseSubmittedView()" style="display:none">← Closeout</button>
     </div>
   </div>
 </div>
@@ -1111,7 +1149,7 @@ canvas{display:block;width:100%!important}
 
 <!-- ══════════ MANAGER PAGES ══════════ -->
 <div class="page" id="page-manager-rdc-review">
-  <div class="alert a-info"><span>ℹ</span>Review daily RDC submissions from Accountant. Approve final sheets, reject with comments, or reopen for correction.</div>
+  <div class="alert a-info"><span>ℹ</span>Review daily RDC submissions. Use <strong>Edit report</strong> to correct mistakes, then Approve. Or reopen for the accountant to fix.</div>
   <div class="card">
     <div class="card-header">
       <span class="card-title">RDC daily sheets review queue</span>
@@ -1125,6 +1163,16 @@ canvas{display:block;width:100%!important}
 </div>
 
 <div class="page" id="page-manager-dashboard">
+  <div class="alert a-warning" id="deadlineBannerManager" style="display:none"></div>
+  <div class="card" id="mgrStockTakingCard" style="margin-bottom:1rem;border:1px solid rgba(229,62,62,.35)">
+    <div class="card-header">
+      <span class="card-title">1. Stock taking (do this first)</span>
+      <button class="btn btn-sm btn-red" type="button" onclick="showPage('manager-stock')">Open stock taking</button>
+    </div>
+    <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .6rem">Start the day with opening stock. Close with 7pm closing stock. RDC only views these counts.</p>
+    <div class="recon-row"><span>Opening stock (7am)</span><strong id="mgrDashOpeningStatus">Checking…</strong></div>
+    <div class="recon-row"><span>Closing stock (7pm)</span><strong id="mgrDashClosingStatus">Checking…</strong></div>
+  </div>
   <div class="alert a-info"><span>ℹ</span><strong>Manager reporting role:</strong> Receive consolidated reports from Accountant and submit final daily brief to Executives.
     <button class="btn btn-sm btn-black" style="margin-left:8px" onclick="showPage('report-exchange')">Open report exchange</button>
   </div>
@@ -1174,7 +1222,7 @@ canvas{display:block;width:100%!important}
   </div>
   <div id="occdBoardsRoot"></div>
   <div class="occd-tab-panel" data-occd-panel="sku-map" id="occdSkuMapPanel">
-    <div class="alert a-info" style="margin-top:1rem"><span>ℹ</span>Map Lapok product SKUs to CCBA catalog codes for replenishment orders and warehouse snapshots.</div>
+    <div class="alert a-info" style="margin-top:1rem"><span>ℹ</span>Map depot product SKUs to CCBA catalog codes for replenishment orders and warehouse snapshots.</div>
     <div class="btn-group">
       <button class="btn" onclick="loadCcbaProductMap()">Refresh</button>
       <button class="btn btn-black" onclick="runCcbaStockSync()">Save warehouse snapshot</button>
@@ -1183,7 +1231,7 @@ canvas{display:block;width:100%!important}
     <div class="card">
       <div class="card-header"><span class="card-title">Product SKU mapping</span></div>
       <div class="tbl-wrap"><table>
-        <tr><th>Lapok product</th><th>CCBA SKU code</th><th>Pack description</th><th></th></tr>
+        <tr><th>Depot product</th><th>CCBA SKU code</th><th>Pack description</th><th></th></tr>
         <tbody id="ccbaMapBody"><tr><td colspan="4" style="text-align:center;color:var(--gray-mid)">Open this tab to load mappings…</td></tr></tbody>
       </table></div>
     </div>
@@ -1210,7 +1258,7 @@ canvas{display:block;width:100%!important}
   <div class="card" style="margin-top:1rem">
     <div class="card-header"><span class="card-title">Legend</span></div>
     <div style="display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--gray)">
-      <span>🏭 Lapok depot</span>
+      <span>🏭 Depot</span>
       <span>🚛 Truck on route</span>
       <span>🛺 Tuktuk on route</span>
       <span>Numbered circles = customer stops in route order</span>
@@ -1219,18 +1267,14 @@ canvas{display:block;width:100%!important}
   </div>
 </div>
 
-<!-- MANAGER STOCK (with full delivery recording) -->
+<!-- MANAGER STOCK — stock taking first, then deliveries / dispatch -->
 <div class="page" id="page-manager-stock">
   <div class="page-section">
-    <div class="page-section-label">Warehouse actions</div>
-    <div class="btn-group">
-      <button class="btn btn-red" onclick="openModal('incomingModal')">+ Record Coca-Cola delivery</button>
-      <button class="btn" onclick="openModal('dispatchModal')">Dispatch vehicle</button>
-      <button class="btn btn-black" onclick="showPage('admin-exceptions')">Review exceptions</button>
+    <div class="page-section-label">1. Stock taking (start here)</div>
+    <div class="alert a-info" style="margin:0 0 .8rem">
+      <span>ℹ</span>
+      <div style="font-size:12px"><strong>Do stock counts first.</strong> Enter opening stock at 7:00 AM before dispatch. Enter closing stock at 7:00 PM. RDC sees these figures read-only.</div>
     </div>
-  </div>
-  <div class="page-section">
-    <div class="page-section-label">Depot controls (manual)</div>
     <div class="two-col">
       <div class="card">
         <div class="card-header"><span class="card-title">Opening stock — 7:00 AM</span><button class="btn btn-sm btn-red" onclick="saveManagerOpeningStock()">Save opening</button></div>
@@ -1238,17 +1282,41 @@ canvas{display:block;width:100%!important}
         <div class="tbl-wrap"><table id="mgrOpeningStockTable"><tr><th>Product</th><th>SKU</th><th>Qty</th></tr><tr><td colspan="3" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
         <div class="form-group" style="margin-top:.8rem"><label>Notes</label><textarea class="textarea-inp" id="mgrOpeningNotes" rows="2"></textarea></div>
       </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">Monthly fixed costs</span><button class="btn btn-sm btn-red" onclick="saveManagerFixedCosts()">Save</button></div>
-        <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">Director P&amp;L uses these as daily allocation (monthly ÷ days).</p>
-        <div class="form-group"><label>Rent (UGX / month)</label><input class="input" id="mgrFixedRent" type="number" min="0" step="1000"></div>
-        <div class="form-group"><label>Salaries (UGX / month)</label><input class="input" id="mgrFixedSalaries" type="number" min="0" step="1000"></div>
-        <div class="form-group"><label>Utilities (UGX / month)</label><input class="input" id="mgrFixedUtilities" type="number" min="0" step="1000"></div>
-        <div class="form-group"><label>Security (UGX / month)</label><input class="input" id="mgrFixedSecurity" type="number" min="0" step="1000"></div>
-        <div class="form-group"><label>Other fixed (UGX / month)</label><input class="input" id="mgrFixedOther" type="number" min="0" step="1000"></div>
-        <div class="recon-row"><span>Monthly total</span><strong id="mgrFixedMonthlyTotal">UGX 0</strong></div>
-        <div class="form-group"><label>Notes</label><textarea class="textarea-inp" id="mgrFixedNotes" rows="2"></textarea></div>
+      <div class="card" id="mgrClosingStockCard">
+        <div class="card-header"><span class="card-title">Closing stock — from 6:30 PM</span><button class="btn btn-sm btn-red" id="mgrClosingSaveBtn" type="button" onclick="saveManagerClosingStock()">Save closing</button></div>
+        <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem" id="mgrClosingStatus">Loading…</p>
+        <div class="tbl-wrap"><table id="mgrClosingStockTable"><tr><th>Product</th><th>SKU</th><th>Qty</th></tr><tr><td colspan="3" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
+        <div class="form-group" style="margin-top:.8rem"><label>Notes</label><textarea class="textarea-inp" id="mgrClosingNotes" rows="2" placeholder="Shortages, recount notes…"></textarea></div>
       </div>
+    </div>
+  </div>
+  <div class="page-section">
+    <div class="page-section-label">2. Deliveries &amp; confirmation</div>
+    <div class="btn-group" style="margin-bottom:.8rem">
+      <button class="btn btn-red" onclick="openModal('incomingModal')">+ Record Coca-Cola delivery</button>
+      <button class="btn" onclick="openModal('dispatchModal')">Dispatch vehicle</button>
+      <button class="btn btn-black" onclick="showPage('admin-exceptions')">Review exceptions</button>
+    </div>
+    <div class="card" style="margin-bottom:1rem" id="mgrDeliveryConfirmCard">
+      <div class="card-header">
+        <span class="card-title">Confirm Coca-Cola deliveries — today</span>
+        <span class="chip" id="mgrDeliveryConfirmChip">—</span>
+      </div>
+      <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">
+        After stock taking, confirm that today’s supplier deliveries match the waybill.
+      </p>
+      <div id="mgrDeliveryConfirmList"><p style="color:var(--gray-mid)">Loading…</p></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Monthly fixed costs</span><button class="btn btn-sm btn-red" onclick="saveManagerFixedCosts()">Save</button></div>
+      <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">Director P&amp;L uses these as daily allocation (monthly ÷ days).</p>
+      <div class="form-group"><label>Rent (UGX / month)</label><input class="input" id="mgrFixedRent" type="number" min="0" step="1000"></div>
+      <div class="form-group"><label>Salaries (UGX / month)</label><input class="input" id="mgrFixedSalaries" type="number" min="0" step="1000"></div>
+      <div class="form-group"><label>Utilities (UGX / month)</label><input class="input" id="mgrFixedUtilities" type="number" min="0" step="1000"></div>
+      <div class="form-group"><label>Security (UGX / month)</label><input class="input" id="mgrFixedSecurity" type="number" min="0" step="1000"></div>
+      <div class="form-group"><label>Other fixed (UGX / month)</label><input class="input" id="mgrFixedOther" type="number" min="0" step="1000"></div>
+      <div class="recon-row"><span>Monthly total</span><strong id="mgrFixedMonthlyTotal">UGX 0</strong></div>
+      <div class="form-group"><label>Notes</label><textarea class="textarea-inp" id="mgrFixedNotes" rows="2"></textarea></div>
     </div>
   </div>
   <div class="page-section">
@@ -1313,7 +1381,7 @@ canvas{display:block;width:100%!important}
 
 <!-- MANAGER CCBA ORDER -->
 <div class="page" id="page-manager-ccba-order">
-  <div class="alert a-info"><span>ℹ</span><strong>Single entry:</strong> Build the replenishment order here in Lapok, then open MyCCBA to submit. Paste the CCBA confirmation number back — no duplicate line entry.</div>
+  <div class="alert a-info"><span>ℹ</span><strong>Single entry:</strong> Build the replenishment order here in Outpost, then open MyCCBA to submit. Paste the CCBA confirmation number back — no duplicate line entry.</div>
   <div class="btn-group ccba-mgr-only">
     <button class="btn btn-red" onclick="ccbaNewFromLowStock()">+ New from low stock</button>
     <button class="btn" onclick="ccbaSaveDraft(false)">Save draft</button>
@@ -1328,7 +1396,7 @@ canvas{display:block;width:100%!important}
         <span class="card-title">Replenishment order</span>
         <span id="ccbaEditorStatus"><span class="badge bg">Draft</span></span>
       </div>
-      <p style="font-size:12px;color:var(--gray-mid);margin-bottom:.8rem">Lapok ref: <strong id="ccbaEditorRef" style="font-family:monospace">New order (unsaved)</strong></p>
+      <p style="font-size:12px;color:var(--gray-mid);margin-bottom:.8rem">Outpost ref: <strong id="ccbaEditorRef" style="font-family:monospace">New order (unsaved)</strong></p>
       <div class="form-row" style="margin-bottom:.8rem">
         <div class="form-group"><label>Requested delivery</label><input class="input" type="date" id="ccbaRequestedDate"></div>
         <div class="form-group"><label>Notes for CCBA</label><input class="input" id="ccbaOrderNotes" placeholder="Optional instructions"></div>
@@ -1346,7 +1414,7 @@ canvas{display:block;width:100%!important}
       <div class="card">
         <div class="card-header"><span class="card-title">Recent CCBA orders</span></div>
         <div class="tbl-wrap"><table>
-          <tr><th>Lapok ref</th><th>Status</th><th>Lines</th><th>Est.</th><th>Created</th><th></th></tr>
+          <tr><th>Outpost ref</th><th>Status</th><th>Lines</th><th>Est.</th><th>Created</th><th></th></tr>
           <tbody id="ccbaOrderListBody"><tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr></tbody>
         </table></div>
       </div>
@@ -1439,7 +1507,7 @@ canvas{display:block;width:100%!important}
 </div>
 
 <div class="page" id="page-user-receipt">
-  <div class="alert a-info"><span>ℹ</span><strong>Fiscal-first:</strong> Ring up the sale on the cash register. The receipt appears below — pick the customer and tap <strong>Record in Lapok</strong>. Products and amounts are not re-entered.</div>
+  <div class="alert a-info"><span>ℹ</span><strong>Fiscal-first:</strong> Ring up the sale on the cash register. The receipt appears below — pick the customer and tap <strong>Record in Outpost</strong>. Products and amounts are not re-entered.</div>
   <div class="two-col">
     <div class="card">
       <div class="card-header">
@@ -1450,7 +1518,7 @@ canvas{display:block;width:100%!important}
       <div id="efrisPendingList"></div>
     </div>
     <div class="card" id="efrisReceiptDetail">
-      <p style="color:var(--gray-mid)">Select a receipt from the fiscal device to link it in Lapok.</p>
+      <p style="color:var(--gray-mid)">Select a receipt from the fiscal device to link it in Outpost.</p>
     </div>
   </div>
 </div>
@@ -1463,9 +1531,10 @@ canvas{display:block;width:100%!important}
       <div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:3px" id="cadetDashVehicleDetail">—</div>
       <div style="margin-top:6px" id="cadetDashStatusBadge"></div>
     </div>
-    <button class="btn btn-red btn-sm" type="button" onclick="showPage('cadet-daily')">Today's report →</button>
+    <button class="btn btn-red btn-sm" type="button" id="cadetDashReportBtn" onclick="showPage('cadet-daily')">Today's report →</button>
   </div>
-  <div class="alert a-warning" id="cadetDashLateBanner" style="display:none"><span>⚠</span><div>After 7:30 PM — submit soon and add a note if cash differs from sales.</div></div>
+  <div class="alert a-warning" id="deadlineBannerCadet" style="display:none"></div>
+  <div class="alert a-warning" id="cadetDashLateBanner" style="display:none"><span>⚠</span><div>After 7:00 PM — submit soon and add a note if cash differs from sales.</div></div>
   <div class="alert a-info" id="cadetDashNoTrip" style="display:none"><span>ℹ</span><div>No active trip. Ask your manager to dispatch your vehicle.</div></div>
   <div class="alert a-success" id="cadetDashSubmitted" style="display:none"></div>
   <div class="metric-grid" id="cadetDashMetrics">
@@ -1487,8 +1556,9 @@ canvas{display:block;width:100%!important}
 <div class="page" id="page-cadet-daily">
   <div class="alert a-info" id="cadetDailyInfo"><span>ℹ</span>Enter today's sales and expenses. RDC is notified automatically if something needs attention.</div>
   <div class="alert a-success" id="cadetDailyDone" style="display:none"></div>
-  <div class="card" style="max-width:640px;margin:0 auto">
-    <div class="card-header"><span class="card-title">Today's report</span><span class="chip" id="cadetDailyTripChip">—</span></div>
+  <div class="alert a-info" id="cadetDailyReadOnlyBanner" style="display:none"><span>🔒</span><div><strong>Submitted report — read only.</strong> You can review what you sent to RDC. Editing is locked after submit.</div></div>
+  <div class="card" style="max-width:760px;margin:0 auto">
+    <div class="card-header"><span class="card-title" id="cadetDailyTitle">Today's report</span><span class="chip" id="cadetDailyTripChip">—</span><span class="badge bs" id="cadetDailyRoBadge" style="display:none;margin-left:6px">Read only</span></div>
     <div class="recon-row" style="margin-bottom:1rem"><span>Vehicle / route</span><strong id="cadetDailyVehicle">—</strong></div>
     <div class="form-group">
       <label>Sales per product (depot catalog)</label>
@@ -1666,7 +1736,7 @@ canvas{display:block;width:100%!important}
 <div class="modal-overlay" id="ccbaConfirmModal"><div class="modal">
   <div class="modal-handle"></div>
   <div class="modal-title">Confirm CCBA order number</div>
-  <p style="font-size:13px;color:var(--gray-mid);margin-bottom:1rem">After submitting in MyCCBA, paste the confirmation numbers here so Lapok tracks the order without re-entry.</p>
+  <p style="font-size:13px;color:var(--gray-mid);margin-bottom:1rem">After submitting in MyCCBA, paste the confirmation numbers here so Outpost tracks the order without re-entry.</p>
   <form onsubmit="ccbaConfirmRef(event)">
     <div class="form-group"><label>CCBA order number <span style="color:var(--red)">*</span></label><input class="input" id="ccbaConfirmOrderNo" placeholder="e.g. CCBA-UG-12345" required></div>
     <div class="form-group"><label>CCBA PO number (optional)</label><input class="input" id="ccbaConfirmPoNo" placeholder="If shown on confirmation"></div>
@@ -1720,8 +1790,32 @@ canvas{display:block;width:100%!important}
   <div class="modal-actions"><button class="btn" type="button" onclick="closeModal('notifModal')">Close</button><button class="btn btn-red" type="button" onclick="dismissAllNotifs()">Mark all read</button></div>
 </div></div>
 
+<div class="modal-overlay" id="rdcEditCadetReportModal"><div class="modal" style="max-width:720px">
+  <div class="modal-handle"></div>
+  <div class="modal-title" id="rdcEditCadetTitle">Correct cadet report</div>
+  <p id="rdcEditCadetMeta" style="font-size:13px;color:var(--gray);margin:-0.6rem 0 1rem"></p>
+  <div class="alert a-info" style="margin-bottom:1rem"><span>ℹ</span><div>Fix mistakes here. This updates the cadet report and re-syncs the vehicle column on the RDC sheet.</div></div>
+  <div class="tbl-wrap" style="max-height:42vh;overflow:auto;margin-bottom:1rem">
+    <table id="rdcEditCadetSalesTable">
+      <thead><tr><th>Product</th><th>Loaded</th><th>Sold</th><th>Amount (UGX)</th></tr></thead>
+      <tbody id="rdcEditCadetSalesBody"></tbody>
+    </table>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Fuel expense (UGX)</label><input type="number" class="input" id="rdcEditCadetFuel" min="0" step="1000"></div>
+    <div class="form-group"><label>Other expense (UGX)</label><input type="number" class="input" id="rdcEditCadetOther" min="0" step="1000"></div>
+    <div class="form-group"><label>Cash handed (UGX)</label><input type="number" class="input" id="rdcEditCadetCash" min="0" step="1000"></div>
+  </div>
+  <div class="form-group"><label>Note / correction reason</label><textarea class="textarea-inp" id="rdcEditCadetNote" rows="2" placeholder="Why this was corrected…"></textarea></div>
+  <p id="rdcEditCadetTotals" style="font-size:13px;margin:0.4rem 0 0;color:var(--gray)"></p>
+  <div class="modal-actions">
+    <button class="btn" type="button" onclick="closeModal('rdcEditCadetReportModal')">Cancel</button>
+    <button class="btn btn-red" type="button" id="rdcEditCadetSaveBtn" onclick="rdcSaveCadetReportEdit()">Save correction</button>
+  </div>
+</div></div>
+
 <script src="assets/presentation-config.js?v=20260629"></script>
-<script src="assets/api.js?v=20260629"></script>
+<script src="assets/api.js?v=20260708n"></script>
 <script>
 const ICONS={
   home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
@@ -1757,8 +1851,8 @@ const ROLES={
   ]},
   manager:{name:'Sarah Nakato',email:'manager@ccoutlet.ug',pill:'rp-manager',badge:'Manager',nav:[
     {id:'manager-dashboard',l:'Dashboard',i:'home'},
+    {id:'manager-stock',l:'Stock taking',i:'box'},
     {id:'report-exchange',l:'PDF reports',i:'receipt'},
-    {id:'manager-stock',l:'Stock management',i:'box'},
     {id:'manager-reports',l:'Reports',i:'chart'}
   ]},
   user:{name:'David Ssemuju',email:'david@ccoutlet.ug',pill:'rp-user',badge:'Field User',nav:[
@@ -1982,17 +2076,17 @@ window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementBy
 <script src="assets/phase45.js"></script>
 <script src="assets/integration-placeholders.js"></script>
 <script src="assets/report-exchange.js?v=20260703"></script>
-<script src="assets/manager-ops.js"></script>
-<script src="assets/rdc-balancing.js?v=20260703"></script>
+<script src="assets/manager-ops.js?v=20260708m"></script>
+<script src="assets/rdc-balancing.js?v=20260708i"></script>
 <script src="assets/cash-handover.js?v=20260701"></script>
-<script src="assets/rdc-hub.js?v=20260705"></script>
-<script src="assets/rdc-review.js"></script>
+<script src="assets/rdc-hub.js?v=20260708j"></script>
+<script src="assets/rdc-review.js?v=20260708i"></script>
 <script src="assets/accountant-improvements.js"></script>
 <script src="assets/accountant-welfare.js?v=20260630"></script>
-<script src="assets/notifications.js?v=20260730"></script>
-<script src="assets/cadet-dashboard.js?v=20260730"></script>
-<script src="assets/cadet-daily.js?v=20260730"></script>
-<script src="assets/depot-snapshots.js?v=20260730"></script>
-<script src="assets/director-brief.js?v=20260730"></script>
+<script src="assets/notifications.js?v=20260708j"></script>
+<script src="assets/cadet-dashboard.js?v=20260708j"></script>
+<script src="assets/cadet-daily.js?v=20260708d"></script>
+<script src="assets/depot-snapshots.js?v=20260708m"></script>
+<script src="assets/director-brief.js?v=20260708c"></script>
 </body>
 </html>

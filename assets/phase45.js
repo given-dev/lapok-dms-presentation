@@ -693,7 +693,13 @@ document.addEventListener('DOMContentLoaded', () => {
     'admin-users': () => loadUsersTable(),
     'admin-exceptions': () => loadExceptionsPage(),
     'admin-editreqs': () => loadEditRequests(),
-    'manager-stock': () => { loadStockTable(); loadDeliveryList(); if (typeof loadManagerOpeningStock === 'function') loadManagerOpeningStock(); if (typeof loadManagerFixedCosts === 'function') loadManagerFixedCosts(); },
+    'manager-stock': () => {
+      loadStockTable();
+      loadDeliveryList();
+      if (typeof loadManagerOpeningStock === 'function') loadManagerOpeningStock();
+      if (typeof loadManagerClosingStock === 'function') loadManagerClosingStock();
+      if (typeof loadManagerFixedCosts === 'function') loadManagerFixedCosts();
+    },
     'director-brief': () => { if (typeof loadDirectorBriefPage === 'function') loadDirectorBriefPage(); },
   };
 

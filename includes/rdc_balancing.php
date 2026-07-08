@@ -478,13 +478,19 @@ function rdc_apply_cadet_report_to_sheet(array &$sheet, int $vehicleId, array $r
 
     $fuel = (float) ($report['fuel_expense'] ?? 0);
     $other = (float) ($report['other_expense'] ?? 0);
-    foreach ($sheet['expenses'] ?? [] as &$expLine) {
+    if (!isset($sheet['expenses']) || !is_array($sheet['expenses'])) {
+        $sheet['expenses'] = [];
+    }
+    // Must foreach the real $sheet['expenses'] array — `?? []` creates a temporary copy
+    // so fuel/other never persist when assigned by reference.
+    foreach ($sheet['expenses'] as &$expLine) {
         $label = strtoupper((string) ($expLine['label'] ?? ''));
         if ($fuel > 0 && $label === 'FUEL') {
             $expLine['amounts'][$vehicleKey] = $fuel;
         }
-        if ($other > 0 && ($label === 'OTHER' || $label === 'TRANSPORT')) {
-            $expLine['amounts'][$vehicleKey] = ($expLine['amounts'][$vehicleKey] ?? 0) + $other;
+        // Put cadet "other" expense on OTHER only (not TRANSPORT) to avoid double-count
+        if ($other > 0 && $label === 'OTHER') {
+            $expLine['amounts'][$vehicleKey] = $other;
         }
     }
     unset($expLine);
@@ -678,6 +684,149 @@ function rdc_merge_cadet_report(PDO $pdo, int $tripId, array $report): array
     ];
 }
 
+/**
+ * RDC corrects a submitted cadet report (source of truth on the trip), then re-syncs the sheet.
+ *
+ * @param array<string, mixed> $body
+ * @return array<string, mixed>
+ */
+function rdc_update_cadet_report(PDO $pdo, int $tripId, array $body, int $editorId, string $editorName): array
+{
+    require_once __DIR__ . '/cadet_reports.php';
+    require_once __DIR__ . '/depot_catalog.php';
+
+    $stmt = $pdo->prepare(
+        "SELECT dt.*, v.registration, u.full_name AS cadet_name
+         FROM delivery_trips dt
+         JOIN vehicles v ON v.id = dt.vehicle_id
+         LEFT JOIN users u ON u.id = dt.cadet_id
+         WHERE dt.id = ? LIMIT 1"
+    );
+    $stmt->execute([$tripId]);
+    $trip = $stmt->fetch();
+    if (!$trip) {
+        throw new RuntimeException('Cadet trip not found');
+    }
+    if ((string) $trip['status'] !== 'returned') {
+        throw new RuntimeException('Only returned cadet reports can be corrected');
+    }
+
+    $existing = cadet_parse_report_note($trip['notes'] ?? null);
+    if (!$existing) {
+        throw new RuntimeException('No cadet report found on this trip');
+    }
+
+    $balanceDate = date('Y-m-d', strtotime((string) ($trip['returned_at'] ?? 'now')));
+    $lock = $pdo->prepare('SELECT status FROM rdc_daily_sheets WHERE balance_date = ? LIMIT 1');
+    $lock->execute([$balanceDate]);
+    $sheetStatus = $lock->fetchColumn();
+    if ($sheetStatus && in_array($sheetStatus, ['submitted', 'under_review', 'approved', 'rejected'], true)) {
+        throw new RuntimeException('Today\'s RDC sheet is locked — reopen it before correcting cadet reports');
+    }
+
+    $catalogByKey = [];
+    $loaded = depot_trip_loaded_by_rdc_key($tripId);
+    foreach (depot_rdc_sales_catalog() as $row) {
+        $catalogByKey[$row['key']] = array_merge($row, [
+            'unit_price' => (float) $row['price'],
+            'qty_loaded' => (int) ($loaded[$row['key']] ?? 0),
+        ]);
+    }
+
+    $salesInput = is_array($body['sales_lines'] ?? null) ? $body['sales_lines'] : [];
+    $enriched = [];
+    foreach ($salesInput as $line) {
+        if (!is_array($line)) {
+            continue;
+        }
+        $key = (string) ($line['rdc_key'] ?? '');
+        if ($key !== '' && isset($catalogByKey[$key])) {
+            $line['qty_loaded'] = $catalogByKey[$key]['qty_loaded'];
+        }
+        $enriched[] = $line;
+    }
+    $salesLines = cadet_normalize_sales_lines($enriched, $catalogByKey);
+    $salesTotal = array_sum(array_map(fn($line) => (float) $line['amount'], $salesLines));
+
+    $fuel = max(0, (float) ($body['fuel_expense'] ?? 0));
+    $other = max(0, (float) ($body['other_expense'] ?? 0));
+    $cashHanded = max(0, (float) ($body['cash_handed'] ?? 0));
+    $note = trim((string) ($body['note'] ?? ''));
+
+    $flags = cadet_compute_flags($salesTotal, $cashHanded, $fuel, $other, $note, $salesLines);
+    $report = [
+        'sales_total' => $salesTotal,
+        'sales_lines' => $salesLines,
+        'fuel_expense' => $fuel,
+        'other_expense' => $other,
+        'cash_handed' => $cashHanded,
+        'note' => $note,
+        'flags' => $flags,
+        'submitted_at' => $existing['submitted_at'] ?? date('c'),
+        'cadet_id' => (int) ($existing['cadet_id'] ?? $trip['cadet_id'] ?? 0),
+        'cadet_name' => (string) ($existing['cadet_name'] ?? $trip['cadet_name'] ?? 'Cadet'),
+        'corrected_at' => date('c'),
+        'corrected_by' => $editorId,
+        'corrected_by_name' => $editorName,
+    ];
+
+    $notes = '[CADET_REPORT] ' . json_encode($report, JSON_UNESCAPED_UNICODE);
+    if ($note !== '') {
+        $notes .= "\n" . $note;
+    }
+    $notes .= "\n[RDC_CORRECTED] " . date('Y-m-d H:i') . ' by ' . $editorName;
+
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare(
+            'UPDATE delivery_trips
+             SET fuel_cost = ?, cash_reported = ?, notes = ?
+             WHERE id = ?'
+        )->execute([$fuel + $other, $cashHanded, $notes, $tripId]);
+
+        // Reset sold qty then re-apply corrected lines
+        $pdo->prepare('UPDATE trip_load_items SET qty_sold = 0, qty_returned = qty_loaded WHERE trip_id = ?')
+            ->execute([$tripId]);
+        cadet_apply_trip_sales($pdo, $tripId, $salesLines);
+
+        $sync = rdc_sync_cadet_reports_into_sheet($pdo, $balanceDate, true);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+
+    audit_log($editorId, 'delivery_trips', $tripId, 'rdc_correct_cadet_report', $existing, $report);
+
+    try {
+        require_once __DIR__ . '/notifications.php';
+        $cadetId = (int) ($report['cadet_id'] ?? 0);
+        if ($cadetId > 0) {
+            notify_user($cadetId, 'RDC corrected your report', sprintf(
+                'Accountant updated trip #%d (%s). New sales UGX %s, cash UGX %s.',
+                $tripId,
+                (string) ($trip['registration'] ?? 'vehicle'),
+                number_format($salesTotal, 0),
+                number_format($cashHanded, 0)
+            ), [
+                'sender_id' => $editorId,
+                'sender_role' => 'accountant',
+                'severity' => count($flags) > 0 ? 'warning' : 'info',
+                'link_page' => 'cadet-daily',
+            ]);
+        }
+    } catch (Throwable) {
+    }
+
+    return [
+        'trip_id' => $tripId,
+        'balance_date' => $balanceDate,
+        'report' => $report,
+        'sync' => $sync,
+        'flags' => $flags,
+    ];
+}
+
 /** @return list<array<string, mixed>> */
 function rdc_cadet_reports_for_date(string $date): array
 {
@@ -709,6 +858,11 @@ function rdc_cadet_reports_for_date(string $date): array
             'returned_at' => $row['returned_at'],
             'sales_total' => (float) ($parsed['sales_total'] ?? 0),
             'cash_handed' => (float) ($parsed['cash_handed'] ?? $row['cash_reported'] ?? 0),
+            'fuel_expense' => (float) ($parsed['fuel_expense'] ?? 0),
+            'other_expense' => (float) ($parsed['other_expense'] ?? 0),
+            'note' => (string) ($parsed['note'] ?? ''),
+            'corrected_at' => $parsed['corrected_at'] ?? null,
+            'corrected_by_name' => $parsed['corrected_by_name'] ?? null,
             'flags' => $parsed['flags'] ?? [],
             'sales_lines' => $parsed['sales_lines'] ?? [],
             'report' => $parsed,

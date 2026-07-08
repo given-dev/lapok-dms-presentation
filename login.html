@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Login — Lapok DMS</title>
+<title>Login — Outpost DMS</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0F172A,#1E293B);padding:1rem}
 .card{background:#fff;border-radius:16px;padding:2rem;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-.logo{width:48px;height:48px;background:linear-gradient(135deg,#E53E3E,#DC2626);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;margin-bottom:1rem}
+.logo{width:64px;height:64px;margin-bottom:1rem;display:block;object-fit:contain;border-radius:14px}
 h1{font-size:1.35rem;margin-bottom:.25rem;color:#0F172A}
 .sub{font-size:.85rem;color:#64748B;margin-bottom:1.5rem}
 label{display:block;font-size:.8rem;font-weight:600;margin-bottom:.35rem;color:#334155}
@@ -24,9 +24,9 @@ button:disabled{opacity:.6;cursor:not-allowed}
 </head>
 <body>
 <div class="card">
-  <div class="logo">LV</div>
-  <h1>Lapok DMS</h1>
-  <p class="sub">Inventory &amp; Distribution — Gulu, Uganda</p>
+  <img class="logo" src="assets/img/outpost-dms-logo.png" alt="Outpost DMS" width="64" height="64">
+  <h1>Outpost DMS</h1>
+  <p class="sub">Depot Management System — stock, fleet &amp; daily close</p>
   <div class="err" id="err"></div>
   <form id="loginForm">
     <label for="email">Email</label>

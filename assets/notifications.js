@@ -164,9 +164,67 @@
     }
   }
 
+  let deadlineState = null;
+
+  function renderDeadlineBanner(status) {
+    deadlineState = status || null;
+    const banner = status?.banner || null;
+    const roleMap = {
+      cadet: 'deadlineBannerCadet',
+      field_user: 'deadlineBannerCadet',
+      rdc: 'deadlineBannerRdc',
+      accountant: 'deadlineBannerRdc',
+      manager: 'deadlineBannerManager',
+    };
+    // Hide all first
+    ['deadlineBannerCadet', 'deadlineBannerRdc', 'deadlineBannerManager'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.display = 'none';
+        el.innerHTML = '';
+      }
+    });
+    if (!banner) return;
+
+    const targetId = roleMap[banner.role] || roleMap[window.currentUser?.role] || null;
+    const el = targetId ? document.getElementById(targetId) : null;
+    if (!el) return;
+
+    const phase = banner.phase || 'warn';
+    const tone = phase === 'done' ? 'a-success'
+      : phase === 'overdue' || phase === 'urgent' ? 'a-danger'
+        : phase === 'info' ? 'a-info'
+          : 'a-warning';
+    const icon = phase === 'done' ? '✓' : (phase === 'info' ? 'ℹ' : '⏰');
+    const link = banner.link_page
+      ? `<button class="btn btn-sm" type="button" style="margin-left:8px" onclick="showPage('${esc(banner.link_page)}')">Open →</button>`
+      : '';
+    el.className = `alert ${tone}`;
+    el.style.display = 'flex';
+    el.innerHTML = `<span>${icon}</span><div><strong>${esc(banner.title)}</strong><div style="font-size:13px;margin-top:2px">${esc(banner.body)}${link}</div></div>`;
+  }
+
+  async function runDeadlineReminders() {
+    try {
+      const data = await LapokAPI.get('/api/ops/run_deadline_reminders.php');
+      renderDeadlineBanner(data.status || null);
+      // If reminders were sent, refresh bell list
+      if ((data.run?.sent_total || 0) > 0) {
+        await refreshNotifications();
+      }
+      return data;
+    } catch (e) {
+      console.warn('Deadline reminders:', e.message);
+      return null;
+    }
+  }
+
   function initNotifications() {
     refreshNotifications();
+    runDeadlineReminders();
     setInterval(refreshNotifications, 60000);
+    // Deadline checks every 5 minutes while the app is open
+    setInterval(runDeadlineReminders, 5 * 60 * 1000);
   }
 
   window.openNotifModal = openNotifModal;
@@ -174,6 +232,7 @@
   window.notifOpenPage = notifOpenPage;
   window.sendStaffNotification = sendStaffNotification;
   window.refreshNotifications = refreshNotifications;
+  window.runDeadlineReminders = runDeadlineReminders;
   window.initNotifications = initNotifications;
 
   document.addEventListener('DOMContentLoaded', () => {

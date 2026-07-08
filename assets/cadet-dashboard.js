@@ -3,7 +3,7 @@
  */
 (function () {
   function ugx(n) {
-    return 'UGX ' + Number(n || 0).toLocaleString();
+    return 'UGX ' + Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 });
   }
 
   function esc(s) {
@@ -72,22 +72,26 @@
 
       const reportStatus = document.getElementById('cadetDashReportStatus');
       const reportSub = document.getElementById('cadetDashReportSub');
+      const reportBtn = document.getElementById('cadetDashReportBtn');
       if (summary.report_status === 'submitted') {
         if (reportStatus) reportStatus.textContent = 'Done';
         if (reportSub) reportSub.textContent = 'Sent to RDC';
+        if (reportBtn) reportBtn.textContent = 'View submitted report (read-only) →';
         const flags = summary.flags || [];
         if (submitted) {
           submitted.style.display = 'flex';
           const flagText = flags.length ? ` Flagged: ${flags.join(', ')}.` : ' Consolidated into RDC balancing.';
-          submitted.innerHTML = `<span>✓</span><div><strong>Today's report submitted</strong><div style="font-size:13px;margin-top:4px">Sales ${ugx(summary.sales_total)} · Cash ${ugx(summary.cash_handed)}.${flagText}</div></div>`;
+          submitted.innerHTML = `<span>✓</span><div><strong>Today's report submitted</strong><div style="font-size:13px;margin-top:4px">Sales ${ugx(summary.sales_total)} · Cash ${ugx(summary.cash_handed)}.${flagText}</div><button class="btn btn-sm" type="button" style="margin-top:8px" onclick="showPage('cadet-daily')">Open read-only report</button></div>`;
         }
       } else if (trip) {
         if (reportStatus) reportStatus.textContent = 'Due';
-        if (reportSub) reportSub.textContent = 'Submit before 7:30 PM';
+        if (reportSub) reportSub.textContent = 'Submit before 7:00 PM';
+        if (reportBtn) reportBtn.textContent = "Today's report →";
       } else {
         if (reportStatus) reportStatus.textContent = '—';
         if (reportSub) reportSub.textContent = 'No trip';
         if (noTrip) noTrip.style.display = 'flex';
+        if (reportBtn) reportBtn.textContent = "Today's report →";
       }
 
       const salesCash = document.getElementById('cadetDashSalesCash');

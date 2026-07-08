@@ -128,7 +128,7 @@ async function refreshFleetMap() {
           iconSize: [30, 30],
           iconAnchor: [15, 15],
         }),
-      }).bindPopup('<strong>Lapok depot</strong>');
+      }).bindPopup('<strong>Depot</strong>');
       depotMarker.addTo(fleetMapInstance);
       fleetMapLayers.markers.push(depotMarker);
     }

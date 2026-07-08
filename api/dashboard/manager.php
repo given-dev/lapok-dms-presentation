@@ -93,6 +93,15 @@ try {
 } catch (Throwable) {
 }
 
+$openingSnap = null;
+$closingSnap = null;
+try {
+    require_once dirname(__DIR__, 2) . '/includes/depot_finance.php';
+    $openingSnap = depot_snapshot_fetch($today, 'opening');
+    $closingSnap = depot_snapshot_fetch($today, 'closing');
+} catch (Throwable) {
+}
+
 $payload = [
     'pending_orders' => $pendingOrders,
     'pending_edit_requests' => $pendingEdits,
@@ -103,6 +112,10 @@ $payload = [
     'welfare_open_count' => $welfareOpenCount,
     'accountant_pack' => $pack,
     'executive_brief_today' => $brief,
+    'opening_stock_done' => (bool) $openingSnap,
+    'closing_stock_done' => (bool) $closingSnap,
+    'opening_stock_at' => $openingSnap['submitted_at'] ?? null,
+    'closing_stock_at' => $closingSnap['submitted_at'] ?? null,
     'boards_today' => [
         'inventory' => $occdInv['status'] ?? null,
         'occd' => $occdBoard['status'] ?? null,

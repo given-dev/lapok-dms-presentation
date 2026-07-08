@@ -68,9 +68,35 @@ async function loadManagerDashboardExtras() {
   if (!currentUser || !['admin', 'manager'].includes(currentUser.role)) return;
   const handoff = document.getElementById('mgrHandoffCard');
   const exc = document.getElementById('mgrExceptionsCard');
-  if (!handoff && !exc) return;
+  const stockCard = document.getElementById('mgrStockTakingCard');
+  if (!handoff && !exc && !stockCard) return;
   try {
     const d = await LapokAPI.get('/api/dashboard/manager.php');
+    const openEl = document.getElementById('mgrDashOpeningStatus');
+    const closeEl = document.getElementById('mgrDashClosingStatus');
+    if (openEl) {
+      openEl.textContent = d.opening_stock_done
+        ? ('Done' + (d.opening_stock_at ? ' · ' + LapokAPI.formatTime(d.opening_stock_at) : ''))
+        : 'Not done — enter opening stock first';
+      openEl.style.color = d.opening_stock_done ? 'var(--green, #166534)' : 'var(--red, #B91C1C)';
+    }
+    if (closeEl) {
+      if (d.closing_stock_done) {
+        closeEl.textContent = 'Done' + (d.closing_stock_at ? ' · ' + LapokAPI.formatTime(d.closing_stock_at) : '');
+        closeEl.style.color = 'var(--green, #166534)';
+      } else if (typeof isClosingStockWindowOpen === 'function' && !isClosingStockWindowOpen()) {
+        closeEl.textContent = 'Locked until 6:30 PM';
+        closeEl.style.color = 'var(--gray-mid)';
+      } else {
+        closeEl.textContent = 'Open now — save by 7:00 PM';
+        closeEl.style.color = 'var(--red, #B91C1C)';
+      }
+    }
+    if (stockCard && !d.opening_stock_done) {
+      stockCard.style.borderColor = 'rgba(229,62,62,.55)';
+    } else if (stockCard) {
+      stockCard.style.borderColor = 'rgba(22,101,52,.35)';
+    }
     if (handoff) {
       const pack = d.accountant_pack;
       const brief = d.executive_brief_today;
@@ -173,12 +199,118 @@ async function loadExceptionsPage() {
   }
 }
 
+function mgrDeliveryStatusMeta(status) {
+  const s = String(status || 'pending_confirm');
+  if (s === 'confirmed') return { label: 'Confirmed', badge: 'bs' };
+  if (s === 'rejected') return { label: 'Rejected', badge: 'bd' };
+  return { label: 'Awaiting confirm', badge: 'bw' };
+}
+
+function mgrCanConfirmDeliveries() {
+  const role = (typeof currentUser !== 'undefined' && currentUser?.role) || '';
+  return role === 'manager' || role === 'admin';
+}
+
+async function confirmSupplierDelivery(deliveryId, action) {
+  const id = Number(deliveryId || 0);
+  if (!id) return;
+  if (!mgrCanConfirmDeliveries()) {
+    mgrNotify('Only the manager can confirm deliveries', 'error');
+    return;
+  }
+  const verb = action === 'reject' ? 'reject' : 'confirm';
+  if (!window.confirm(action === 'reject'
+    ? 'Reject this delivery confirmation? Stock already received stays — note the variance with RDC.'
+    : 'Confirm this Coca-Cola delivery matches the waybill?')) {
+    return;
+  }
+  let note = '';
+  if (action === 'reject') {
+    note = window.prompt('Optional note for RDC / audit:', '') || '';
+  }
+  try {
+    await LapokAPI.post('/api/stock/confirm_delivery.php', {
+      delivery_id: id,
+      action: verb === 'reject' ? 'reject' : 'confirm',
+      note,
+    });
+    mgrNotify(verb === 'reject' ? 'Delivery marked rejected' : 'Delivery confirmed', 'success');
+    await loadDeliveryList();
+  } catch (e) {
+    mgrNotify(e.message || 'Could not update delivery', 'error');
+  }
+}
+
+function renderDeliveryConfirmActions(del) {
+  if (!mgrCanConfirmDeliveries()) return '';
+  const status = String(del.confirm_status || 'pending_confirm');
+  if (status !== 'pending_confirm') return '';
+  return `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+    <button class="btn btn-sm btn-red" type="button" onclick="confirmSupplierDelivery(${Number(del.id)}, 'confirm')">Confirm delivery</button>
+    <button class="btn btn-sm" type="button" onclick="confirmSupplierDelivery(${Number(del.id)}, 'reject')">Reject</button>
+  </div>`;
+}
+
+function paintRdcHubDeliveryStrip(pending, total) {
+  const strip = document.getElementById('rdcHubDeliveryConfirmStrip');
+  const msg = document.getElementById('rdcHubDeliveryConfirmMsg');
+  if (!strip || !msg) return;
+  strip.style.display = '';
+  if (!total) {
+    msg.textContent = 'No Coca-Cola deliveries recorded today. Manager confirms deliveries on Stock management when they arrive.';
+    return;
+  }
+  if (pending > 0) {
+    const cta = mgrCanConfirmDeliveries()
+      ? ` <button class="btn btn-sm" type="button" style="margin-left:6px" onclick="showPage('manager-stock')">Confirm deliveries</button>`
+      : ' Ask the manager to confirm on <strong>Stock management</strong>.';
+    msg.innerHTML = `<strong>${pending}</strong> delivery(ies) still need manager confirmation.${cta}`;
+  } else {
+    msg.textContent = `All ${total} delivery(ies) today are confirmed by the manager.`;
+  }
+}
+
+function paintMgrDeliveryConfirmPanel(list, pending) {
+  const chip = document.getElementById('mgrDeliveryConfirmChip');
+  const host = document.getElementById('mgrDeliveryConfirmList');
+  if (chip) {
+    chip.textContent = pending > 0 ? `${pending} pending` : (list.length ? 'All confirmed' : 'No deliveries');
+  }
+  if (!host) return;
+  if (!list.length) {
+    host.innerHTML = '<p style="color:var(--gray-mid);margin:0">No deliveries today yet. Record a delivery first, then confirm here before 7pm close.</p>';
+    return;
+  }
+  const pendingRows = list.filter((d) => String(d.confirm_status || 'pending_confirm') === 'pending_confirm');
+  if (!pendingRows.length) {
+    host.innerHTML = '<p style="color:var(--gray-mid);margin:0">All of today’s deliveries are confirmed. Enter opening/closing stock on this page when due.</p>';
+    return;
+  }
+  host.innerHTML = pendingRows.map((del) => {
+    const lines = (del.items || []).map((i) => escMgr(i.product_name) + ' × ' + i.qty_delivered).join(', ');
+    return `<div class="delivery-card" style="margin-bottom:10px">
+      <div class="delivery-header">
+        <div>
+          <strong>Waybill ${escMgr(del.waybill || '#' + del.id)}</strong>
+          <div style="font-size:12px;color:var(--gray-mid)">${escMgr(del.truck_plate || '—')} · ${escMgr(del.received_by_name || '—')}</div>
+          <div style="font-size:12px;color:var(--gray-mid);margin-top:4px">${lines || 'No lines'}</div>
+        </div>
+        <span class="badge bw">Awaiting confirm</span>
+      </div>
+      ${renderDeliveryConfirmActions(del)}
+    </div>`;
+  }).join('');
+}
+
 async function loadDeliveryList() {
   const el = document.getElementById('deliveryList');
-  if (!el) return;
   try {
     const d = await LapokAPI.get('/api/stock/fetch_deliveries.php');
     const list = d.deliveries || [];
+    const pending = Number(d.pending_confirm || 0);
+    paintMgrDeliveryConfirmPanel(list, pending);
+    paintRdcHubDeliveryStrip(pending, list.length);
+    if (!el) return;
     if (!list.length) {
       el.innerHTML = '<p style="padding:1rem;color:var(--gray-mid)">No deliveries recorded today.</p>';
       return;
@@ -189,21 +321,31 @@ async function loadDeliveryList() {
         return `<tr><td>${escMgr(i.product_name)}</td><td>${i.qty_ordered}</td><td>${i.qty_delivered}</td>
           <td><span class="${v < 0 ? 'deficit' : 'surplus'}">${v}</span></td></tr>`;
       }).join('');
+      const meta = mgrDeliveryStatusMeta(del.confirm_status);
+      const confirmedLine = del.confirmed_by_name
+        ? `<div style="font-size:12px;color:var(--gray-mid)">Confirmed by: ${escMgr(del.confirmed_by_name)}${del.confirmed_at ? ' · ' + escMgr(LapokAPI.formatTime(del.confirmed_at)) : ''}</div>`
+        : '';
       const ccba = del.ccba_lapok_ref ? `<div style="font-size:11px;color:var(--gray-mid)">CCBA order: ${escMgr(del.ccba_lapok_ref)} ${del.ccba_order_no ? '· ' + escMgr(del.ccba_order_no) : ''}</div>` : '';
       return `<div class="delivery-card">
         <div class="delivery-header">
           <div><strong>Delivery — ${LapokAPI.formatDate(del.delivery_date)}</strong>
             <div style="font-size:12px;color:var(--gray-mid)">Waybill: ${escMgr(del.waybill || '—')} · ${escMgr(del.truck_plate || '')}</div>
             ${ccba}
-            <div style="font-size:12px;color:var(--gray-mid)">Received by: ${escMgr(del.received_by_name || '—')}</div></div>
-          <span class="badge bs">Recorded</span>
+            <div style="font-size:12px;color:var(--gray-mid)">Received by: ${escMgr(del.received_by_name || '—')}</div>
+            ${confirmedLine}
+            ${del.confirm_note ? `<div style="font-size:12px;color:var(--gray-mid)">Note: ${escMgr(del.confirm_note)}</div>` : ''}
+          </div>
+          <span class="badge ${meta.badge}">${meta.label}</span>
         </div>
         <div class="tbl-wrap"><table style="min-width:300px"><tr><th>Product</th><th>Ordered</th><th>Delivered</th><th>Variance</th></tr>${items}</table></div>
         ${del.notes ? `<div style="font-size:12px;color:var(--gray-mid);margin-top:8px">${escMgr(del.notes)}</div>` : ''}
+        ${renderDeliveryConfirmActions(del)}
       </div>`;
     }).join('');
   } catch (e) {
-    el.innerHTML = `<p style="color:var(--red)">${escMgr(e.message)}</p>`;
+    if (el) el.innerHTML = `<p style="color:var(--red)">${escMgr(e.message)}</p>`;
+    const host = document.getElementById('mgrDeliveryConfirmList');
+    if (host) host.innerHTML = `<p style="color:var(--red)">${escMgr(e.message)}</p>`;
   }
 }
 

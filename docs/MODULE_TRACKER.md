@@ -1,7 +1,8 @@
-# Lapok DMS — Module & Feature Tracker
+# Outpost DMS — Module & Feature Tracker
 
-**Build:** `lapok-dms-presentation` (accountant module **live**)  
-**Last updated:** June 2026  
+**Product:** Outpost DMS  
+**Build folder:** `lapok-dms-presentation` (accountant module **live**)  
+**Last updated:** July 2026  
 **Purpose:** Single place to track what is live, what is planned, and what we may add next. Update this when modules ship or scope changes.
 
 **Status key**
@@ -33,8 +34,14 @@
 | Cadet dashboard | `cadet-dashboard` | **Live** | Trip, load summary, report status — home for cadet |
 | Cadet notifications | Bell + dashboard | **Live** | Receive from manager/RDC/admin; migration `011` |
 | Cadet daily report | `cadet-daily` | **Live** | Depot catalog → auto-sync into RDC **vehicle column** for assigned trip |
-| Opening stock (7am) | `manager-stock` | **Live** | Manager manual snapshot |
-| Closing stock (7pm) | `accountant-rdc-hub` | **Live** | Accountant manual snapshot — products grouped like cadet LAPOK book |
+| RDC correct cadet report | `accountant-rdc` Cadet intake | **Live** | Edit sales/expenses/cash on received reports; updates trip source + re-syncs sheet |
+| RDC view submitted sheet | `accountant-rdc` after submit | **Live** | Read-only “View submitted report” — sales/cash/totals visible |
+| Manager edit received sheet | `manager-rdc-review` → Edit report | **Live** | Manager can correct submitted/under_review sheet, then Approve |
+| Daily deadline alerts | Cadet / RDC / Manager homes + bell | **Live** | Cadets & RDC before 7:00 PM; manager executive brief before 8:00 PM |
+| Opening stock (7am) | `manager-stock` | **Live** | First manager task — RDC view-only |
+| Closing stock (7pm) | `manager-stock` | **Live** | Manager enters — RDC hub view-only |
+| Manager home landing | Login → `manager-dashboard` | **Live** | Dashboard #1; stock taking #2 with first-task card |
+| Manager confirm deliveries | `manager-stock` | **Live** | Confirm/reject today’s Coca-Cola deliveries; RDC hub shows pending status |
 | Monthly fixed costs | `manager-stock` | **Live** | Rent, salaries, utilities, security, other |
 | Director daily brief | `director-brief` | **Live** | P&L, shortages, expense ratio, 7pm readiness |
 
@@ -65,7 +72,7 @@
 | Edit requests | `admin-editreqs` | **Live** | Approve / reject field edits |
 | Exception center | `admin-exceptions` | **Live** | Cross-role queue |
 | Customers & receivables | `admin-customers` | **Live** | Live totals + customer table |
-| Stock & deliveries | `manager-stock` | **Live** | Receive, dispatch |
+| Stock & deliveries | `manager-stock` | **Live** | Receive, confirm, dispatch |
 | PDF report exchange | `report-exchange` | **Live** | Full inbox/outbox chain |
 | Reports & analytics | `manager-reports` | **Live** | |
 
