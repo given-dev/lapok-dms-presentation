@@ -109,7 +109,7 @@ function notification_to_response(array $row): array
     return [
         'id' => (int) $row['id'],
         'title' => $row['title'],
-        'body' => $row['body'],
+        'body' => preg_replace('/\s*#[a-z0-9_]+#\s*$/i', '', (string) $row['body']) ?? (string) $row['body'],
         'severity' => $row['severity'],
         'link_page' => $row['link_page'],
         'is_read' => (bool) $row['is_read'],

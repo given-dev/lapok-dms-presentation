@@ -153,14 +153,14 @@
     if (ctx.cadetFlagCount) {
       const n = ctx.cadetFlagCount;
       if (title) title.textContent = `${n} cadet report${n === 1 ? '' : 's'} flagged`;
-      if (sub) sub.textContent = 'Sales, cash, or expense issues from field — review in depot alerts.';
+      if (sub) sub.textContent = 'Open Today\'s close → Edit on Cadet reports to fix mistakes.';
       box.style.display = 'flex';
       return;
     }
     if (ctx.cadetReportCount) {
       const n = ctx.cadetReportCount;
-      if (title) title.textContent = `${n} cadet report${n === 1 ? '' : 's'} consolidated today`;
-      if (sub) sub.textContent = 'Product sales, cash, and expenses are in today\'s balancing sheet — review before submit.';
+      if (title) title.textContent = `${n} cadet report${n === 1 ? '' : 's'} ready to review`;
+      if (sub) sub.textContent = 'Open Today\'s close — Cadet reports received is at the top with Edit.';
       box.style.display = 'flex';
       return;
     }
@@ -257,7 +257,7 @@
     } else if (wf.packActive) {
       page = 'report-exchange';
       headline = 'Send manager pack';
-      detail = 'One tap — Lapok emails a PDF to your manager.';
+      detail = 'One tap — Outpost builds a PDF for your manager.';
       label = 'Send pack';
     } else if (wf.dayComplete) {
       headline = 'Today\'s close is complete';
@@ -508,6 +508,7 @@
     renderHubAlert(ctx);
     if (typeof loadDirectorBriefWidget === 'function') loadDirectorBriefWidget();
     if (typeof loadAccountantClosingStock === 'function') loadAccountantClosingStock();
+    if (typeof loadDeliveryList === 'function') loadDeliveryList();
 
     if (errors.length) {
       const pri = document.getElementById('rdcHubPriorities');

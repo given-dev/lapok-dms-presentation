@@ -31,10 +31,7 @@ if (!$canView) {
 
 $abs = dirname(__DIR__, 2) . '/' . ltrim((string) $row['file_path'], '/');
 if (!is_file($abs)) {
-    report_ensure_demo_files();
-    if (!is_file($abs)) {
-        json_error('PDF file missing on server', 404);
-    }
+    json_error('PDF file missing on server', 404);
 }
 
 if ($role === $row['to_role'] || ($role === 'admin' && $row['to_role'] === 'executive')) {

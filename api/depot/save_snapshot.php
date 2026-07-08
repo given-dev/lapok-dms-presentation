@@ -10,6 +10,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     json_error('Method not allowed', 405);
 }
 
+try {
+    date_default_timezone_set('Africa/Kampala');
+} catch (Throwable) {
+}
+
 $body = read_json_body();
 $date = trim((string) ($body['date'] ?? date('Y-m-d')));
 $type = trim((string) ($body['type'] ?? ''));
@@ -22,11 +27,18 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
 if (!in_array($type, ['opening', 'closing'], true)) {
     json_error('Invalid snapshot type');
 }
-if ($type === 'opening' && !in_array($user['role'], ['manager', 'admin'], true)) {
-    json_error('Only manager can submit opening stock', 403);
+// Manager owns both opening (7am) and closing (7pm) stock counts. RDC views only.
+if (!in_array($user['role'], ['manager', 'admin'], true)) {
+    json_error('Only the manager can submit opening and closing stock', 403);
 }
-if ($type === 'closing' && !in_array($user['role'], ['accountant', 'manager', 'admin'], true)) {
-    json_error('Only accountant or manager can submit closing stock', 403);
+
+// Closing stock for today unlocks at 6:30 PM (local server time).
+if ($type === 'closing' && $date === date('Y-m-d')) {
+    $mins = ((int) date('G')) * 60 + (int) date('i');
+    $opensAt = 18 * 60 + 30;
+    if ($mins < $opensAt) {
+        json_error('Closing stock opens at 6:30 PM. Come back later to enter and save.', 403);
+    }
 }
 if (!is_array($lines) || !count($lines)) {
     json_error('Add at least one stock line');

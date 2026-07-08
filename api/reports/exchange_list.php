@@ -11,7 +11,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
 }
 
 try {
-    report_ensure_demo_files();
     $role = $user['role'];
     $userId = (int) $user['id'];
     $limit = 50;

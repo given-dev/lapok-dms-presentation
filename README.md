@@ -1,8 +1,11 @@
-# Lapok DMS — Presentation Build
+# Outpost DMS — Presentation Build
 
-**Folder:** `lapok-dms-presentation`  
+**Product:** Outpost DMS (Depot Management System)  
+**Folder:** `lapok-dms-presentation` (legacy folder name; product brand is Outpost)  
 **Stack:** PHP APIs + MySQL + vanilla JS (`index.html`, `assets/*.js`)  
-**Purpose:** LAPOK Ventures depot operations and finance. The **accountant (RDC)** and **cadet** modules are live — daily close, cadet reports, manager pack, and review workflow work end-to-end without external integrations.
+**Purpose:** Multi-depot stock, sales, cash handover, and leadership reporting. The **accountant (RDC)** and **cadet** modules are live — daily close, cadet reports, manager pack, and review workflow work end-to-end without external integrations.
+
+Demo tenant data may still use LAPOK Ventures sample emails (`*@lapok.ug`) — that is customer demo data, not the product name.
 
 External systems (CCBA, EFRIS, fleet GPS) are manual or deferred in this build.
 
@@ -53,7 +56,7 @@ All demo users share password **`password123`** (see [Demo accounts](#demo-accou
 | Area | Page | Notes |
 |------|------|-------|
 | Dashboard (home) | `cadet-dashboard` | Trip status, load summary, messages from depot |
-| Today's report | `cadet-daily` | All depot products grouped like LAPOK book (CSD, ENERGY, JUICE, VAD, WATER, OTHER) |
+| Today's report | `cadet-daily` | All depot products grouped like depot sales book (CSD, ENERGY, JUICE, VAD, WATER, OTHER) |
 | Notifications | Bell icon | Receive messages from manager / RDC / admin |
 
 On submit, sales, expenses, and cash **auto-sync** into the accountant's **Today's close** sheet on the **vehicle column** for the assigned trip.
@@ -67,7 +70,7 @@ Dashboard, edit requests, **exception center** (depot alerts), customers & recei
 | Area | Page | Notes |
 |------|------|-------|
 | Home (default) | `accountant-rdc-hub` | 2-step EOD checklist, cadet intake nudge, depot/welfare/cash nudges |
-| Today's close | `accountant-rdc` | 3-step wizard, products grouped like LAPOK book, cadet data by vehicle column, auto-save |
+| Today's close | `accountant-rdc` | 3-step wizard, products grouped like depot sales book, cadet data by vehicle column, auto-save |
 | Manager pack | `report-exchange` | One-tap send; gated on submitted balancing |
 | Cash handover | `accountant-cash` | Confirm field trip cash |
 | Month-end | `accountant-improvements` | Checklist + monthly notes — **DB sync** across roles |
@@ -126,7 +129,7 @@ Home shows a **Module live** chip when core migrations are applied (`api/rdc/hea
 | **MTD** | Month To Date — from the 1st of this month through today |
 | **YTD** | Year To Date — from 1 January through today |
 | **RDC** | Resident depot accountant role (accountant login) |
-| **LAPOK book** | Product grouping: CSD, ENERGY, JUICE, VAD, WATER, OTHER |
+| **Depot sales book** | Product grouping: CSD, ENERGY, JUICE, VAD, WATER, OTHER |
 
 ---
 

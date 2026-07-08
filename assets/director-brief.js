@@ -3,7 +3,7 @@
  */
 (function () {
   function ugx(n) {
-    return 'UGX ' + Number(n || 0).toLocaleString();
+    return 'UGX ' + Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 });
   }
 
   function setText(id, value) {

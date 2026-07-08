@@ -43,6 +43,7 @@ if (!$row) {
         'sheet' => $row ? rdc_sheet_to_response($row) : $template,
         'is_new' => !$row,
         'read_only' => !$canEdit,
+        'editor_mode' => $canEdit ? 'accountant' : 'viewer',
         'cadet_consolidation' => [
             'reports_today' => count($reports),
             'vehicles_synced' => count($reports),
@@ -61,9 +62,18 @@ if (role_can($user['role'], 'rdc_balancing')) {
     }
 }
 
-$canEdit = role_can($user['role'], 'rdc_balancing');
+$role = (string) ($user['role'] ?? '');
+$status = (string) ($row['status'] ?? 'draft');
 $lockedStatuses = ['submitted', 'under_review', 'approved', 'rejected'];
-$readOnly = !$canEdit || (in_array($row['status'], $lockedStatuses, true) && $user['role'] !== 'admin');
+$locked = in_array($status, $lockedStatuses, true);
+
+// Accountant (balancing) edits drafts/reopened; admin may edit even when locked.
+// Manager (review) may correct a received sheet while submitted / under_review.
+$canAccountantEdit = role_can($role, 'rdc_balancing') && (!$locked || $role === 'admin');
+$canManagerEdit = role_can($role, 'rdc_review')
+    && in_array($status, ['submitted', 'under_review'], true)
+    && in_array($role, ['manager', 'admin'], true);
+$readOnly = !($canAccountantEdit || $canManagerEdit);
 
 $cadetReports = rdc_cadet_reports_for_date($date);
 
@@ -71,6 +81,7 @@ json_ok([
     'sheet' => rdc_sheet_to_response($row),
     'is_new' => false,
     'read_only' => $readOnly,
+    'editor_mode' => $canManagerEdit && !$canAccountantEdit ? 'manager' : ($canAccountantEdit ? 'accountant' : 'viewer'),
     'cadet_consolidation' => [
         'reports_today' => count($cadetReports),
         'vehicles_synced' => count($cadetReports),

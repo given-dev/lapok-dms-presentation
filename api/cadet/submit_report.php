@@ -58,6 +58,11 @@ foreach ($salesInput as $line) {
 
 $salesLines = cadet_normalize_sales_lines($enrichedInput, $catalogByKey);
 $salesTotal = array_sum(array_map(fn($line) => (float) $line['amount'], $salesLines));
+$loadedTotal = array_sum(array_map(fn($row) => (int) ($row['qty_loaded'] ?? 0), $catalogByKey));
+
+if ($loadedTotal > 0 && $salesTotal <= 0 && $note === '') {
+    json_error('Add a short note when submitting zero sales for a loaded trip.');
+}
 
 $flags = cadet_compute_flags($salesTotal, $cashHanded, $fuel, $other, $note, $salesLines);
 if (in_array('needs_note', $flags, true)) {
@@ -103,17 +108,24 @@ audit_log((int) $user['id'], 'delivery_trips', $tripId, 'cadet_report', null, $r
 
 try {
     require_once dirname(__DIR__, 2) . '/includes/notifications.php';
-    if (count($flags) > 0) {
-        notify_user((int) $user['id'], 'RDC flagged your report', cadet_flag_labels($flags), [
-            'sender_role' => 'accountant',
-            'severity' => in_array('cash_variance', $flags, true) ? 'danger' : 'warning',
-            'link_page' => 'cadet-daily',
-        ]);
-    } else {
-        notify_user((int) $user['id'], 'Report received by RDC', 'Today\'s sales and cash are in the depot balancing sheet.', [
-            'sender_role' => 'accountant',
-            'severity' => 'info',
-            'link_page' => 'cadet-dashboard',
+    $sev = in_array('cash_variance', $flags, true) ? 'danger' : (count($flags) > 0 ? 'warning' : 'info');
+    $title = count($flags) > 0 ? 'Cadet report needs review' : 'Cadet report received';
+    $bodyText = sprintf(
+        '%s (%s) submitted trip #%d. Sales UGX %s, cash UGX %s%s',
+        $user['full_name'],
+        ($tripRow['vehicle_id'] ?? 0) > 0 ? 'vehicle ' . (int) $tripRow['vehicle_id'] : 'no vehicle',
+        $tripId,
+        number_format($salesTotal, 0),
+        number_format($cashHanded, 0),
+        count($flags) > 0 ? '. Flags: ' . cadet_flag_labels($flags) : ''
+    );
+    $nStmt = $pdo->query("SELECT id FROM users WHERE role = 'accountant' AND is_active = 1");
+    foreach ($nStmt->fetchAll() as $nRow) {
+        notify_user((int) $nRow['id'], $title, $bodyText, [
+            'sender_id' => (int) $user['id'],
+            'sender_role' => 'cadet',
+            'severity' => $sev,
+            'link_page' => 'accountant-rdc',
         ]);
     }
 } catch (Throwable) {

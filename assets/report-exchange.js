@@ -123,7 +123,7 @@ function renderAccountantPackPage() {
     : `<div class="rdc-hub-primary" style="display:flex">
         <div class="rdc-hub-primary-text">
           <div class="rdc-hub-primary-title">Send today's pack to manager</div>
-          <div class="rdc-hub-primary-sub">Lapok builds a PDF from today's depot data — one tap to deliver.</div>
+          <div class="rdc-hub-primary-sub">Outpost builds a PDF from today's depot data — one tap to deliver.</div>
         </div>
         <button class="btn btn-red" type="button" id="acctPackSendBtn" onclick="reportAccountantSendPack()" ${balOk ? '' : 'disabled'}>Send pack now</button>
       </div>`;
@@ -204,7 +204,7 @@ function renderReportExchange() {
       </div>
       <div class="form-group"><label>Notes (optional)</label><input class="input" id="reportSendNotes" placeholder="Cover note for recipient"></div>
       <div class="btn-group">
-        <button class="btn btn-red" onclick="reportGenerateAndSend()">Generate PDF from Lapok &amp; send</button>
+        <button class="btn btn-red" onclick="reportGenerateAndSend()">Generate PDF from Outpost &amp; send</button>
       </div>
       <div class="form-section" style="margin-top:1rem">Or upload your own PDF</div>
       <form id="reportUploadForm" onsubmit="reportUploadAndSend(event)">

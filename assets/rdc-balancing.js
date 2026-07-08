@@ -1,10 +1,15 @@
-/**
- * RDC daily balancing — Accountant (Resident Depot Commissioner)
- */
 let rdcSheet = null;
 let rdcReadOnly = false;
 let rdcDirty = false;
-let rdcBalanceDate = new Date().toISOString().slice(0, 10);
+let rdcEditorMode = 'accountant'; // accountant | manager | viewer
+let rdcViewingSubmitted = false; // accountant viewing own submitted sheet (read-only grids)
+function rdcLocalIsoDate(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+let rdcBalanceDate = rdcLocalIsoDate();
 let rdcWizardStep = 1;
 let rdcDemoMode = false;
 let rdcAutoSaveTimer = null;
@@ -26,15 +31,38 @@ function rdcShowFinishToday(show) {
   const finish = document.getElementById('rdcFinishToday');
   const main = document.getElementById('rdcBalancingMain');
   const sticky = document.getElementById('rdcStickyActions');
-  if (finish) finish.style.display = show ? 'block' : 'none';
-  if (main) main.style.display = show ? 'none' : 'block';
-  if (sticky && show) sticky.style.display = 'none';
+  if (finish) finish.style.display = show && !rdcViewingSubmitted ? 'block' : 'none';
+  // Keep sheet visible when accountant opens read-only view, or when manager is editing
+  if (main) {
+    const hideMain = show && !rdcViewingSubmitted && rdcEditorMode !== 'manager';
+    main.style.display = hideMain ? 'none' : 'block';
+  }
+  if (sticky) {
+    if (rdcEditorMode === 'manager' && !rdcReadOnly) sticky.style.display = 'flex';
+    else if (show && !rdcViewingSubmitted) sticky.style.display = 'none';
+  }
 }
 
 function rdcMaybeFinishPanel() {
   if (!rdcSheet) return;
   const s = String(rdcSheet.status || 'draft');
-  rdcShowFinishToday(rdcReadOnly && ['submitted', 'under_review', 'approved'].includes(s));
+  const isAccountantSubmitted = rdcEditorMode !== 'manager'
+    && rdcReadOnly
+    && ['submitted', 'under_review', 'approved'].includes(s);
+  rdcShowFinishToday(isAccountantSubmitted);
+}
+
+function rdcOpenSubmittedView() {
+  rdcViewingSubmitted = true;
+  rdcShowFinishToday(true);
+  rdcSetWizardStep(1);
+  rdcNotify('Submitted sheet — read only.');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function rdcCloseSubmittedView() {
+  rdcViewingSubmitted = false;
+  rdcMaybeFinishPanel();
 }
 
 function rdcExportTodayCsv() {
@@ -83,7 +111,7 @@ function rdcAutoExpected() {
 }
 
 function rdcFmt(n) {
-  return Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  return Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 });
 }
 
 function rdcLineTotalQty(qty) {
@@ -168,22 +196,27 @@ function rdcWizardBack() {
 }
 
 function rdcWizardNext() {
-  if (rdcReadOnly) {
+  if (rdcReadOnly && rdcEditorMode !== 'manager') {
+    // Still allow browsing read-only submitted sheets
+    if (rdcViewingSubmitted && rdcWizardStep < 3) {
+      rdcSetWizardStep(rdcWizardStep + 1);
+      return;
+    }
     rdcSetWizardStep(3);
     return;
   }
   if (rdcWizardStep === 1) {
-    if (!rdcHasSalesData()) {
+    if (!rdcHasSalesData() && rdcEditorMode !== 'manager') {
       rdcNotify('Enter sales quantities, or tap Sample data / Import sales.', true);
       return;
     }
-    rdcAutoExpected();
+    if (rdcEditorMode !== 'manager') rdcAutoExpected();
     rdcSetWizardStep(2);
     return;
   }
   if (rdcWizardStep === 2) {
-    rdcAutoExpected();
-    if (!rdcHasCashData()) {
+    if (rdcEditorMode !== 'manager') rdcAutoExpected();
+    if (!rdcHasCashData() && rdcEditorMode !== 'manager') {
       rdcNotify('Enter actual cash received in the table.', true);
       return;
     }
@@ -201,24 +234,48 @@ function rdcRenderWizardChrome() {
   const importBtn = document.getElementById('rdcImportStickyBtn');
   const nextBtn = document.getElementById('rdcWizardNextBtn');
   const submitBtn = document.getElementById('rdcSubmitBtn');
+  const mgrSaveBtn = document.getElementById('rdcMgrSaveBtn');
+  const mgrApproveBtn = document.getElementById('rdcMgrApproveBtn');
+  const closeViewBtn = document.getElementById('rdcCloseViewBtn');
   const title = document.getElementById('rdcWizardTitle');
   const sub = document.getElementById('rdcWizardSub');
   const step = rdcWizardStep;
+  const isMgr = rdcEditorMode === 'manager';
+  const canEdit = !rdcReadOnly;
 
-  if (sticky) sticky.style.display = rdcReadOnly ? 'none' : 'flex';
-  if (actions) actions.style.display = rdcReadOnly ? 'none' : 'flex';
-  if (backBtn) backBtn.style.display = step > 1 && !rdcReadOnly ? 'inline-flex' : 'none';
+  if (sticky) sticky.style.display = (canEdit || rdcViewingSubmitted || isMgr) ? 'flex' : 'none';
+  if (actions) actions.style.display = (canEdit || isMgr || rdcViewingSubmitted) ? 'flex' : 'none';
+  if (backBtn) backBtn.style.display = step > 1 ? 'inline-flex' : 'none';
 
-  if (sampleBtn) sampleBtn.style.display = step === 1 && !rdcReadOnly ? 'inline-flex' : 'none';
-  if (importBtn) importBtn.style.display = step === 1 && !rdcReadOnly ? 'inline-flex' : 'none';
+  if (sampleBtn) sampleBtn.style.display = step === 1 && canEdit && !isMgr ? 'inline-flex' : 'none';
+  if (importBtn) importBtn.style.display = step === 1 && canEdit && !isMgr ? 'inline-flex' : 'none';
   if (nextBtn) {
-    nextBtn.style.display = step < 3 && !rdcReadOnly ? 'inline-flex' : 'none';
+    nextBtn.style.display = step < 3 ? 'inline-flex' : 'none';
     nextBtn.textContent = step === 1 ? 'Next — expenses & cash →' : 'Next — review →';
     nextBtn.className = 'btn btn-sm btn-red';
   }
-  if (submitBtn) submitBtn.style.display = step === 3 && !rdcReadOnly ? 'inline-flex' : 'none';
+  if (submitBtn) submitBtn.style.display = step === 3 && canEdit && !isMgr ? 'inline-flex' : 'none';
+  if (mgrSaveBtn) mgrSaveBtn.style.display = isMgr && canEdit ? 'inline-flex' : 'none';
+  if (mgrApproveBtn) mgrApproveBtn.style.display = isMgr && canEdit && step === 3 ? 'inline-flex' : 'none';
+  if (closeViewBtn) closeViewBtn.style.display = rdcViewingSubmitted ? 'inline-flex' : 'none';
 
-  const titles = {
+  const saveBtn = document.querySelector('#rdcActions > button.btn-sm:not([id])');
+  // Prefer the plain Save button (accountant) via query among action children
+  document.querySelectorAll('#rdcActions > button').forEach((btn) => {
+    if (btn.getAttribute('onclick') === 'rdcSaveSheet()' && !btn.id) {
+      btn.style.display = canEdit && !isMgr ? 'inline-flex' : 'none';
+    }
+  });
+
+  const titles = isMgr ? {
+    1: ['Manager review — Sales', 'Correct cadet/RDC quantities if needed, then continue.'],
+    2: ['Manager review — Expenses & cash', 'Adjust expenses or cash received before approve.'],
+    3: ['Manager review — Totals', 'Save corrections, then Approve or go back to the review queue.'],
+  } : rdcViewingSubmitted ? {
+    1: ['Submitted report — Sales (read only)', 'This is what you sent to the manager.'],
+    2: ['Submitted report — Expenses & cash (read only)', 'Figures locked after submit.'],
+    3: ['Submitted report — Totals (read only)', 'Use Back to closeout if you need to send the pack.'],
+  } : {
     1: ['Step 1 of 3 — Sales', 'Enter quantities, or use Sample data / Import sales.'],
     2: ['Step 2 of 3 — Expenses & cash', 'Record expenses, then enter cash actually on hand.'],
     3: ['Step 3 of 3 — Review & submit', 'Check totals, add a note if needed, then submit.'],
@@ -228,7 +285,9 @@ function rdcRenderWizardChrome() {
 
   if (hint && rdcSheet) {
     const v = Number(rdcSheet.variance || 0);
-    if (step === 3 && v !== 0) hint.textContent = 'Variance ' + rdcFmt(v) + ' — explain in notes before submit';
+    if (isMgr) hint.textContent = v === 0 ? 'Manager can edit, then Approve' : 'Variance ' + rdcFmt(v) + ' — correct or note before approve';
+    else if (rdcViewingSubmitted) hint.textContent = 'Read-only — submitted to manager';
+    else if (step === 3 && v !== 0) hint.textContent = 'Variance ' + rdcFmt(v) + ' — explain in notes before submit';
     else if (step === 1) hint.textContent = 'Tip: Sample data fills all steps for training';
     else if (step === 2) hint.textContent = 'Expected cash updates when you save';
     else hint.textContent = 'Submit sends the sheet to your manager';
@@ -310,6 +369,34 @@ function rdcDisabled() {
   return rdcReadOnly ? 'disabled' : '';
 }
 
+function rdcCanEditUnitPrice() {
+  return !rdcReadOnly && typeof currentUser !== 'undefined' && currentUser?.role === 'admin';
+}
+
+function rdcPriceCellHtml(line, li) {
+  const price = Number(line.price || 0);
+  if (rdcCanEditUnitPrice()) {
+    return `<td><input class="qty-inp rdc-price-inp" type="number" min="0" step="100" value="${price}" data-section="sales-price" data-li="${li}"></td>`;
+  }
+  return `<td><span class="rdc-price-locked" title="Unit price — admin only">${rdcFmt(price)}</span></td>`;
+}
+
+function rdcSalesRowHtml(line, li, cols) {
+  const qtyCells = cols.map((c) => {
+    const v = line.qty?.[c.key] ?? 0;
+    return `<td><input class="qty-inp rdc-qty" type="number" min="0" step="1" value="${v}" data-section="sales" data-li="${li}" data-key="${c.key}" ${rdcDisabled()}></td>`;
+  }).join('');
+  const totalQ = rdcLineTotalQty(line.qty);
+  const amt = rdcLineAmount(line);
+  return `<tr>
+    <td><input class="input" style="min-height:36px;padding:6px 8px;font-size:12px;min-width:110px" value="${line.label || ''}" data-section="sales-label" data-li="${li}" ${rdcDisabled()}></td>
+    ${qtyCells}
+    <td class="rdc-calc">${totalQ}</td>
+    ${rdcPriceCellHtml(line, li)}
+    <td class="rdc-calc">${rdcFmt(amt)}</td>
+  </tr>`;
+}
+
 const RDC_PRODUCT_CATEGORIES = ['CSD', 'ENERGY', 'JUICE', 'VAD', 'WATER', 'OTHER'];
 
 function rdcRenderSalesTable() {
@@ -334,38 +421,14 @@ function rdcRenderSalesTable() {
     seen.add(cat);
     html += `<tr class="rdc-cat-row"><td colspan="${colSpan}">${cat}</td></tr>`;
     items.forEach(({ line, li }) => {
-      const qtyCells = cols.map((c) => {
-        const v = line.qty?.[c.key] ?? 0;
-        return `<td><input class="qty-inp rdc-qty" type="number" min="0" step="1" value="${v}" data-section="sales" data-li="${li}" data-key="${c.key}" ${rdcDisabled()}></td>`;
-      }).join('');
-      const totalQ = rdcLineTotalQty(line.qty);
-      const amt = rdcLineAmount(line);
-      html += `<tr>
-        <td><input class="input" style="min-height:32px;padding:4px 6px;font-size:11px" value="${line.label || ''}" data-section="sales-label" data-li="${li}" ${rdcDisabled()}></td>
-        ${qtyCells}
-        <td class="rdc-calc">${totalQ}</td>
-        <td><input class="qty-inp" type="number" min="0" value="${line.price || 0}" data-section="sales-price" data-li="${li}" ${rdcDisabled()}></td>
-        <td class="rdc-calc">${rdcFmt(amt)}</td>
-      </tr>`;
+      html += rdcSalesRowHtml(line, li, cols);
     });
   });
   Object.keys(groups).forEach((cat) => {
     if (seen.has(cat)) return;
     html += `<tr class="rdc-cat-row"><td colspan="${colSpan}">${cat}</td></tr>`;
     groups[cat].forEach(({ line, li }) => {
-      const qtyCells = cols.map((c) => {
-        const v = line.qty?.[c.key] ?? 0;
-        return `<td><input class="qty-inp rdc-qty" type="number" min="0" step="1" value="${v}" data-section="sales" data-li="${li}" data-key="${c.key}" ${rdcDisabled()}></td>`;
-      }).join('');
-      const totalQ = rdcLineTotalQty(line.qty);
-      const amt = rdcLineAmount(line);
-      html += `<tr>
-        <td><input class="input" style="min-height:32px;padding:4px 6px;font-size:11px" value="${line.label || ''}" data-section="sales-label" data-li="${li}" ${rdcDisabled()}></td>
-        ${qtyCells}
-        <td class="rdc-calc">${totalQ}</td>
-        <td><input class="qty-inp" type="number" min="0" value="${line.price || 0}" data-section="sales-price" data-li="${li}" ${rdcDisabled()}></td>
-        <td class="rdc-calc">${rdcFmt(amt)}</td>
-      </tr>`;
+      html += rdcSalesRowHtml(line, li, cols);
     });
   });
   el.innerHTML = html;
@@ -491,16 +554,23 @@ function rdcRenderReadOnly() {
   const banner = document.getElementById('rdcReadOnlyBanner');
   const text = document.getElementById('rdcReadOnlyText');
   if (!banner || !text) return;
+  if (rdcEditorMode === 'manager' && !rdcReadOnly) {
+    banner.style.display = 'flex';
+    banner.className = 'alert a-warning';
+    text.textContent = 'Manager edit mode — correct mistakes on this received sheet, Save, then Approve.';
+    return;
+  }
   if (!rdcReadOnly) {
     banner.style.display = 'none';
     return;
   }
   const s = String(rdcSheet?.status || '');
   banner.style.display = 'flex';
+  banner.className = 'alert a-info';
   if (s === 'approved') {
     text.textContent = 'Approved — view only. Ask admin or manager to reopen if a correction is needed.';
   } else if (s === 'submitted' || s === 'under_review') {
-    text.textContent = 'Submitted to manager — view only until reopened.';
+    text.textContent = 'Submitted report — read only. Manager reviews (and may correct) this sheet.';
   } else if (s === 'rejected') {
     text.textContent = 'Rejected — manager will reopen for edits, or contact admin.';
   } else {
@@ -531,6 +601,7 @@ function rdcOnInput(e) {
   } else if (section === 'sales-label') {
     rdcSheet.sales[parseInt(t.dataset.li, 10)].label = t.value;
   } else if (section === 'sales-price') {
+    if (!rdcCanEditUnitPrice()) return;
     rdcSheet.sales[parseInt(t.dataset.li, 10)].price = parseFloat(t.value) || 0;
   } else if (['recovery', 'expense', 'cash_out'].includes(section)) {
     const ri = parseInt(t.dataset.ri, 10);
@@ -631,45 +702,209 @@ function rdcAddRow(section) {
   rdcNotify('Row added.');
 }
 
+let rdcCadetReportsCache = [];
+let rdcEditCadetTripId = 0;
+
+function rdcEsc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function rdcRenderCadetConsolidationBanner(meta) {
-  let el = document.getElementById('rdcCadetConsolidationBanner');
   const root = document.getElementById('page-accountant-rdc');
   if (!root) return;
+
+  let el = document.getElementById('rdcCadetConsolidationBanner');
   if (!el) {
     el = document.createElement('div');
     el.id = 'rdcCadetConsolidationBanner';
     el.className = 'alert a-info';
-    root.prepend(el);
+    const main = document.getElementById('rdcBalancingMain');
+    if (main?.parentNode) main.parentNode.insertBefore(el, main);
+    else root.prepend(el);
   }
+
   const reports = meta?.reports || [];
+  rdcCadetReportsCache = reports;
   const count = meta?.reports_today || reports.length || 0;
+  const card = document.getElementById('rdcCadetVehicleCard');
+  const table = document.getElementById('rdcCadetVehicleTable');
+
   if (!count) {
     el.style.display = 'none';
-    const table = document.getElementById('rdcCadetVehicleTable');
-    if (table) table.closest('.card')?.remove();
+    if (card) card.style.display = 'none';
     return;
   }
+
   const lines = reports.map((r) =>
-    `<strong>${r.registration || 'Vehicle'}</strong> · ${r.cadet_name || 'Cadet'} — sales UGX ${Number(r.sales_total || 0).toLocaleString()}, cash UGX ${Number(r.cash_handed || 0).toLocaleString()}${(r.flags || []).length ? ' · flagged' : ''}`
+    `<strong>${rdcEsc(r.registration || 'Vehicle')}</strong> · ${rdcEsc(r.cadet_name || 'Cadet')} — sales UGX ${Number(r.sales_total || 0).toLocaleString()}, cash UGX ${Number(r.cash_handed || 0).toLocaleString()}${(r.flags || []).length ? ' · flagged' : ''}${r.corrected_at ? ' · corrected' : ''}`
   ).join('<br>');
   el.style.display = 'flex';
-  el.innerHTML = `<span>ℹ</span><div><strong>${count} cadet report${count === 1 ? '' : 's'} by vehicle</strong> — synced into matching vehicle columns (sales, expenses, cash).<div style="font-size:13px;margin-top:6px">${lines}</div>${!rdcReadOnly ? '<button class="btn btn-sm" type="button" style="margin-top:8px" onclick="rdcSyncCadetReports()">Refresh from cadets</button>' : ''}</div>`;
+  el.innerHTML = `<span>ℹ</span><div><strong>${count} cadet report${count === 1 ? '' : 's'} received</strong> — click <em>Edit</em> below to fix mistakes before you balance.<div style="font-size:13px;margin-top:6px">${lines}</div>${!rdcReadOnly ? '<button class="btn btn-sm" type="button" style="margin-top:8px" onclick="rdcSyncCadetReports()">Refresh from cadets</button>' : ''}</div>`;
 
-  let card = document.getElementById('rdcCadetVehicleCard');
-  if (!card) {
-    card = document.createElement('div');
-    card.id = 'rdcCadetVehicleCard';
-    card.className = 'card';
-    card.style.marginBottom = '1rem';
-    const salesCard = document.getElementById('rdcSalesCard');
-    if (salesCard?.parentNode) salesCard.parentNode.insertBefore(card, salesCard);
-    else root.querySelector('#rdcBalancingMain')?.prepend(card);
-    card.innerHTML = '<div class="card-header"><span class="card-title">Cadet intake by vehicle</span></div><div class="tbl-wrap"><table id="rdcCadetVehicleTable"><tr><th>Vehicle</th><th>Cadet</th><th>Sales</th><th>Cash</th><th>Status</th></tr></table></div>';
-  }
-  const table = document.getElementById('rdcCadetVehicleTable');
+  if (card) card.style.display = 'block';
   if (table) {
-    table.innerHTML = '<tr><th>Vehicle</th><th>Cadet</th><th>Sales (UGX)</th><th>Cash (UGX)</th><th>Status</th></tr>' +
-      reports.map((r) => `<tr><td>${r.registration || '—'}</td><td>${r.cadet_name || '—'}</td><td>${Number(r.sales_total || 0).toLocaleString()}</td><td>${Number(r.cash_handed || 0).toLocaleString()}</td><td>${(r.flags || []).length ? '<span class="badge bw">Flagged</span>' : '<span class="badge bs">OK</span>'}</td></tr>`).join('');
+    table.innerHTML = `<tr><th>Vehicle</th><th>Cadet</th><th>Sales (UGX)</th><th>Cash (UGX)</th><th>Status</th><th></th></tr>` +
+      reports.map((r) => {
+        const status = r.corrected_at
+          ? '<span class="badge bd">Corrected</span>'
+          : ((r.flags || []).length ? '<span class="badge bw">Flagged</span>' : '<span class="badge bs">OK</span>');
+        const editBtn = rdcReadOnly
+          ? '<span style="color:var(--gray-mid);font-size:12px">Locked</span>'
+          : `<button type="button" class="btn btn-sm btn-red" onclick="rdcOpenCadetReportEdit(${Number(r.trip_id)})">Edit</button>`;
+        return `<tr>
+          <td>${rdcEsc(r.registration || '—')}</td>
+          <td>${rdcEsc(r.cadet_name || '—')}</td>
+          <td>${Number(r.sales_total || 0).toLocaleString()}</td>
+          <td>${Number(r.cash_handed || 0).toLocaleString()}</td>
+          <td>${status}</td>
+          <td>${editBtn}</td>
+        </tr>`;
+      }).join('');
+  }
+}
+
+function rdcOpenCadetReportEdit(tripId) {
+  if (rdcReadOnly) {
+    rdcNotify('Sheet is locked — reopen before correcting cadet reports.', true);
+    return;
+  }
+  const entry = rdcCadetReportsCache.find((r) => Number(r.trip_id) === Number(tripId));
+  if (!entry) {
+    rdcNotify('Cadet report not found for this date.', true);
+    return;
+  }
+  rdcEditCadetTripId = Number(tripId);
+  const report = entry.report || entry;
+  const title = document.getElementById('rdcEditCadetTitle');
+  const meta = document.getElementById('rdcEditCadetMeta');
+  if (title) title.textContent = `Correct report — ${entry.registration || 'Vehicle'}`;
+  if (meta) {
+    meta.textContent = `${entry.cadet_name || 'Cadet'} · trip #${tripId}` +
+      (entry.corrected_at ? ` · last corrected by ${entry.corrected_by_name || 'RDC'}` : '');
+  }
+
+  const body = document.getElementById('rdcEditCadetSalesBody');
+  const lines = Array.isArray(report.sales_lines) ? report.sales_lines.slice() : [];
+  // Keep empty editable rows for known sheet products the cadet missed
+  const known = new Map(lines.map((l) => [String(l.rdc_key || l.rdc_label), l]));
+  (rdcSheet?.sales || []).forEach((s) => {
+    const key = String(s.rdc_key || s.key || '');
+    const label = String(s.label || '');
+    const mapKey = key || label;
+    if (!mapKey || known.has(mapKey) || known.has(label)) return;
+    known.set(mapKey, {
+      rdc_key: key,
+      rdc_label: label,
+      qty_loaded: 0,
+      qty_sold: 0,
+      unit_price: Number(s.unit_price || s.price || 0),
+      amount: 0,
+    });
+  });
+  const rows = [...known.values()];
+  if (!body) return;
+  body.innerHTML = rows.length
+    ? rows.map((line) => {
+      const price = Number(line.unit_price || 0);
+      const qty = Number(line.qty_sold || 0);
+      const amount = Number(line.amount != null ? line.amount : qty * price);
+      return `<tr data-rdc-key="${rdcEsc(line.rdc_key || '')}" data-unit-price="${price}">
+        <td>${rdcEsc(line.rdc_label || line.rdc_key || 'Product')}</td>
+        <td>${Number(line.qty_loaded || 0)}</td>
+        <td><input type="number" class="input qty-inp rdc-edit-qty" min="0" step="1" value="${qty}"></td>
+        <td><input type="number" class="input rdc-edit-amount" min="0" step="100" value="${Math.round(amount)}"></td>
+      </tr>`;
+    }).join('')
+    : '<tr><td colspan="4" style="text-align:center;color:var(--gray-mid)">No product lines on this report</td></tr>';
+
+  const fuel = document.getElementById('rdcEditCadetFuel');
+  const other = document.getElementById('rdcEditCadetOther');
+  const cash = document.getElementById('rdcEditCadetCash');
+  const note = document.getElementById('rdcEditCadetNote');
+  if (fuel) fuel.value = String(Number(report.fuel_expense || entry.fuel_expense || 0));
+  if (other) other.value = String(Number(report.other_expense || entry.other_expense || 0));
+  if (cash) cash.value = String(Number(report.cash_handed || entry.cash_handed || 0));
+  if (note) note.value = String(report.note || entry.note || '');
+
+  body.querySelectorAll('.rdc-edit-qty').forEach((inp) => {
+    inp.addEventListener('input', () => {
+      const tr = inp.closest('tr');
+      const unit = Number(tr?.getAttribute('data-unit-price') || 0);
+      const amt = tr?.querySelector('.rdc-edit-amount');
+      if (amt) amt.value = String(Math.round(Number(inp.value || 0) * unit));
+      rdcUpdateCadetEditTotals();
+    });
+  });
+  body.querySelectorAll('.rdc-edit-amount').forEach((inp) => {
+    inp.addEventListener('input', rdcUpdateCadetEditTotals);
+  });
+  ['rdcEditCadetFuel', 'rdcEditCadetOther', 'rdcEditCadetCash'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('input', rdcUpdateCadetEditTotals);
+  });
+  rdcUpdateCadetEditTotals();
+  openModal('rdcEditCadetReportModal');
+}
+
+function rdcUpdateCadetEditTotals() {
+  const body = document.getElementById('rdcEditCadetSalesBody');
+  let sales = 0;
+  body?.querySelectorAll('tr[data-rdc-key]').forEach((tr) => {
+    sales += Number(tr.querySelector('.rdc-edit-amount')?.value || 0);
+  });
+  const fuel = Number(document.getElementById('rdcEditCadetFuel')?.value || 0);
+  const other = Number(document.getElementById('rdcEditCadetOther')?.value || 0);
+  const cash = Number(document.getElementById('rdcEditCadetCash')?.value || 0);
+  const el = document.getElementById('rdcEditCadetTotals');
+  if (el) {
+    el.textContent = `Sales ${sales.toLocaleString()} · Expenses ${(fuel + other).toLocaleString()} · Cash ${cash.toLocaleString()} · Gap ${(sales - cash).toLocaleString()}`;
+  }
+}
+
+async function rdcSaveCadetReportEdit() {
+  if (!rdcEditCadetTripId || rdcReadOnly) return;
+  const body = document.getElementById('rdcEditCadetSalesBody');
+  const sales_lines = [];
+  body?.querySelectorAll('tr[data-rdc-key]').forEach((tr) => {
+    const key = tr.getAttribute('data-rdc-key') || '';
+    const qty = Number(tr.querySelector('.rdc-edit-qty')?.value || 0);
+    const amount = Number(tr.querySelector('.rdc-edit-amount')?.value || 0);
+    if (!key || qty <= 0) return;
+    sales_lines.push({
+      rdc_key: key,
+      qty_sold: qty,
+      amount,
+    });
+  });
+  const btn = document.getElementById('rdcEditCadetSaveBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const res = await LapokAPI.post('/api/rdc/update_cadet_report.php', {
+      trip_id: rdcEditCadetTripId,
+      sales_lines,
+      fuel_expense: Number(document.getElementById('rdcEditCadetFuel')?.value || 0),
+      other_expense: Number(document.getElementById('rdcEditCadetOther')?.value || 0),
+      cash_handed: Number(document.getElementById('rdcEditCadetCash')?.value || 0),
+      note: document.getElementById('rdcEditCadetNote')?.value || '',
+    });
+    if (res.sheet) {
+      rdcSheet = res.sheet;
+      rdcNormalizeSheet();
+      rdcRenderAll();
+      rdcRecalcClientTotals();
+      rdcClearDirty();
+    }
+    rdcRenderCadetConsolidationBanner(res.cadet_consolidation || null);
+    closeModal('rdcEditCadetReportModal');
+    rdcNotify(res.message || 'Cadet report corrected.');
+    await loadRdcBalancingPage();
+  } catch (e) {
+    rdcNotify(e.message || 'Could not save correction', true);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -691,6 +926,8 @@ async function rdcSyncCadetReports() {
 }
 
 window.rdcSyncCadetReports = rdcSyncCadetReports;
+window.rdcOpenCadetReportEdit = rdcOpenCadetReportEdit;
+window.rdcSaveCadetReportEdit = rdcSaveCadetReportEdit;
 
 async function loadRdcBalancingPage() {
   const root = document.getElementById('page-accountant-rdc');
@@ -712,9 +949,17 @@ async function loadRdcBalancingPage() {
   }
   root.querySelector('.rdc-load-err')?.remove();
   try {
+    const fromManager = sessionStorage.getItem('rdcManagerEdit') === '1';
+    if (fromManager) sessionStorage.removeItem('rdcManagerEdit');
+
     const data = await LapokAPI.get('/api/rdc/fetch_sheet.php?date=' + encodeURIComponent(rdcBalanceDate));
     rdcSheet = data.sheet;
+    rdcEditorMode = data.editor_mode || (data.read_only ? 'viewer' : 'accountant');
+    if (fromManager && (rdcEditorMode === 'manager' || !data.read_only)) {
+      rdcEditorMode = 'manager';
+    }
     rdcReadOnly = !!data.read_only;
+    rdcViewingSubmitted = false;
     rdcRenderCadetConsolidationBanner(data.cadet_consolidation || null);
     rdcNormalizeSheet();
     if (!rdcSheet.sales_columns) {
@@ -726,12 +971,10 @@ async function loadRdcBalancingPage() {
     rdcRenderAll();
     const resume = sessionStorage.getItem('rdcResumeWizard');
     if (resume) sessionStorage.removeItem('rdcResumeWizard');
-    rdcSetWizardStep(resume ? rdcInferWizardStep() : rdcInferWizardStep());
-    if (rdcReadOnly) {
-      [1, 2, 3].forEach((n) => {
-        const panel = document.getElementById('rdcWizardPanel' + n);
-        if (panel) panel.style.display = n === 3 ? 'block' : 'none';
-      });
+    rdcSetWizardStep(rdcInferWizardStep());
+    // Accountant submitted view starts on finish panel; manager starts on sales for editing
+    if (rdcEditorMode === 'manager') {
+      rdcSetWizardStep(1);
     }
   } catch (e) {
     const err = document.createElement('div');
@@ -743,7 +986,7 @@ async function loadRdcBalancingPage() {
 
 async function rdcSaveSheet(silent) {
   if (!rdcSheet || rdcReadOnly) return false;
-  rdcAutoExpected();
+  if (rdcEditorMode !== 'manager') rdcAutoExpected();
   rdcSheet.notes = document.getElementById('rdcNotes')?.value || '';
   rdcRecalcClientTotals();
   try {
@@ -763,13 +1006,35 @@ async function rdcSaveSheet(silent) {
       const hint = document.getElementById('rdcAutoSaveHint');
       if (hint) hint.textContent = 'Auto-saved ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else {
-      rdcNotify('Daily balancing saved.');
-      loadRdcBalancingPage();
+      rdcNotify(rdcEditorMode === 'manager' ? 'Manager corrections saved.' : 'Daily balancing saved.');
+      if (rdcEditorMode !== 'manager') loadRdcBalancingPage();
+      else rdcRenderAll();
     }
     return true;
   } catch (e) {
     rdcNotify(e.message, true);
     return false;
+  }
+}
+
+async function rdcManagerApproveFromSheet() {
+  if (rdcEditorMode !== 'manager' || !rdcSheet) return;
+  if (rdcDirty) {
+    const ok = await rdcSaveSheet(false);
+    if (!ok) return;
+  }
+  if (!confirm('Approve this RDC sheet for ' + rdcBalanceDate + '?')) return;
+  try {
+    await LapokAPI.post('/api/rdc/review_sheet.php', {
+      balance_date: rdcBalanceDate,
+      action: 'approve',
+      note: '',
+    });
+    rdcNotify('Sheet approved.');
+    if (typeof showPage === 'function') showPage('manager-rdc-review');
+    if (typeof loadRdcReviewPage === 'function') loadRdcReviewPage();
+  } catch (e) {
+    rdcNotify(e.message, true);
   }
 }
 
@@ -797,6 +1062,8 @@ async function rdcSubmitSheet() {
     await LapokAPI.post('/api/rdc/submit_sheet.php', { balance_date: rdcBalanceDate });
     rdcClearDirty();
     rdcReadOnly = true;
+    rdcViewingSubmitted = false;
+    rdcEditorMode = 'accountant';
     if (rdcSheet) rdcSheet.status = 'submitted';
     rdcRenderAll();
     rdcNotify('Submitted to manager for review.');
@@ -810,7 +1077,7 @@ async function rdcSuggestSales() {
   try {
     const data = await LapokAPI.get('/api/rdc/suggest_sales.php?date=' + encodeURIComponent(rdcBalanceDate));
     if (data.order_count === 0) {
-      if (confirm('No Lapok orders for this date. Load sample demo data instead?')) {
+      if (confirm('No depot orders for this date. Load sample demo data instead?')) {
         rdcFillSampleData();
       }
       return;
@@ -819,7 +1086,7 @@ async function rdcSuggestSales() {
     rdcDemoMode = false;
     rdcMarkDirty();
     rdcRenderAll();
-    rdcNotify('Sales updated from Lapok orders (' + data.order_count + ' groups).');
+    rdcNotify('Sales updated from depot orders (' + data.order_count + ' groups).');
     rdcSetWizardStep(2);
   } catch (e) {
     rdcNotify(e.message, true);
@@ -924,6 +1191,21 @@ window.rdcWizardNext = rdcWizardNext;
 window.rdcWizardBack = rdcWizardBack;
 window.rdcScrollToBalStep = rdcScrollToBalStep;
 window.rdcExportTodayCsv = rdcExportTodayCsv;
+window.rdcOpenSubmittedView = rdcOpenSubmittedView;
+window.rdcCloseSubmittedView = rdcCloseSubmittedView;
+window.rdcManagerApproveFromSheet = rdcManagerApproveFromSheet;
+window.rdcPageBack = function () {
+  if (rdcEditorMode === 'manager') {
+    if (typeof showPage === 'function') showPage('manager-rdc-review');
+    if (typeof loadRdcReviewPage === 'function') loadRdcReviewPage();
+    return;
+  }
+  if (rdcViewingSubmitted) {
+    rdcCloseSubmittedView();
+    return;
+  }
+  if (typeof showPage === 'function') showPage('accountant-rdc-hub');
+};
 window.openRdcSheetDate = function (date) {
   if (rdcDirty && date !== rdcBalanceDate && !confirm('You have unsaved changes. Switch date anyway?')) return;
   rdcBalanceDate = date;

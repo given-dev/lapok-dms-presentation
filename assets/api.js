@@ -1,5 +1,5 @@
 /**
- * LAPOK DMS — Presentation build API client (Admin · Executive · Manager · Accountant)
+ * Outpost DMS — Presentation build API client (Admin · Executive · Manager · Accountant)
  */
 const LapokAPI = (() => {
   const base = '';
@@ -46,14 +46,14 @@ const LapokAPI = (() => {
   }
 
   const navManager = [
-    { section: 'Overview' },
+    { section: 'Start here' },
     { id: 'manager-dashboard', l: 'Dashboard', i: 'home' },
+    { id: 'manager-stock', l: 'Stock taking', i: 'box' },
     { section: 'Approvals' },
     { id: 'admin-editreqs', l: 'Edit requests', i: 'edit' },
     { id: 'admin-exceptions', l: 'Exception center', i: 'chart' },
     { section: 'Operations' },
     { id: 'admin-customers', l: 'Customers & receivables', i: 'custs' },
-    { id: 'manager-stock', l: 'Stock & deliveries', i: 'box' },
     { section: 'Reports' },
     { id: 'report-exchange', l: 'PDF reports', i: 'receipt' },
     { id: 'manager-reports', l: 'Reports & analytics', i: 'chart' },
@@ -70,13 +70,10 @@ const LapokAPI = (() => {
   return {
     get: (path) => request('GET', path),
     post: (path, body) => request('POST', path, body),
-    formatUgx: (n) => 'UGX ' + Number(n || 0).toLocaleString(),
-    formatM: (n) => {
-      const v = Number(n || 0);
-      if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
-      if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K';
-      return v.toLocaleString();
-    },
+    formatUgx: (n) => 'UGX ' + Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 }),
+    /** Full digits with thousand separators — supports at least 9-digit amounts (e.g. 999,999,999). */
+    formatM: (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 }),
+    formatDigits: (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 }),
     formatDate: (s) => {
       if (!s) return '—';
       return new Date(s).toLocaleDateString('en-UG', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -164,6 +161,7 @@ const LapokAPI = (() => {
     roleHomePage: {
       accountant: 'accountant-rdc-hub',
       cadet: 'cadet-dashboard',
+      manager: 'manager-dashboard',
     },
   };
 })();
