@@ -2,6 +2,8 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
+require_once dirname(__DIR__, 2) . '/includes/branded_export.php';
+
 $user = require_login();
 
 $type = $_GET['type'] ?? 'sales';
@@ -18,25 +20,59 @@ $required = $permByType[$type] ?? 'reports_sales';
 if (!role_can($user['role'], $required)) {
     json_error('Insufficient permissions', 403);
 }
+
 $routeId = (int) ($_GET['route_id'] ?? 0);
 $vehicleId = (int) ($_GET['vehicle_id'] ?? 0);
 $userId = (int) ($_GET['user_id'] ?? 0);
+$who = trim((string) ($user['full_name'] ?? $user['email'] ?? 'User'));
 
-header('Content-Type: text/csv; charset=utf-8');
-header('Content-Disposition: attachment; filename="lapok-' . $type . '-' . date('Ymd') . '.csv"');
+$titles = [
+    'receivables' => 'Customer receivables',
+    'stock' => 'Warehouse stock',
+    'sales' => 'Sales report',
+    'rdc_sheet' => 'RDC daily sheet',
+];
+$reportTitle = $titles[$type] ?? 'Report export';
 
-$out = fopen('php://output', 'w');
+/**
+ * @param list<string> $headers
+ * @param list<list<mixed>> $rows
+ * @param array<string, string> $meta
+ */
+function export_branded_report(
+    string $reportTitle,
+    array $headers,
+    array $rows,
+    array $meta,
+    string $who,
+    string $subtitle = ''
+): void {
+    branded_export_send($reportTitle, $headers, $rows, [
+        'subtitle' => $subtitle !== '' ? $subtitle : 'Official depot export',
+        'meta' => $meta,
+        'generated_by' => 'Exported by ' . $who,
+        'filename' => 'Outpost-DMS-' . branded_export_slug($reportTitle) . '-' . date('Ymd-Hi') . '.xlsx',
+    ]);
+}
 
 if ($type === 'receivables') {
-    fputcsv($out, ['Customer', 'Phone', 'Location', 'Balance (UGX)']);
-    $rows = db()->query(
+    $headers = ['Customer', 'Phone', 'Location', 'Balance (UGX)'];
+    $rows = [];
+    $total = 0.0;
+    $dbRows = db()->query(
         "SELECT name, phone, location, credit_balance FROM customers
          WHERE credit_balance > 0 AND is_active = 1 ORDER BY credit_balance DESC"
     )->fetchAll();
-    foreach ($rows as $r) {
-        fputcsv($out, [$r['name'], $r['phone'], $r['location'], $r['credit_balance']]);
+    foreach ($dbRows as $r) {
+        $bal = (float) $r['credit_balance'];
+        $total += $bal;
+        $rows[] = [$r['name'], $r['phone'], $r['location'], $bal];
     }
-    exit;
+    export_branded_report($reportTitle, $headers, $rows, [
+        'As of' => date('d M Y'),
+        'Customers owing' => (string) count($rows),
+        'Total outstanding' => 'UGX ' . number_format($total, 0),
+    ], $who, 'Outstanding customer credit balances');
 }
 
 if ($type === 'rdc_sheet') {
@@ -53,32 +89,61 @@ if ($type === 'rdc_sheet') {
     );
     $stmt->execute([$date]);
     $row = $stmt->fetch();
-    fputcsv($out, ['Field', 'Value']);
+
+    $labels = [
+        'balance_date' => 'Balance date',
+        'status' => 'Status',
+        'sales_total' => 'Sales total (UGX)',
+        'recovery_total' => 'Recovery total (UGX)',
+        'expenses_total' => 'Expenses total (UGX)',
+        'grand_total' => 'Grand total (UGX)',
+        'expected_amount' => 'Expected amount (UGX)',
+        'actual_total' => 'Actual total (UGX)',
+        'variance' => 'Variance (UGX)',
+        'notes' => 'Notes',
+        'submitted_at' => 'Submitted at',
+    ];
+    $headers = ['Field', 'Value'];
+    $rows = [];
     if (!$row) {
-        fputcsv($out, ['balance_date', $date]);
-        fputcsv($out, ['status', 'no sheet']);
-        exit;
+        $rows[] = ['Balance date', $date];
+        $rows[] = ['Status', 'No sheet for this date'];
+    } else {
+        foreach ($labels as $key => $label) {
+            $rows[] = [$label, $row[$key] ?? ''];
+        }
     }
-    foreach ($row as $k => $v) {
-        fputcsv($out, [$k, $v]);
-    }
-    exit;
+    export_branded_report($reportTitle, $headers, $rows, [
+        'Sheet date' => $date,
+        'Status' => (string) ($row['status'] ?? 'none'),
+    ], $who, 'Daily balancing summary for manager review');
 }
 
 if ($type === 'stock') {
     require_once dirname(__DIR__, 2) . '/includes/stock.php';
-    fputcsv($out, ['Product', 'SKU', 'Warehouse', 'On vehicles', 'Min stock', 'Nearest expiry']);
+    $headers = ['Product', 'SKU', 'Warehouse', 'On vehicles', 'Min stock', 'Nearest expiry'];
+    $rows = [];
+    $warehouseTotal = 0;
     foreach (db()->query(stock_summary_query())->fetchAll() as $r) {
-        fputcsv($out, [
-            $r['name'], $r['sku'], $r['warehouse_qty'], $r['on_vehicles_qty'],
-            $r['min_stock'], $r['nearest_expiry'],
-        ]);
+        $warehouseTotal += (int) $r['warehouse_qty'];
+        $rows[] = [
+            $r['name'],
+            $r['sku'],
+            (int) $r['warehouse_qty'],
+            (int) $r['on_vehicles_qty'],
+            (int) $r['min_stock'],
+            $r['nearest_expiry'] ?: '—',
+        ];
     }
-    exit;
+    export_branded_report($reportTitle, $headers, $rows, [
+        'As of' => date('d M Y H:i'),
+        'SKUs' => (string) count($rows),
+        'Warehouse cartons' => (string) $warehouseTotal,
+    ], $who, 'Current warehouse and vehicle stock levels');
 }
 
 // default: sales
-fputcsv($out, ['Date', 'Order ref', 'Customer', 'Amount (UGX)', 'Status', 'Payment']);
+$headers = ['Date', 'Order ref', 'Customer', 'Amount (UGX)', 'Status', 'Payment'];
 $where = ['o.created_at BETWEEN ? AND ?'];
 $params = [$from . ' 00:00:00', $to . ' 23:59:59'];
 if ($routeId > 0) {
@@ -101,10 +166,22 @@ $stmt = db()->prepare(
      ORDER BY o.created_at"
 );
 $stmt->execute($params);
+$rows = [];
+$salesTotal = 0.0;
 while ($row = $stmt->fetch()) {
-    fputcsv($out, [
-        $row['created_at'], $row['order_ref'], $row['customer'],
-        $row['amount_total'], $row['status'], $row['payment_type'],
-    ]);
+    $amt = (float) $row['amount_total'];
+    $salesTotal += $amt;
+    $rows[] = [
+        $row['created_at'],
+        $row['order_ref'],
+        $row['customer'] ?: '—',
+        $amt,
+        $row['status'],
+        $row['payment_type'],
+    ];
 }
-exit;
+export_branded_report($reportTitle, $headers, $rows, [
+    'Period' => date('d M Y', strtotime($from)) . ' – ' . date('d M Y', strtotime($to)),
+    'Orders' => (string) count($rows),
+    'Total sales' => 'UGX ' . number_format($salesTotal, 0),
+], $who, 'Sales for the selected period');

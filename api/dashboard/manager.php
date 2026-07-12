@@ -120,7 +120,25 @@ $payload = [
         'inventory' => $occdInv['status'] ?? null,
         'occd' => $occdBoard['status'] ?? null,
     ],
+    'rdc_sheet_today' => null,
+    'rdc_pending_review' => 0,
 ];
+
+try {
+    $rdcToday = $pdo->prepare(
+        "SELECT balance_date, status, variance, submitted_at, review_note
+         FROM rdc_daily_sheets WHERE balance_date = ? LIMIT 1"
+    );
+    $rdcToday->execute([$today]);
+    $payload['rdc_sheet_today'] = $rdcToday->fetch() ?: null;
+
+    $pendingRdc = (int) $pdo->query(
+        "SELECT COUNT(*) FROM rdc_daily_sheets
+         WHERE status IN ('submitted','under_review','reopened')"
+    )->fetchColumn();
+    $payload['rdc_pending_review'] = $pendingRdc;
+} catch (Throwable) {
+}
 
 if (function_exists('apcu_store')) {
     apcu_store($cacheKey, $payload, 15);

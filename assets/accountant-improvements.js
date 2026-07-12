@@ -55,23 +55,49 @@
       banner.style.marginBottom = '1rem';
       page.querySelector('.rdc-bal-toolbar')?.after(banner);
     }
-    banner.innerHTML = '<span>ℹ</span><div>View only — month-end workspace is edited by the accountant. Changes sync for manager and leadership.</div>';
+    banner.innerHTML = '<span>ℹ</span><div>View only for checklist/notes — those are edited by the accountant. <strong>Monthly fixed costs</strong> above stay editable for the manager.</div>';
   }
 
   function applyReadOnlyUi() {
     setReadOnlyBanner();
     const page = document.getElementById('page-accountant-improvements');
     if (!page) return;
+    const role = (typeof currentUser !== 'undefined' && currentUser?.role) || '';
+    const canEditFixed = role === 'manager' || role === 'admin';
     page.querySelectorAll('input, textarea, select, button').forEach((el) => {
       if (el.closest('.rdc-bal-toolbar')) return;
       if (el.id === 'accMonthPicker') return;
+
+      const inFixed = !!el.closest('#mgrFixedCostsCard');
+      if (inFixed) {
+        if (canEditFixed) {
+          el.removeAttribute('readonly');
+          el.disabled = false;
+          el.style.display = '';
+        } else {
+          if (el.tagName === 'BUTTON') {
+            el.disabled = true;
+            el.style.display = 'none';
+          } else {
+            el.setAttribute('readonly', 'readonly');
+            if (el.tagName === 'SELECT' || el.type === 'checkbox') el.disabled = true;
+          }
+        }
+        return;
+      }
+
       if (readOnly) {
-        if (el.tagName === 'BUTTON') el.disabled = true;
-        else el.setAttribute('readonly', 'readonly');
+        if (el.tagName === 'BUTTON') {
+          el.disabled = true;
+          el.style.display = 'none';
+        } else {
+          el.setAttribute('readonly', 'readonly');
+        }
         if (el.tagName === 'SELECT' || el.type === 'checkbox') el.disabled = true;
       } else {
         el.removeAttribute('readonly');
         if (el.tagName === 'SELECT' || el.type === 'checkbox' || el.tagName === 'BUTTON') el.disabled = false;
+        if (el.tagName === 'BUTTON') el.style.display = '';
       }
     });
   }
@@ -286,6 +312,7 @@
       try {
         await loadMonthEndFromApi(picker.value);
         renderAll();
+        if (typeof loadManagerFixedCosts === 'function') loadManagerFixedCosts();
       } catch (e) {
         toast(e.message, true);
       }

@@ -9,20 +9,6 @@ const INTEGRATION_PLACEHOLDERS = {
     summary: 'Live vehicle positions from cadet phones on route. Feeds the manager fleet map and route progress.',
     includes: ['Leaflet map', 'GPS pings from field devices', 'Route vs actual path', 'Vehicle status chips'],
   },
-  'manager-ccba-boards': {
-    title: 'CCBA daily boards',
-    phase: 'Phase 2',
-    icon: '📋',
-    summary: 'Digitized inventory and OCCD whiteboards — daily fill aligned with CCBA reporting.',
-    includes: ['Inventory board by SKU', 'OCCD dashboard', 'Draft / submit workflow', 'Date-based history'],
-  },
-  'manager-ccba-order': {
-    title: 'Order via MyCCBA',
-    phase: 'Phase 2',
-    icon: '🛒',
-    summary: 'Low-stock replenishment orders from Lapok into CCBA Uganda portal / API.',
-    includes: ['Suggested order lines from warehouse levels', 'SKU mapping', 'Order status timeline', 'Delivery receipt link'],
-  },
   'admin-efris': {
     title: 'EFRIS / URA fiscal receipts',
     phase: 'Phase 2',

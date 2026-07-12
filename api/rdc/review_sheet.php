@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/permissions.php';
 require_once dirname(__DIR__, 2) . '/includes/rdc_balancing.php';
+require_once dirname(__DIR__, 2) . '/includes/rdc_comments.php';
 
 $user = require_permission('rdc_review');
 
@@ -61,6 +62,16 @@ $upd = $pdo->prepare(
      WHERE id = ?"
 );
 $upd->execute([$to, (int) $user['id'], $note !== '' ? $note : null, (int) $row['id']]);
+
+$threadBody = $note !== ''
+    ? $note
+    : match ($action) {
+        'start_review' => 'Started review',
+        'approve' => 'Approved',
+        'reject' => 'Rejected',
+        'reopen' => 'Reopened for accountant',
+    };
+rdc_comments_add($pdo, $date, (int) $user['id'], $threadBody, $action);
 
 audit_log((int) $user['id'], 'rdc_daily_sheets', (int) $row['id'], 'review_' . $action, null, [
     'balance_date' => $date,

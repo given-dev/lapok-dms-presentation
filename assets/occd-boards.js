@@ -552,7 +552,9 @@ async function saveOccdBoard(type, submit) {
     if (type === 'inventory_board') occdInventoryData = data;
     else occdDashboardData = data;
     updateOccdStatusChips();
-    alert(submit ? 'Board submitted for ' + LapokAPI.formatDate(occdBoardDate + 'T12:00:00') + '.' : 'Draft saved.');
+    alert(submit
+      ? 'Board submitted for ' + LapokAPI.formatDate(occdBoardDate + 'T12:00:00') + '. It will be included in the executive brief.'
+      : 'Draft saved.');
     if (submit) loadManagerOccdBoards();
   } catch (e) {
     alert(e.message);
@@ -573,7 +575,9 @@ async function saveAllOccdBoards(submit) {
     occdInventoryData = inv;
     occdDashboardData = dash;
     updateOccdStatusChips();
-    alert(submit ? 'Both boards submitted.' : 'Both boards saved as draft.');
+    alert(submit
+      ? 'Both boards submitted. You can send the executive brief from Dashboard / PDF reports.'
+      : 'Both boards saved as draft.');
     if (submit) loadManagerOccdBoards();
   } catch (e) {
     alert(e.message);

@@ -128,9 +128,11 @@
           : 'No pending handovers';
       }
       if (nextBtn) {
+        const role = (typeof currentUser !== 'undefined' && currentUser?.role) || 'accountant';
+        const home = (typeof LapokAPI !== 'undefined' && LapokAPI.roleHomePage?.[role]) || 'accountant-rdc-hub';
         nextBtn.textContent = '← Home';
         nextBtn.className = 'btn btn-sm';
-        nextBtn.onclick = () => showPage('accountant-rdc-hub');
+        nextBtn.onclick = () => showPage(home);
       }
     } catch (e) {
       if (errEl) {

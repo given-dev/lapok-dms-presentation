@@ -65,10 +65,48 @@ for ($i = $days - 1; $i >= 0; $i--) {
     $profit[] = round($s - $e, 2);
 }
 
+$monthlyLabels = [];
+$monthlySales = [];
+$monthlyExpenses = [];
+$monthlyProfit = [];
+for ($m = 4; $m >= 0; $m--) {
+    $ts = strtotime(date('Y-m-01') . " -{$m} months");
+    $monthStart = date('Y-m-01', $ts);
+    $monthEnd = date('Y-m-t', $ts);
+    $monthlyLabels[] = date('M', $ts);
+
+    $sStmt = db()->prepare(
+        "SELECT COALESCE(SUM(amount_total), 0) FROM orders
+         WHERE status IN ('confirmed','delivered','dispatched')
+           AND DATE(created_at) BETWEEN ? AND ?"
+    );
+    $sStmt->execute([$monthStart, $monthEnd]);
+    $sVal = ((float) $sStmt->fetchColumn()) / 1000000;
+
+    $eStmt = db()->prepare(
+        "SELECT COALESCE(SUM(fuel_cost), 0) FROM delivery_trips
+         WHERE fuel_cost IS NOT NULL AND DATE(dispatched_at) BETWEEN ? AND ?"
+    );
+    $eStmt->execute([$monthStart, $monthEnd]);
+    $eVal = ((float) $eStmt->fetchColumn()) / 1000000;
+
+    $monthlySales[] = round($sVal, 2);
+    $monthlyExpenses[] = round($eVal, 2);
+    $monthlyProfit[] = round($sVal - $eVal, 2);
+}
+
+$monthly = [
+    'labels' => $monthlyLabels,
+    'sales' => $monthlySales,
+    'expenses' => $monthlyExpenses,
+    'profit' => $monthlyProfit,
+];
+
 json_ok([
     'labels' => $labels,
     'sales' => $sales,
     'expenses' => $expenses,
     'profit' => $profit,
     'product_share' => $productShare,
+    'monthly' => $monthly,
 ]);

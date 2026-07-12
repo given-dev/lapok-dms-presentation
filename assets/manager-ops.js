@@ -100,29 +100,94 @@ async function loadManagerDashboardExtras() {
     if (handoff) {
       const pack = d.accountant_pack;
       const brief = d.executive_brief_today;
+      const boards = d.boards_today || {};
+      const invSt = boards.inventory || 'not started';
+      const occdSt = boards.occd || 'not started';
+      const rdcPending = Number(d.rdc_pending_review || 0);
+      const rdcToday = d.rdc_sheet_today;
+      const closingOpen = typeof isClosingStockWindowOpen === 'function' && isClosingStockWindowOpen();
+
+      const boardBadge = (st) => {
+        if (st === 'submitted') return '<span class="badge bs">Submitted</span>';
+        if (st === 'draft') return '<span class="badge bw">Draft</span>';
+        return '<span class="badge bg">Not started</span>';
+      };
+      const doneBadge = (ok, labelOk, labelNo) => ok
+        ? `<span class="badge bs">${labelOk}</span>`
+        : `<span class="badge bw">${labelNo}</span>`;
+      const rdcBadgeHtml = (() => {
+        if (!rdcToday) return '<span class="badge bg">No sheet today</span>';
+        const s = String(rdcToday.status || '');
+        if (s === 'approved') return '<span class="badge bs">Approved</span>';
+        if (s === 'rejected') return '<span class="badge bd">Rejected</span>';
+        if (s === 'submitted') return '<span class="badge bw">Submitted</span>';
+        if (s === 'under_review') return '<span class="badge bg">Under review</span>';
+        if (s === 'reopened') return '<span class="badge bi">Reopened</span>';
+        return `<span class="badge bw">${s.replace('_', ' ') || 'Draft'}</span>`;
+      })();
+
+      const closingStatus = d.closing_stock_done
+        ? doneBadge(true, 'Done', '')
+        : (closingOpen ? '<span class="badge bd">Due now</span>' : '<span class="badge bg">After 6:30 PM</span>');
+
       handoff.innerHTML = `
-        <div class="card-header"><span class="card-title">Accountant &amp; executive handoff</span></div>
+        <div class="card-header">
+          <span class="card-title">Daily checklist (in order)</span>
+          <span class="badge ${rdcPending ? 'bw' : 'bs'}">${rdcPending} RDC pending</span>
+        </div>
+        <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">Walk the day top to bottom. RDC pending = sheets waiting for your review (any date).</p>
         <div class="tbl-wrap"><table>
-          <tr><th>Item</th><th>Status</th><th>Action</th></tr>
-          <tr><td>Finance pack from Accountant</td><td>${pack ? mgrStatusBadge(pack.status) : '<span class="badge bw">Awaiting</span>'}</td>
-            <td>${pack ? `<button class="btn btn-sm" onclick="reportOpenPdf(${pack.id})">View PDF</button>` : '<button class="btn btn-sm" onclick="showPage(\'report-exchange\')">Open inbox</button>'}</td></tr>
-          <tr><td>Cash trips to confirm</td><td><span class="badge ${d.cash_pending_confirmation ? 'bd' : 'bs'}">${d.cash_pending_confirmation} pending</span></td>
-            <td><span style="font-size:11px;color:var(--gray-mid)">Accountant confirms</span></td></tr>
-          <tr><td>Executive brief (today)</td><td>${brief ? mgrStatusBadge(brief.status) : '<span class="badge bg">Not sent</span>'}</td>
-            <td><button class="btn btn-sm btn-red" onclick="${brief ? 'showPage(\'report-exchange\')' : 'mgrSendExecutiveBrief()'}">${brief ? 'View' : 'Send brief'}</button></td></tr>
+          <tr><th>#</th><th>Step</th><th>Status</th><th>Action</th></tr>
+          <tr>
+            <td>1</td><td>Opening stock (7am)</td>
+            <td>${doneBadge(!!d.opening_stock_done, 'Done', 'Not done')}</td>
+            <td><button class="btn btn-sm ${d.opening_stock_done ? '' : 'btn-red'}" onclick="showPage('manager-stock')">Stock taking</button></td>
+          </tr>
+          <tr>
+            <td>2</td><td>CCBA boards (inventory + OCCD)</td>
+            <td>${boardBadge(invSt)} ${boardBadge(occdSt)}</td>
+            <td><button class="btn btn-sm" onclick="showPage('manager-ccba-boards')">Open boards</button></td>
+          </tr>
+          <tr>
+            <td>3</td><td>RDC daily sheet review${rdcPending ? ` <span class="badge bd">${rdcPending}</span>` : ''}</td>
+            <td>${rdcBadgeHtml}</td>
+            <td><button class="btn btn-sm ${rdcPending ? 'btn-red' : ''}" onclick="showPage('manager-rdc-review')">Review queue</button></td>
+          </tr>
+          <tr>
+            <td>4</td><td>Finance pack from Accountant</td>
+            <td>${pack ? mgrStatusBadge(pack.status) : '<span class="badge bw">Awaiting</span>'}</td>
+            <td>${pack ? `<button class="btn btn-sm" onclick="reportOpenPdf(${pack.id})">View PDF</button>` : '<button class="btn btn-sm" onclick="showPage(\'report-exchange\')">Open inbox</button>'}</td>
+          </tr>
+          <tr>
+            <td>5</td><td>Closing stock (from 6:30 PM)</td>
+            <td>${closingStatus}</td>
+            <td><button class="btn btn-sm" onclick="showPage('manager-stock')">Stock taking</button></td>
+          </tr>
+          <tr>
+            <td>6</td><td>Executive brief (before 8 PM)</td>
+            <td>${brief ? mgrStatusBadge(brief.status) : '<span class="badge bg">Not sent</span>'}</td>
+            <td><button class="btn btn-sm btn-red" onclick="${brief ? 'showPage(\'report-exchange\')' : 'mgrSendExecutiveBrief()'}">${brief ? 'View' : 'Send brief'}</button></td>
+          </tr>
+          <tr>
+            <td>—</td><td>Cash trips (RDC-owned)</td>
+            <td><span class="badge ${d.cash_pending_confirmation ? 'bd' : 'bs'}">${d.cash_pending_confirmation} pending</span></td>
+            <td><span style="font-size:11px;color:var(--gray-mid)">Accountant confirms</span></td>
+          </tr>
         </table></div>`;
     }
     if (exc) {
       const cadetFlags = d.cadet_report_flags ?? 0;
       const welfareOpen = d.welfare_open_count ?? 0;
+      const rdcPending = Number(d.rdc_pending_review || 0);
       exc.innerHTML = `
         <div class="card-header"><span class="card-title">Exception summary</span>
           <button class="btn btn-sm" onclick="showPage('admin-exceptions')">View all</button></div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:.8rem">
+          <div class="metric-card" style="padding:.7rem"><div class="metric-label">RDC pending</div><div class="metric-value" style="font-size:18px">${rdcPending}</div></div>
           <div class="metric-card" style="padding:.7rem"><div class="metric-label">Low stock</div><div class="metric-value" style="font-size:18px">${d.low_stock_count}</div></div>
           <div class="metric-card" style="padding:.7rem"><div class="metric-label">Edit reqs</div><div class="metric-value" style="font-size:18px">${d.pending_edit_requests}</div></div>
           <div class="metric-card" style="padding:.7rem"><div class="metric-label">Sales</div><div class="metric-value" style="font-size:18px">${d.pending_orders}</div></div>
-          <div class="metric-card" style="padding:.7rem"><div class="metric-label">Cash</div><div class="metric-value" style="font-size:18px">${d.cash_pending_confirmation}</div></div>
+          <div class="metric-card" style="padding:.7rem"><div class="metric-label">Cash (RDC)</div><div class="metric-value" style="font-size:18px">${d.cash_pending_confirmation}</div></div>
           <div class="metric-card" style="padding:.7rem"><div class="metric-label">Cadet flags</div><div class="metric-value" style="font-size:18px">${cadetFlags}</div></div>
           <div class="metric-card" style="padding:.7rem"><div class="metric-label">Welfare</div><div class="metric-value" style="font-size:18px">${welfareOpen}</div></div>
         </div>`;
@@ -149,7 +214,14 @@ function mgrStatusBadge(s) {
 async function loadExceptionsPage() {
   const metrics = document.getElementById('excMetrics');
   const tbody = document.querySelector('#page-admin-exceptions #excTableBody');
+  const pageAlert = document.querySelector('#page-admin-exceptions > .alert.a-info');
   if (!metrics && !tbody) return;
+  const role = (typeof currentUser !== 'undefined' && currentUser?.role) || '';
+  if (pageAlert) {
+    pageAlert.innerHTML = role === 'executive'
+      ? '<span>ℹ</span>Monitor-only radar — open items are owned by Manager / RDC. Use this page to see what is outstanding, not to resolve it.'
+      : '<span>ℹ</span>Live exception queue — aggregated from stock, cash, cadet flags, welfare, edit requests, and pending sales. Resolve each item in its linked screen.';
+  }
   try {
     const d = await LapokAPI.get('/api/exceptions/fetch.php');
     const s = d.summary || {};
@@ -173,11 +245,36 @@ async function loadExceptionsPage() {
       };
       const sev = (x) => x === 'high' ? 'bd' : 'bw';
       const actionFor = (i) => {
-        if (i.type === 'sale') return '<button class="btn btn-sm" onclick="showPage(\'manager-dashboard\')">Confirm</button>';
-        if (i.type === 'edit_request') return '<button class="btn btn-sm" onclick="showPage(\'admin-editreqs\')">Review</button>';
-        if (i.type === 'stock') return '<button class="btn btn-sm" onclick="showPage(\'manager-stock\')">Stock</button>';
-        if (i.type === 'cash') return '<button class="btn btn-sm" onclick="showPage(\'accountant-cash\')">Confirm cash</button>';
-        if (i.type === 'cadet_report') return '<button class="btn btn-sm" onclick="showPage(\'accountant-rdc\')">Today\'s close</button>';
+        const isMgr = role === 'manager';
+        const isExec = role === 'executive';
+        const isAcc = role === 'accountant';
+        // Executive = board/MD monitor only — no deep-links into manager/RDC ops.
+        if (isExec) {
+          if (i.type === 'welfare') return '<button class="btn btn-sm" onclick="showPage(\'accountant-welfare\')">View</button>';
+          return '<span style="font-size:11px;color:var(--gray-mid)">Monitor only</span>';
+        }
+        if (i.type === 'sale') {
+          if (isAcc) return '<span style="font-size:11px;color:var(--gray-mid)">Manager confirms</span>';
+          return '<button class="btn btn-sm" onclick="showPage(\'manager-dashboard\')">Confirm</button>';
+        }
+        if (i.type === 'edit_request') {
+          if (isAcc) return '<span style="font-size:11px;color:var(--gray-mid)">Manager reviews</span>';
+          return '<button class="btn btn-sm" onclick="showPage(\'admin-editreqs\')">Review</button>';
+        }
+        if (i.type === 'stock') {
+          if (isAcc) return '<span style="font-size:11px;color:var(--gray-mid)">Manager owns stock</span>';
+          return '<button class="btn btn-sm" onclick="showPage(\'manager-stock\')">Stock</button>';
+        }
+        if (i.type === 'cash') {
+          // Cash confirmation is accountant-owned — managers only monitor.
+          if (isMgr) return '<span style="font-size:11px;color:var(--gray-mid)">RDC confirms</span>';
+          return '<button class="btn btn-sm" onclick="showPage(\'accountant-cash\')">Confirm cash</button>';
+        }
+        if (i.type === 'cadet_report') {
+          if (isMgr) return '<button class="btn btn-sm" onclick="showPage(\'manager-rdc-review\')">RDC review</button>';
+          if (isAcc) return '<button class="btn btn-sm" onclick="showPage(\'accountant-rdc\')">Today\'s close</button>';
+          return '<span style="font-size:11px;color:var(--gray-mid)">RDC / Manager</span>';
+        }
         if (i.type === 'welfare') return '<button class="btn btn-sm" onclick="showPage(\'accountant-welfare\')">Welfare</button>';
         return '';
       };

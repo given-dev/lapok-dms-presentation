@@ -195,8 +195,12 @@
     await loadDepotSnapshotEditor('closing', 'accClosingStockTable', 'accClosingStatus', 'accClosingNotes', { readOnly: true });
   }
 
+  function fixedCostsMonth() {
+    return document.getElementById('accMonthPicker')?.value || todayIso().slice(0, 7);
+  }
+
   async function loadManagerFixedCosts() {
-    const month = todayIso().slice(0, 7);
+    const month = fixedCostsMonth();
     try {
       const d = await LapokAPI.get('/api/depot/fetch_fixed_costs.php?month=' + encodeURIComponent(month));
       const f = d.fixed || {};
@@ -218,7 +222,7 @@
   async function saveManagerFixedCosts() {
     try {
       await LapokAPI.post('/api/depot/save_fixed_costs.php', {
-        cost_month: todayIso().slice(0, 7),
+        cost_month: fixedCostsMonth(),
         rent_ugx: Number(document.getElementById('mgrFixedRent')?.value || 0),
         salaries_ugx: Number(document.getElementById('mgrFixedSalaries')?.value || 0),
         utilities_ugx: Number(document.getElementById('mgrFixedUtilities')?.value || 0),

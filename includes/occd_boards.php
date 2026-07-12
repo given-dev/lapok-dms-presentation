@@ -355,3 +355,167 @@ function occd_board_for_date(PDO $pdo, string $date, string $type): array
         'payload' => $payload,
     ];
 }
+
+/**
+ * Build executive-brief lines from a saved inventory board row.
+ *
+ * @param array<string, mixed>|false|null $row
+ * @return list<string>
+ */
+function occd_inventory_brief_lines($row): array
+{
+    if (!$row || empty($row['payload_json'])) {
+        return ['Inventory board: not started — submit CCBA boards before the executive brief.'];
+    }
+    $payload = json_decode((string) $row['payload_json'], true);
+    if (!is_array($payload)) {
+        return ['Inventory board: ' . (string) ($row['status'] ?? 'draft') . ' (no readable payload).'];
+    }
+
+    $status = (string) ($row['status'] ?? 'draft');
+    $header = $payload['header'] ?? [];
+    $lines = $payload['lines'] ?? [];
+    $values = $payload['values'] ?? [];
+
+    $byCat = [];
+    $grandOpening = 0.0;
+    $grandRecommended = 0.0;
+    $grandOnOrder = 0.0;
+    $skuCount = 0;
+
+    foreach ($lines as $line) {
+        if (($line['row_type'] ?? '') !== 'sku') {
+            continue;
+        }
+        $key = (string) ($line['key'] ?? '');
+        $cat = (string) ($line['category'] ?? 'OTHER');
+        $v = $values[$key] ?? [];
+        $opening = (float) ($v['opening'] ?? 0);
+        $recommended = (float) ($v['recommended'] ?? 0);
+        $onOrder = (float) ($v['on_order'] ?? 0);
+        if (!isset($byCat[$cat])) {
+            $byCat[$cat] = ['opening' => 0.0, 'recommended' => 0.0, 'on_order' => 0.0, 'skus' => 0];
+        }
+        $byCat[$cat]['opening'] += $opening;
+        $byCat[$cat]['recommended'] += $recommended;
+        $byCat[$cat]['on_order'] += $onOrder;
+        $byCat[$cat]['skus']++;
+        $grandOpening += $opening;
+        $grandRecommended += $recommended;
+        $grandOnOrder += $onOrder;
+        $skuCount++;
+    }
+
+    $out = [
+        'Status: ' . $status . ($row['submitted_at'] ? ' · submitted ' . $row['submitted_at'] : ''),
+        'OCCD: ' . trim((string) ($header['occd_name'] ?? '—')) . ' · Region: ' . trim((string) ($header['region'] ?? '—')),
+        'SKU lines filled: ' . $skuCount,
+        'Grand opening: ' . number_format($grandOpening, 0)
+            . ' · Recommended: ' . number_format($grandRecommended, 0)
+            . ' · On order: ' . number_format($grandOnOrder, 0),
+    ];
+    foreach ($byCat as $cat => $tot) {
+        $out[] = $cat . ' — opening ' . number_format($tot['opening'], 0)
+            . ' · recommended ' . number_format($tot['recommended'], 0)
+            . ' · on order ' . number_format($tot['on_order'], 0)
+            . ' (' . $tot['skus'] . ' SKUs)';
+    }
+    return $out;
+}
+
+/**
+ * Build executive-brief lines from a saved OCCD dashboard row.
+ *
+ * @param array<string, mixed>|false|null $row
+ * @return list<string>
+ */
+function occd_dashboard_brief_lines($row): array
+{
+    if (!$row || empty($row['payload_json'])) {
+        return ['OCCD dashboard: not started — submit CCBA boards before the executive brief.'];
+    }
+    $payload = json_decode((string) $row['payload_json'], true);
+    if (!is_array($payload)) {
+        return ['OCCD dashboard: ' . (string) ($row['status'] ?? 'draft') . ' (no readable payload).'];
+    }
+
+    $status = (string) ($row['status'] ?? 'draft');
+    $header = $payload['header'] ?? [];
+    $out = [
+        'Status: ' . $status . ($row['submitted_at'] ? ' · submitted ' . $row['submitted_at'] : ''),
+        'OCCD: ' . trim((string) ($header['occd_name'] ?? '—')) . ' · Region: ' . trim((string) ($header['region'] ?? '—')),
+    ];
+
+    $sales = $payload['sales_performance']['values']['current_month']['total'] ?? null;
+    if (is_array($sales)) {
+        $cy = (float) ($sales['cy'] ?? 0);
+        $target = (float) ($sales['target'] ?? 0);
+        $py = (float) ($sales['py'] ?? 0);
+        $out[] = 'Sales MTD total — CY ' . number_format($cy, 0)
+            . ' · Target ' . number_format($target, 0)
+            . ' · PY ' . number_format($py, 0);
+        if ($target > 0) {
+            $out[] = 'vs target: ' . number_format((($cy - $target) / $target) * 100, 1) . '%';
+        }
+    }
+
+    $ytd = $payload['sales_performance']['values']['ytd']['total'] ?? null;
+    if (is_array($ytd)) {
+        $out[] = 'Sales YTD total — CY ' . number_format((float) ($ytd['cy'] ?? 0), 0)
+            . ' · Target ' . number_format((float) ($ytd['target'] ?? 0), 0)
+            . ' · PY ' . number_format((float) ($ytd['py'] ?? 0), 0);
+    }
+
+    $outletValues = $payload['outlet_data']['values'] ?? [];
+    $outletTotal = 0.0;
+    foreach ($outletValues as $tierVals) {
+        if (!is_array($tierVals)) {
+            continue;
+        }
+        foreach ($tierVals as $n) {
+            $outletTotal += (float) $n;
+        }
+    }
+    if ($outletTotal > 0) {
+        $out[] = 'Outlet universe (board): ' . number_format($outletTotal, 0);
+    }
+
+    $service = $payload['service_model']['values'] ?? [];
+    foreach (['call_adherence' => 'Call adherence', 'strike_rate' => 'Strike rate', 'nps' => 'NPS'] as $key => $label) {
+        // nps is under execution_model typically
+        if ($key === 'nps') {
+            continue;
+        }
+        $rowVals = $service[$key] ?? null;
+        if (is_array($rowVals) && (($rowVals['mtd'] ?? '') !== '' || ($rowVals['ytd'] ?? '') !== '')) {
+            $out[] = $label . ' — MTD ' . ($rowVals['mtd'] !== '' ? $rowVals['mtd'] : '—')
+                . ' · YTD ' . ($rowVals['ytd'] !== '' ? $rowVals['ytd'] : '—');
+        }
+    }
+    $exec = $payload['execution_model']['values'] ?? [];
+    if (isset($exec['nps']) && is_array($exec['nps'])) {
+        $out[] = 'NPS — MTD ' . (($exec['nps']['mtd'] ?? '') !== '' ? $exec['nps']['mtd'] : '—')
+            . ' · YTD ' . (($exec['nps']['ytd'] ?? '') !== '' ? $exec['nps']['ytd'] : '—');
+    }
+
+    $uf = $payload['unforgivable_packs']['values'] ?? [];
+    $ufOpen = 0.0;
+    $ufRec = 0.0;
+    foreach ($uf as $v) {
+        if (!is_array($v)) {
+            continue;
+        }
+        $ufOpen += (float) ($v['opening'] ?? 0);
+        $ufRec += (float) ($v['recommended'] ?? 0);
+    }
+    if ($ufOpen > 0 || $ufRec > 0) {
+        $out[] = 'Unforgivable packs — opening ' . number_format($ufOpen, 0)
+            . ' · recommended ' . number_format($ufRec, 0);
+    }
+
+    if (count($out) <= 2) {
+        $out[] = 'Board submitted with limited figures — open CCBA boards for full detail.';
+    }
+    return $out;
+}
+

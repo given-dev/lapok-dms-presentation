@@ -49,6 +49,114 @@ function notify_cadets(string $title, string $body, array $opts = []): int
     return $count;
 }
 
+/** @param array<string, mixed> $opts */
+function notify_role_users(string $role, string $title, string $body, array $opts = []): int
+{
+    $stmt = db()->prepare(
+        'SELECT id FROM users WHERE role = ? AND is_active = 1'
+    );
+    $stmt->execute([$role]);
+    $count = 0;
+    foreach ($stmt->fetchAll() as $row) {
+        if (notify_user((int) $row['id'], $title, $body, $opts)) {
+            $count++;
+        }
+    }
+    return $count;
+}
+
+/**
+ * Bell alert when a manager PDF pack arrives for executives.
+ * Deduped per recipient + packet via #exec_pack_{id}# tag in body.
+ *
+ * @param array<string, mixed> $packet
+ */
+function notify_executives_of_pack(array $packet, int $senderId): int
+{
+    $packetId = (int) ($packet['id'] ?? 0);
+    if ($packetId <= 0) {
+        return 0;
+    }
+    if (($packet['to_role'] ?? '') !== 'executive') {
+        return 0;
+    }
+    $tag = '#exec_pack_' . $packetId . '#';
+    $ref = trim((string) ($packet['packet_ref'] ?? $packet['title'] ?? 'Manager brief'));
+    $date = (string) ($packet['report_date'] ?? date('Y-m-d'));
+    $title = 'Executive brief ready';
+    $body = $ref . ' for ' . $date . ' — open PDF reports to view and acknowledge. ' . $tag;
+    $opts = [
+        'sender_id' => $senderId > 0 ? $senderId : null,
+        'sender_role' => 'manager',
+        'severity' => 'warning',
+        'link_page' => 'report-exchange',
+    ];
+
+    $stmt = db()->query(
+        "SELECT id FROM users WHERE role = 'executive' AND is_active = 1"
+    );
+    $count = 0;
+    $check = db()->prepare(
+        'SELECT id FROM user_notifications WHERE recipient_id = ? AND body LIKE ? LIMIT 1'
+    );
+    foreach ($stmt->fetchAll() as $row) {
+        $uid = (int) $row['id'];
+        $check->execute([$uid, '%' . $tag . '%']);
+        if ($check->fetch()) {
+            continue;
+        }
+        if (notify_user($uid, $title, $body, $opts)) {
+            $count++;
+        }
+    }
+    return $count;
+}
+
+/**
+ * Backfill bell items for unacked executive packs (e.g. sent before this feature).
+ * Scoped to one recipient so polling does not fan out to every executive.
+ */
+function notifications_sync_executive_packs(int $userId): void
+{
+    if ($userId <= 0) {
+        return;
+    }
+    try {
+        $stmt = db()->prepare(
+            "SELECT id, title, packet_ref, report_date, from_user_id, to_role, status
+             FROM report_packets
+             WHERE to_role = 'executive' AND status IN ('sent','read')
+             ORDER BY sent_at DESC, id DESC
+             LIMIT 15"
+        );
+        $stmt->execute();
+        $check = db()->prepare(
+            'SELECT id FROM user_notifications WHERE recipient_id = ? AND body LIKE ? LIMIT 1'
+        );
+        foreach ($stmt->fetchAll() ?: [] as $row) {
+            $packetId = (int) ($row['id'] ?? 0);
+            if ($packetId <= 0) {
+                continue;
+            }
+            $tag = '#exec_pack_' . $packetId . '#';
+            $check->execute([$userId, '%' . $tag . '%']);
+            if ($check->fetch()) {
+                continue;
+            }
+            $ref = trim((string) ($row['packet_ref'] ?? $row['title'] ?? 'Manager brief'));
+            $date = (string) ($row['report_date'] ?? date('Y-m-d'));
+            notify_user($userId, 'Executive brief ready', $ref . ' for ' . $date . ' — open PDF reports to view and acknowledge. ' . $tag, [
+                'sender_id' => (int) ($row['from_user_id'] ?? 0) ?: null,
+                'sender_role' => 'manager',
+                'severity' => 'warning',
+                'link_page' => 'report-exchange',
+            ]);
+        }
+    } catch (Throwable) {
+        // report_packets or notifications table may be missing
+    }
+}
+
 /** @return list<array<string, mixed>> */
 function notifications_fetch_for_user(int $userId, int $limit = 30): array
 {

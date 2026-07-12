@@ -249,19 +249,30 @@ function ccbaOpenPortal() {
   window.open(ccbaPortalUrl, '_blank', 'noopener');
 }
 
-function ccbaExportCsv() {
+async function ccbaExportCsv() {
   const lines = ccbaCollectPayload(false).items;
   if (!lines.length) {
     alert('Nothing to export — add quantities first.');
     return;
   }
-  const header = 'Lapok SKU,Product ID,Qty,Unit cost est.,CCBA SKU\n';
   const rows = ccbaEditorLines
     .filter((l) => (l.qty_requested || 0) > 0)
-    .map((l) => `${l.sku},${l.product_id},${l.qty_requested},${l.unit_cost_estimate},${l.ccba_sku_code || ''}`)
-    .join('\n');
+    .map((l) => [l.sku, l.product_id, l.qty_requested, l.unit_cost_estimate, l.ccba_sku_code || '']);
   const ref = document.getElementById('ccbaEditorRef')?.textContent || 'order';
-  const blob = new Blob([header + rows], { type: 'text/csv' });
+  if (typeof LapokAPI !== 'undefined' && LapokAPI.downloadBrandedExcel) {
+    await LapokAPI.downloadBrandedExcel({
+      title: 'CCBA order lines',
+      subtitle: 'Pick list for MyCCBA confirmation',
+      headers: ['Outpost SKU', 'Product ID', 'Qty', 'Unit cost est.', 'CCBA SKU'],
+      rows,
+      meta: { Reference: ref, Lines: String(rows.length) },
+      filename: 'Outpost-DMS-CCBA-' + String(ref).replace(/\s+/g, '_') + '.xls',
+    });
+    return;
+  }
+  const header = 'Outpost SKU,Product ID,Qty,Unit cost est.,CCBA SKU\n';
+  const body = rows.map((r) => r.join(',')).join('\n');
+  const blob = new Blob([header + body], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = ref.replace(/\s+/g, '_') + '_ccba.csv';
@@ -311,3 +322,63 @@ function renderCcbaTimeline(events) {
 function escHtml(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+
+async function loadCcbaProductMap() {
+  const body = document.getElementById('ccbaMapBody');
+  if (!body) return;
+  body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr>';
+  try {
+    const data = await LapokAPI.get('/api/ccba/product_map/fetch.php');
+    const maps = data.mappings || [];
+    if (!maps.length) {
+      body.innerHTML = '<tr><td colspan="4" style="color:var(--gray-mid)">No active products.</td></tr>';
+      return;
+    }
+    body.innerHTML = maps.map((m) => `
+      <tr data-product-id="${m.product_id}">
+        <td>${escHtml(m.name)}<div style="font-size:11px;color:var(--gray-mid)">${escHtml(m.sku || '')}</div></td>
+        <td><input class="input" style="min-height:32px" data-ccba-sku value="${escHtml(m.ccba_sku_code || '')}" placeholder="CCBA SKU"></td>
+        <td><input class="input" style="min-height:32px" data-ccba-pack value="${escHtml(m.ccba_pack_desc || '')}" placeholder="Pack desc"></td>
+        <td><button class="btn btn-sm btn-red" type="button" onclick="saveCcbaProductMapRow(${m.product_id}, this)">Save</button></td>
+      </tr>`).join('');
+  } catch (e) {
+    body.innerHTML = `<tr><td colspan="4" style="color:var(--red)">${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+async function saveCcbaProductMapRow(productId, btn) {
+  const row = btn?.closest('tr');
+  if (!row) return;
+  const sku = row.querySelector('[data-ccba-sku]')?.value?.trim() || '';
+  const pack = row.querySelector('[data-ccba-pack]')?.value?.trim() || '';
+  btn.disabled = true;
+  try {
+    await LapokAPI.post('/api/ccba/product_map/save.php', {
+      product_id: productId,
+      ccba_sku_code: sku,
+      ccba_pack_desc: pack,
+    });
+    if (typeof adminToast === 'function') adminToast('SKU map saved');
+  } catch (e) {
+    alert(e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function runCcbaStockSync() {
+  try {
+    const dateEl = document.getElementById('occdBoardDate');
+    const snapshot_date = dateEl?.value || new Date().toISOString().slice(0, 10);
+    const data = await LapokAPI.post('/api/ccba/stock_sync/snapshot.php', { snapshot_date });
+    const msg = data.message || `Snapshot saved (${data.products || 0} products).`;
+    if (typeof adminToast === 'function') adminToast(msg);
+    else alert(msg);
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+window.loadCcbaProductMap = loadCcbaProductMap;
+window.saveCcbaProductMapRow = saveCcbaProductMapRow;
+window.runCcbaStockSync = runCcbaStockSync;
