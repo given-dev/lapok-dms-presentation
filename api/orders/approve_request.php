@@ -11,10 +11,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 }
 
 $body = read_json_body();
+$actionRaw = strtolower(trim((string) ($body['action'] ?? '')));
+$action = match ($actionRaw) {
+    'approve', 'approved' => 'approve',
+    'reject', 'rejected' => 'reject',
+    default => '',
+};
 $requestId = (int) ($body['request_id'] ?? 0);
-$action = $body['action'] ?? '';
 
-if ($requestId <= 0 || !in_array($action, ['approve', 'reject'], true)) {
+if ($requestId <= 0 || $action === '') {
     json_error('request_id and action (approve|reject) are required');
 }
 

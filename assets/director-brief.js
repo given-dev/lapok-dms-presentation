@@ -11,6 +11,15 @@
     if (el) el.textContent = value;
   }
 
+  function localIsoDate(offsetDays = 0) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
   function readinessLabel(code) {
     const map = {
       on_track: 'On track',
@@ -21,8 +30,16 @@
     return map[code] || code || '—';
   }
 
+  function directorBriefSetDate(offsetDays) {
+    const picker = document.getElementById('dirBriefDatePicker');
+    if (picker) picker.value = localIsoDate(offsetDays);
+    loadDirectorBriefPage();
+  }
+
   async function loadDirectorBriefPage() {
-    const date = new Date().toISOString().slice(0, 10);
+    const picker = document.getElementById('dirBriefDatePicker');
+    if (picker && !picker.value) picker.value = localIsoDate(0);
+    const date = (picker && picker.value) || localIsoDate(0);
     const alert = document.getElementById('directorBriefAlert');
     try {
       const d = await LapokAPI.get('/api/reports/director_snapshot.php?date=' + encodeURIComponent(date));
@@ -58,20 +75,24 @@
       }
 
       if (alert) {
-        const late = d.controls?.readiness === 'late' || d.controls?.readiness === 'due';
+        const isToday = date === localIsoDate(0);
+        const late = isToday && (d.controls?.readiness === 'late' || d.controls?.readiness === 'due');
         const shortage = Number(d.shortages?.total_flag_ugx || 0) > 0;
-        if (late || shortage || !d.controls?.closing_submitted) {
+        if (late || shortage || (isToday && !d.controls?.closing_submitted)) {
           alert.style.display = 'flex';
           alert.className = 'alert a-warning';
           alert.innerHTML = '<span>⚠</span><div>' + [
             late ? '7pm close is behind schedule.' : '',
             shortage ? 'Shortages/variances need review.' : '',
-            !d.controls?.closing_submitted ? 'Closing stock snapshot not submitted yet.' : '',
+            (isToday && !d.controls?.closing_submitted) ? 'Closing stock snapshot not submitted yet.' : '',
+            !isToday ? ('Viewing history for ' + date + '.') : '',
           ].filter(Boolean).join(' ') + '</div>';
         } else {
           alert.style.display = 'flex';
           alert.className = 'alert a-success';
-          alert.innerHTML = '<span>✓</span><div>Depot is on track for today\'s director brief.</div>';
+          alert.innerHTML = '<span>✓</span><div>' + (isToday
+            ? 'Depot is on track for today\'s director brief.'
+            : ('Snapshot loaded for ' + date + '.')) + '</div>';
         }
       }
     } catch (e) {
@@ -84,7 +105,7 @@
   }
 
   async function loadDirectorBriefWidget() {
-    if (!currentUser || !['executive', 'manager', 'accountant'].includes(currentUser.role)) return;
+    if (!currentUser || !['executive', 'manager', 'accountant', 'admin'].includes(currentUser.role)) return;
     const box = document.getElementById('directorBriefWidget');
     if (!box) return;
     try {
@@ -101,6 +122,7 @@
     }
   }
 
+  window.directorBriefSetDate = directorBriefSetDate;
   window.loadDirectorBriefPage = loadDirectorBriefPage;
   window.loadDirectorBriefWidget = loadDirectorBriefWidget;
 })();

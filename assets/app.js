@@ -12,16 +12,15 @@ function isExecutiveUser() {
 function applyExecutiveReadOnlyMode() {
   if (!isExecutiveUser()) return;
 
-  // Hide mutating actions on executive-visible pages for board/MD read-only access.
-  const selectors = [
-    '#page-admin-exceptions .btn.btn-sm', // queue action buttons
-    '#page-admin-exceptions .btn.btn-red', // any red action buttons
-  ];
-
-  selectors.forEach((selector) => {
-    document.querySelectorAll(selector).forEach((el) => {
+  // Hide mutating chrome; keep Monitor/View navigation CTAs from exception radar.
+  document.querySelectorAll('#page-admin-exceptions .btn.btn-red').forEach((el) => {
+    el.style.display = 'none';
+  });
+  document.querySelectorAll('#page-admin-editreqs .btn').forEach((el) => {
+    const label = (el.textContent || '').toLowerCase();
+    if (label.includes('approve') || label.includes('reject') || label.includes('deny')) {
       el.style.display = 'none';
-    });
+    }
   });
 }
 
@@ -162,10 +161,16 @@ async function loadLowStockAlerts() {
   try {
     const data = await LapokAPI.get('/api/stock/fetch_stock.php?low_only=1');
     const alerts = data.alerts || [];
-    document.querySelectorAll('.alert.a-danger').forEach((el) => {
+    const targets = document.querySelectorAll('#admLowStockAlert, .alert.a-danger');
+    targets.forEach((el) => {
+      const div = el.querySelector('div');
+      if (!div) return;
       if (alerts.length) {
         const names = alerts.map((a) => `${a.name} (${a.warehouse_qty} cartons)`).join(' and ');
-        el.querySelector('div').innerHTML = `<strong>Low stock:</strong> ${names} below minimum. <a href="#" onclick="showPage('admin-exceptions');return false" style="color:var(--red);font-weight:600">Open exception center →</a>`;
+        div.innerHTML = `<strong>Low stock:</strong> ${names} below minimum. <a href="#" onclick="showPage('admin-exceptions');return false" style="color:var(--red);font-weight:600">Open exception center →</a>`;
+        el.style.display = '';
+      } else if (el.id === 'admLowStockAlert') {
+        el.style.display = 'none';
       }
     });
   } catch (_) {}
@@ -177,8 +182,9 @@ async function loadPendingOrders() {
   try {
     const data = await LapokAPI.get('/api/orders/fetch_orders.php?status=pending');
     const orders = data.orders || [];
-    const badge = document.querySelector('#page-manager-dashboard .card-header .badge.bd');
-    if (badge) badge.textContent = orders.length + ' pending';
+    const badge = document.getElementById('mgrPendingSalesBadge')
+      || document.querySelector('#page-manager-dashboard .card-header .badge.bd');
+    if (badge) badge.textContent = orders.length ? orders.length + ' pending' : '0 pending';
     const metric = document.querySelector('#page-manager-dashboard .metric-card:nth-child(3) .metric-value');
     if (metric) metric.textContent = orders.length;
     const rows = orders.map((o) =>
@@ -207,8 +213,8 @@ async function loadEditRequests() {
       b.textContent = reqs.length + ' pending';
     });
     const rowHtml = (r, full) => full
-      ? `<tr data-request-id="${r.id}"><td style="font-family:monospace;font-size:11px">${r.order_ref}</td><td>${r.user_name?.split(' ')[0] || '—'}.</td><td><span class="badge ${r.request_type === 'edit' ? 'bw' : 'bd'}">${r.request_type === 'edit' ? 'Edit' : 'Cancel'}</span></td><td>${r.reason}</td><td>${r.details || '—'}</td><td>${LapokAPI.formatTime(r.created_at)}</td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approved',${r.id})">Approve</button> <button class="btn btn-sm" onclick="approveReq(this,'rejected',${r.id})">Reject</button></td></tr>`
-      : `<tr data-request-id="${r.id}"><td style="font-family:monospace;font-size:11px">${r.order_ref}</td><td>${r.user_name?.split(' ')[0] || '—'}.</td><td><span class="badge ${r.request_type === 'edit' ? 'bw' : 'bd'}">${r.request_type === 'edit' ? 'Edit' : 'Cancel'}</span></td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approved',${r.id})">Approve</button></td></tr>`;
+      ? `<tr data-request-id="${r.id}"><td style="font-family:monospace;font-size:11px">${r.order_ref}</td><td>${r.user_name?.split(' ')[0] || '—'}.</td><td><span class="badge ${r.request_type === 'edit' ? 'bw' : 'bd'}">${r.request_type === 'edit' ? 'Edit' : 'Cancel'}</span></td><td>${r.reason}</td><td>${r.details || '—'}</td><td>${LapokAPI.formatTime(r.created_at)}</td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approve',${r.id})">Approve</button> <button class="btn btn-sm" onclick="approveReq(this,'reject',${r.id})">Reject</button></td></tr>`
+      : `<tr data-request-id="${r.id}"><td style="font-family:monospace;font-size:11px">${r.order_ref}</td><td>${r.user_name?.split(' ')[0] || '—'}.</td><td><span class="badge ${r.request_type === 'edit' ? 'bw' : 'bd'}">${r.request_type === 'edit' ? 'Edit' : 'Cancel'}</span></td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approve',${r.id})">Approve</button></td></tr>`;
     const adminTable = document.querySelector('#page-admin-editreqs table');
     if (adminTable) {
       adminTable.innerHTML = '<tr><th>Ref</th><th>User</th><th>Type</th><th>Reason</th><th>Details</th><th>Time</th><th>Action</th></tr>' +
@@ -243,22 +249,29 @@ async function confirmSale(btn, orderId) {
 
 async function approveReq(btn, action, requestId) {
   const row = btn.closest('tr');
-  if (!requestId) {
-    row.style.opacity = '.5';
-    row.querySelectorAll('button').forEach((b) => { b.disabled = true; });
-    const last = row.cells[row.cells.length - 1];
-    last.innerHTML = action === 'approved' ? '<span class="badge bs">Approved</span>' : '<span class="badge bd">Rejected</span>';
+  const id = Number(requestId || row?.getAttribute('data-request-id') || 0);
+  // API expects approve|reject; UI may still pass approved|rejected from older markup.
+  const apiAction = (action === 'approved' || action === 'approve') ? 'approve'
+    : (action === 'rejected' || action === 'reject') ? 'reject'
+      : '';
+  const approved = apiAction === 'approve';
+
+  if (!id || !apiAction) {
+    if (typeof adminToast === 'function') adminToast('Could not resolve this request — refresh and try again.', true);
+    else alert('Could not resolve this request — refresh and try again.');
     return;
   }
+
   row.querySelectorAll('button').forEach((b) => { b.disabled = true; });
   try {
-    await LapokAPI.post('/api/orders/approve_request.php', { request_id: requestId, action });
+    await LapokAPI.post('/api/orders/approve_request.php', { request_id: id, action: apiAction });
     row.style.opacity = '.5';
     const last = row.cells[row.cells.length - 1];
-    last.innerHTML = action === 'approved' ? '<span class="badge bs">Approved</span>' : '<span class="badge bd">Rejected</span>';
+    last.innerHTML = approved ? '<span class="badge bs">Approved</span>' : '<span class="badge bd">Rejected</span>';
     await loadEditRequests();
   } catch (e) {
-    alert(e.message);
+    if (typeof adminToast === 'function') adminToast(e.message, true);
+    else alert(e.message);
     row.querySelectorAll('button').forEach((b) => { b.disabled = false; });
   }
 }
@@ -305,18 +318,38 @@ async function logout() {
   location.href = 'login.html';
 }
 
+function resolveAllowedPage(id) {
+  const role = currentUser?.role;
+  if (!role || !LapokAPI?.roleBlockedPages?.[role]) return id;
+  if (!LapokAPI.roleBlockedPages[role].includes(id)) return id;
+  const home = LapokAPI.roleHomePage?.[role] || 'manager-dashboard';
+  const owner = LapokAPI.rolePageOwner?.[id] || 'another role';
+  if (typeof adminToast === 'function') {
+    adminToast(`That module belongs to ${owner} — opened your home instead.`, true);
+  }
+  return home;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const originalShowPage = window.showPage;
   if (typeof originalShowPage === 'function') {
     window.showPage = function (id) {
+      // resolveAllowedPage runs in phase45 (outer wrapper) so loaders match the final page.
       originalShowPage(id);
       expandNavGroupForPage(id);
       applyExecutiveReadOnlyMode();
       if (id === 'manager-stock') { loadStockTable(); if (typeof loadDeliveryList === 'function') loadDeliveryList(); }
       if (id === 'manager-dashboard') { loadPendingOrders(); loadLowStockAlerts(); if (typeof loadManagerDashboardExtras === 'function') loadManagerDashboardExtras(); }
       if (id === 'admin-editreqs') loadEditRequests();
-      if (id === 'admin-exceptions' && typeof loadExceptionsPage === 'function') loadExceptionsPage();
-      if (id === 'admin-dashboard') { loadLowStockAlerts(); setTimeout(drawCharts, 100); }
+      if (id === 'admin-exceptions' && typeof loadExceptionsPage === 'function') {
+        Promise.resolve(loadExceptionsPage()).finally(() => applyExecutiveReadOnlyMode());
+      }
+      if (id === 'admin-dashboard') {
+        loadLowStockAlerts();
+        setTimeout(drawCharts, 100);
+        if (typeof loadExecutiveHomeExtras === 'function' && isExecutiveUser()) loadExecutiveHomeExtras();
+        if (typeof loadAdminHomeExtras === 'function' && currentUser?.role === 'admin') loadAdminHomeExtras();
+      }
     };
   }
   initApp();

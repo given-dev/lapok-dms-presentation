@@ -449,20 +449,46 @@ canvas{display:block;width:100%!important}
 
 <!-- ══════════ ADMIN DASHBOARD ══════════ -->
 <div class="page active" id="page-admin-dashboard">
-  <div class="alert a-danger"><span>⚠</span><div><strong>Low stock:</strong> Coke 500ml (42 crates) and Sprite 1L (18 crates) below minimum of 80. <a href="#" onclick="showPage('admin-exceptions');return false" style="color:var(--red);font-weight:600">Open exception center →</a></div></div>
-  <div class="alert a-info"><span>ℹ</span><div><strong>Reporting line:</strong> Field agents submit to Accountant, Accountant consolidates for Manager, Manager submits executive brief to Managing Directors and Board.</div></div>
-  <div class="metric-grid">
-    <div class="metric-card hi"><div class="metric-label">Warehouse</div><div class="metric-value" id="admMetricWarehouse">1,284</div><div class="metric-sub">crates total</div></div>
-    <div class="metric-card"><div class="metric-label">Revenue today</div><div class="metric-value" id="admMetricRevenueToday">—</div><div class="metric-sub">UGX</div><div class="metric-trend trend-up">↑ 8%</div></div>
-    <div class="metric-card"><div class="metric-label">Crates sold</div><div class="metric-value" id="admMetricCartonsToday">186</div><div class="metric-sub">today</div></div>
-    <div class="metric-card"><div class="metric-label">Revenue MTD</div><div class="metric-value" id="admMetricRevenueMtd">—</div><div class="metric-sub">UGX</div></div>
-    <div class="metric-card"><div class="metric-label">Vehicles out</div><div class="metric-value" id="admMetricVehiclesOut">3/4</div><div class="metric-sub">active now</div></div>
-    <div class="metric-card"><div class="metric-label">Edit requests</div><div class="metric-value" id="admMetricPendingRequests">2</div><div class="metric-sub pending">pending</div></div>
+  <div class="alert a-danger" id="admLowStockAlert"><span>⚠</span><div><strong>Low stock:</strong> Checking… <a href="#" onclick="showPage('admin-exceptions');return false" style="color:var(--red);font-weight:600">Open exception center →</a></div></div>
+  <div class="alert a-info"><span>ℹ</span><div id="admReportingLine"><strong>Reporting line:</strong> Field agents submit to Accountant, Accountant consolidates for Manager, Manager submits executive brief to Managing Directors and Board.</div></div>
+
+  <div class="card" id="adminDailyChecklist" style="display:none;margin-bottom:1rem;border:1px solid rgba(15,23,42,.18)">
+    <div class="card-header">
+      <span class="card-title">Admin daily checklist</span>
+      <button class="btn btn-sm" type="button" onclick="refreshAdminHome()">Refresh</button>
+    </div>
+    <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">System owner view — users, approvals, exceptions, then reporting-chain health. Day-to-day depot close stays with RDC / Manager.</p>
+    <div class="tbl-wrap"><table>
+      <tr><th>#</th><th>Step</th><th>Status</th><th>Action</th></tr>
+      <tbody id="adminChecklistBody"><tr><td colspan="4" style="color:var(--gray-mid)">Loading…</td></tr></tbody>
+    </table></div>
   </div>
-  <div class="card">
+
+  <div class="card" id="execDailyChecklist" style="display:none;margin-bottom:1rem;border:1px solid rgba(229,62,62,.28)">
+    <div class="card-header">
+      <span class="card-title">Executive daily checklist</span>
+      <button class="btn btn-sm" type="button" onclick="loadExecutiveHomeExtras()">Refresh</button>
+    </div>
+    <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">Board/MD view — monitor only. Open Director brief, then acknowledge the manager PDF pack.</p>
+    <div id="directorBriefWidget" style="margin:0 0 .8rem;padding:.6rem .8rem;background:rgba(0,0,0,.03);border-radius:8px;border:1px solid var(--gray-light)"></div>
+    <div class="tbl-wrap"><table>
+      <tr><th>#</th><th>Step</th><th>Status</th><th>Action</th></tr>
+      <tbody id="execChecklistBody"><tr><td colspan="4" style="color:var(--gray-mid)">Loading…</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <div class="metric-grid">
+    <div class="metric-card hi"><div class="metric-label">Warehouse</div><div class="metric-value" id="admMetricWarehouse">—</div><div class="metric-sub">crates total</div></div>
+    <div class="metric-card"><div class="metric-label">Revenue today</div><div class="metric-value" id="admMetricRevenueToday">—</div><div class="metric-sub">UGX</div></div>
+    <div class="metric-card"><div class="metric-label">Crates sold</div><div class="metric-value" id="admMetricCartonsToday">—</div><div class="metric-sub">today</div></div>
+    <div class="metric-card"><div class="metric-label">Revenue MTD</div><div class="metric-value" id="admMetricRevenueMtd">—</div><div class="metric-sub">UGX</div></div>
+    <div class="metric-card"><div class="metric-label">Vehicles out</div><div class="metric-value" id="admMetricVehiclesOut">—</div><div class="metric-sub">active now</div></div>
+    <div class="metric-card"><div class="metric-label">Edit requests</div><div class="metric-value" id="admMetricPendingRequests">—</div><div class="metric-sub pending">pending</div></div>
+  </div>
+  <div class="card" id="adminActionCenterCard">
     <div class="card-header">
       <span class="card-title">Admin action center</span>
-      <button class="btn btn-sm" onclick="loadAdminActionCenter()">Refresh</button>
+      <button class="btn btn-sm" onclick="refreshAdminHome()">Refresh</button>
     </div>
     <div class="tbl-wrap"><table>
       <tr><th>Priority</th><th>Item</th><th>Count</th><th>Action</th></tr>
@@ -473,7 +499,7 @@ canvas{display:block;width:100%!important}
   </div>
   <div class="two-col">
     <div class="card">
-      <div class="card-header"><span class="card-title">Sales vs Expenses vs Profit</span><span class="chip">May 2026</span></div>
+      <div class="card-header"><span class="card-title">Sales vs Expenses vs Profit</span><span class="chip">Live</span></div>
       <canvas id="mainChart" height="180"></canvas>
       <div class="chart-legend">
         <div class="legend-item"><div class="legend-dot" style="background:#D42B2B"></div>Sales</div>
@@ -484,40 +510,12 @@ canvas{display:block;width:100%!important}
     <div class="card">
       <div class="card-header"><span class="card-title">Product share — MTD</span></div>
       <canvas id="donutChart" height="180"></canvas>
-      <div class="chart-legend" style="justify-content:center">
-        <div class="legend-item"><div class="legend-dot" style="background:#D42B2B"></div>Coke 500ml</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#374151"></div>Coke 1L</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#D97706"></div>Fanta</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#1d4ed8"></div>Sprite</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div>Novida</div>
-      </div>
+      <div class="chart-legend" id="donutLegend" style="justify-content:center"></div>
     </div>
   </div>
   <div class="card">
-    <div class="card-header"><span class="card-title">Monthly profit trend — 2026</span><div class="tb-chip" style="color:#16a34a;border-color:#86efac;background:#f0fdf4">↑ 14% vs last quarter</div></div>
+    <div class="card-header"><span class="card-title">Monthly profit trend</span></div>
     <canvas id="profitChart" height="130"></canvas>
-  </div>
-  <div class="two-col">
-    <div class="card">
-      <div class="card-header"><span class="card-title">Fleet status</span><button class="btn btn-sm btn-red" onclick="showPage('admin-exceptions')">Open exception center</button></div>
-      <div class="tbl-wrap"><table>
-        <tr><th>Vehicle</th><th>Type</th><th>Driver / Rider</th><th>Status</th></tr>
-        <tr><td><strong>KCA 201T</strong></td><td><span class="badge b-truck">Truck</span></td><td>James Wanyama</td><td><span class="badge bs">On route</span></td></tr>
-        <tr><td><strong>KCB 774Y</strong></td><td><span class="badge b-truck">Truck</span></td><td>Peter Ochieng</td><td><span class="badge bs">On route</span></td></tr>
-        <tr><td><strong>TUK-001</strong></td><td><span class="badge b-tuk">Tuktuk</span></td><td>David Ssemuju</td><td><span class="badge bs">On route</span></td></tr>
-        <tr><td><strong>TUK-002</strong></td><td><span class="badge b-tuk">Tuktuk</span></td><td>—</td><td><span class="badge bg">Available</span></td></tr>
-      </table></div>
-    </div>
-    <div class="card">
-      <div class="card-header"><span class="card-title">Activity log</span></div>
-      <div class="timeline">
-        <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">14:22</div><div class="tl-text">David S. requested edit on RCP-0507-4421</div></div>
-        <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">13:15</div><div class="tl-text">Manager confirmed 3 sales — UGX 680,000</div></div>
-        <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">11:00</div><div class="tl-text">KCB 774Y loaded 120 crates, departed</div></div>
-        <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">09:45</div><div class="tl-text">Delivery from Coca-Cola — 350 crates, KCA 201T</div></div>
-        <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">08:30</div><div class="tl-text">TUK-001 loaded — 40 crates, David S. dispatched</div></div>
-      </div>
-    </div>
   </div>
   <div class="card">
     <div class="card-header"><span class="card-title">Executive PDF reports (from Manager)</span><button class="btn btn-sm btn-red" onclick="showPage('report-exchange')">Open report exchange</button></div>
@@ -534,7 +532,7 @@ canvas{display:block;width:100%!important}
 <div class="page" id="page-admin-users">
   <div class="btn-group">
     <button class="btn btn-red" onclick="openModal('addUserModal')">+ Add user</button>
-    <button class="btn" onclick="exportUsersCsv()">Export CSV</button>
+    <button class="btn" onclick="exportUsersCsv()">Export Excel</button>
     <button class="btn btn-sm" onclick="loadUsersTable()">Refresh</button>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.8rem">
@@ -552,105 +550,8 @@ canvas{display:block;width:100%!important}
   </div>
   <div class="card"><div class="tbl-wrap"><table id="userTable">
     <tr><th>Name</th><th>Role</th><th>National ID</th><th>Phone</th><th>Vehicle assigned</th><th>Active</th><th>Actions</th></tr>
-    <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar av-red">SN</div>Sarah Nakato</div></td><td><span class="badge br">Manager</span></td><td>CM90200145672</td><td>+256 772 100001</td><td>—</td><td><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td><td><button class="btn btn-sm" onclick="openModal('editUserModal')">Edit</button></td></tr>
-    <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar av-blk">DS</div>David Ssemuju</div></td><td><span class="badge bi">Field User</span></td><td>CM87101234567</td><td>+256 754 200002</td><td><span class="badge b-tuk">TUK-001</span></td><td><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td><td><button class="btn btn-sm" onclick="openModal('editUserModal')">Edit</button></td></tr>
-    <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar av-red">GA</div>Grace Apio</div></td><td><span class="badge bi">Field User</span></td><td>CM92030987654</td><td>+256 703 300003</td><td><span class="badge b-truck">KCB 774Y</span></td><td><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td><td><button class="btn btn-sm">Edit</button></td></tr>
-    <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar av-blk">MO</div>Moses Otieno</div></td><td><span class="badge bi">Field User</span></td><td>CM88120456789</td><td>+256 782 400004</td><td><span class="badge bg">Unassigned</span></td><td><label class="toggle"><input type="checkbox"><span class="slider"></span></label></td><td><button class="btn btn-sm">Edit</button></td></tr>
-    <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar av-blk">RN</div>Ruth Nambi</div></td><td><span class="badge bi">Field User</span></td><td>CM95041122334</td><td>+256 701 500005</td><td><span class="badge b-truck">KCA 201T</span></td><td><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td><td><button class="btn btn-sm">Edit</button></td></tr>
-    <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar av-blk">JO</div>Joseph Okello</div></td><td><span class="badge bi">Field User</span></td><td>CM91055678901</td><td>+256 754 600006</td><td><span class="badge b-tuk">TUK-002</span></td><td><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></td><td><button class="btn btn-sm">Edit</button></td></tr>
+    <tr><td colspan="7" style="text-align:center;color:var(--gray-mid)">Loading users…</td></tr>
   </table></div></div>
-</div>
-
-<!-- ADMIN ROLES & PERMISSIONS -->
-<div class="page" id="page-admin-permissions">
-  <div class="alert a-info"><span>ℹ</span>Placeholder roadmap: this module will control who can approve edits, confirm cash, view financials, and manage users.</div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Role permissions matrix</span><span class="badge bg">Stakeholder preview</span></div>
-    <div class="tbl-wrap"><table>
-      <tr><th>Permission</th><th>Admin</th><th>Manager</th><th>Accountant</th><th>Field user</th></tr>
-      <tr><td>Approve edit/cancel requests</td><td><span class="badge bs">Yes</span></td><td><span class="badge bs">Yes</span></td><td><span class="badge bg">No</span></td><td><span class="badge bg">No</span></td></tr>
-      <tr><td>View financial reports</td><td><span class="badge bs">Yes</span></td><td><span class="badge bw">Limited</span></td><td><span class="badge bs">Yes</span></td><td><span class="badge bg">No</span></td></tr>
-      <tr><td>Confirm cash handover</td><td><span class="badge bs">Yes</span></td><td><span class="badge bg">No</span></td><td><span class="badge bs">Yes</span></td><td><span class="badge bg">No</span></td></tr>
-      <tr><td>Create/disable users</td><td><span class="badge bs">Yes</span></td><td><span class="badge bg">No</span></td><td><span class="badge bg">No</span></td><td><span class="badge bg">No</span></td></tr>
-    </table></div>
-  </div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Policy templates</span></div>
-    <p style="font-size:13px;color:var(--gray-mid);margin-bottom:.8rem">Planned templates: Strict Control, Balanced Ops, and Growth Mode. Final behavior will be configurable per branch.</p>
-    <div class="btn-group"><button class="btn btn-red">Draft policies</button><button class="btn">Simulate access impact</button></div>
-  </div>
-</div>
-
-<!-- ADMIN FLEET -->
-<div class="page" id="page-admin-fleet">
-  <div class="btn-group"><button class="btn btn-red" onclick="openModal('addVehicleModal')">+ Add vehicle</button></div>
-  <div class="two-col">
-    <div>
-      <div class="card" style="border-top:3px solid #0369a1">
-        <div class="card-title" style="margin-bottom:.9rem">🚛 Trucks (2)</div>
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray-light)">
-          <div class="vehicle-icon vi-truck">🚛</div>
-          <div class="vehicle-info">
-            <div class="vehicle-name">KCA 201T — Isuzu NPR</div>
-            <div class="vehicle-detail">Driver: Ruth Nambi · Plate: KCA 201T · Capacity: 150 crates</div>
-            <div style="margin-top:5px"><span class="badge bs">On route</span> <span class="badge b-truck">Kampala Central</span></div>
-          </div>
-          <button class="btn btn-sm" onclick="openModal('vehicleDetailModal')">View</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
-          <div class="vehicle-icon vi-truck">🚛</div>
-          <div class="vehicle-info">
-            <div class="vehicle-name">KCB 774Y — Mercedes Sprinter</div>
-            <div class="vehicle-detail">Driver: Grace Apio · Plate: KCB 774Y · Capacity: 120 crates</div>
-            <div style="margin-top:5px"><span class="badge bs">On route</span> <span class="badge b-truck">Mukono</span></div>
-          </div>
-          <button class="btn btn-sm" onclick="openModal('vehicleDetailModal')">View</button>
-        </div>
-      </div>
-    </div>
-    <div>
-      <div class="card" style="border-top:3px solid #7e22ce">
-        <div class="card-title" style="margin-bottom:.9rem">🛺 Tuktuks (2)</div>
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray-light)">
-          <div class="vehicle-icon vi-tuk">🛺</div>
-          <div class="vehicle-info">
-            <div class="vehicle-name">TUK-001</div>
-            <div class="vehicle-detail">Rider: David Ssemuju · Reg: UAN 441R · Capacity: 40 crates</div>
-            <div style="margin-top:5px"><span class="badge bs">On route</span> <span class="badge b-tuk">Owino / Katwe</span></div>
-          </div>
-          <button class="btn btn-sm" onclick="openModal('vehicleDetailModal')">View</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
-          <div class="vehicle-icon vi-tuk">🛺</div>
-          <div class="vehicle-info">
-            <div class="vehicle-name">TUK-002</div>
-            <div class="vehicle-detail">Rider: Joseph Okello · Reg: UAN 552S · Capacity: 40 crates</div>
-            <div style="margin-top:5px"><span class="badge bg">Available</span></div>
-          </div>
-          <button class="btn btn-sm" onclick="openModal('vehicleDetailModal')">View</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Today's dispatch log</span></div>
-    <div class="tbl-wrap"><table>
-      <tr><th>Vehicle</th><th>Type</th><th>User</th><th>Departed</th><th>Load (crates)</th><th>Route</th><th>Returned</th><th>Status</th></tr>
-      <tr><td>KCA 201T</td><td><span class="badge b-truck">Truck</span></td><td>Ruth N.</td><td>08:15</td><td>120</td><td>Kampala Central</td><td>—</td><td><span class="badge bs">Out</span></td></tr>
-      <tr><td>KCB 774Y</td><td><span class="badge b-truck">Truck</span></td><td>Grace A.</td><td>08:45</td><td>80</td><td>Mukono</td><td>—</td><td><span class="badge bs">Out</span></td></tr>
-      <tr><td>TUK-001</td><td><span class="badge b-tuk">Tuktuk</span></td><td>David S.</td><td>09:10</td><td>40</td><td>Owino / Katwe</td><td>13:30 ✓</td><td><span class="badge bg">Returned</span></td></tr>
-      <tr><td>TUK-002</td><td><span class="badge b-tuk">Tuktuk</span></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><span class="badge bg">Available</span></td></tr>
-    </table></div>
-  </div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Fleet operations controls</span><span class="badge bg">Coming in build</span></div>
-    <div class="tbl-wrap"><table>
-      <tr><th>Control</th><th>Current concept</th><th>Target outcome</th></tr>
-      <tr><td>Maintenance scheduling</td><td>Service due by mileage/date with reminders</td><td>Fewer breakdowns on route</td></tr>
-      <tr><td>Fuel and repair log</td><td>Daily capture per vehicle and trip</td><td>Track operating cost per vehicle</td></tr>
-      <tr><td>Inactive reason tracking</td><td>Mark idle/off-road with reason code</td><td>Clear utilization visibility</td></tr>
-    </table></div>
-  </div>
 </div>
 
 <!-- ADMIN EDIT REQUESTS -->
@@ -683,8 +584,8 @@ canvas{display:block;width:100%!important}
 <!-- ADMIN REPORTS -->
 <div class="page" id="page-admin-reports">
   <div class="btn-group">
-    <button class="btn btn-red" onclick="LapokAPI.exportCsv('sales')">Export sales CSV</button>
-    <button class="btn" onclick="LapokAPI.exportCsv('stock')">Export stock CSV</button>
+    <button class="btn btn-red" onclick="LapokAPI.exportCsv('sales')">Export sales Excel</button>
+    <button class="btn" onclick="LapokAPI.exportCsv('stock')">Export stock Excel</button>
     <button class="btn btn-black" onclick="LapokAPI.exportCsv('receivables')">Export receivables</button>
   </div>
   <div class="card" style="margin-top:.8rem">
@@ -918,7 +819,7 @@ canvas{display:block;width:100%!important}
       <button class="btn btn-red" type="button" onclick="rdcOpenSubmittedView()">View submitted report</button>
       <button class="btn btn-sm" type="button" onclick="showPage('report-exchange')">Send manager pack</button>
       <button class="btn btn-sm" type="button" onclick="showPage('accountant-rdc-hub')">Back to Home</button>
-      <button class="btn btn-sm" type="button" onclick="rdcExportTodayCsv()">Export CSV</button>
+      <button class="btn btn-sm" type="button" onclick="rdcExportTodayCsv()">Export Excel</button>
     </div>
   </div>
 
@@ -1020,7 +921,7 @@ canvas{display:block;width:100%!important}
 <!-- RDC STAFF WELFARE -->
 <div class="page" id="page-accountant-welfare">
   <div class="rdc-bal-toolbar">
-    <button class="btn btn-sm" onclick="showPage('accountant-rdc-hub')">← Home</button>
+    <button class="btn btn-sm" type="button" onclick="showPage((typeof LapokAPI!=='undefined'&&LapokAPI.roleHomePage&&currentUser&&LapokAPI.roleHomePage[currentUser.role])||'accountant-rdc-hub')">← Home</button>
     <span class="chip">Staff welfare register</span>
     <span class="badge bw" id="welfareSummaryChip" style="margin-left:6px">—</span>
     <button class="btn btn-sm" onclick="loadAccountantWelfarePage()" style="margin-left:auto">Refresh</button>
@@ -1062,7 +963,7 @@ canvas{display:block;width:100%!important}
 <!-- ACCOUNTANT CASH -->
 <div class="page" id="page-accountant-cash">
   <div class="rdc-bal-toolbar">
-    <button class="btn btn-sm" onclick="showPage('accountant-rdc-hub')">← Home</button>
+    <button class="btn btn-sm" type="button" onclick="showPage((typeof LapokAPI!=='undefined'&&LapokAPI.roleHomePage&&currentUser&&LapokAPI.roleHomePage[currentUser.role])||'accountant-rdc-hub')">← Home</button>
     <span class="chip" id="cashPageChip">Cash handover</span>
     <button class="btn btn-sm" onclick="loadCashHandoverPage()" style="margin-left:auto">Refresh</button>
   </div>
@@ -1088,13 +989,33 @@ canvas{display:block;width:100%!important}
 
 <div class="page" id="page-accountant-improvements">
   <div class="rdc-bal-toolbar">
-    <button class="btn btn-sm" onclick="showPage('accountant-rdc-hub')">← Home</button>
+    <button class="btn btn-sm" type="button" id="accMonthEndHomeBtn" onclick="showPage((typeof LapokAPI!=='undefined'&&LapokAPI.roleHomePage&&currentUser&&LapokAPI.roleHomePage[currentUser.role])||'accountant-rdc-hub')">← Home</button>
     <input class="input" type="month" id="accMonthPicker" style="width:auto;min-height:36px;margin-left:8px">
     <span class="chip">Month-end</span>
     <button class="btn btn-sm" onclick="refreshAccountantCommandCenter()" style="margin-left:auto">Refresh</button>
   </div>
   <p id="accMonthEndSync" style="font-size:12px;color:var(--gray-mid);margin:0 0 1rem">Loading…</p>
   <div class="alert a-info"><span>ℹ</span>CCBA and EFRIS integrations are not connected in this build. Month-end notes and checklist sync to manager and leadership.</div>
+  <div class="card" id="mgrFixedCostsCard" style="margin-bottom:1rem">
+    <div class="card-header">
+      <span class="card-title">Monthly fixed costs</span>
+      <button class="btn btn-sm btn-red" type="button" id="mgrFixedSaveBtn" onclick="saveManagerFixedCosts()">Save</button>
+    </div>
+    <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">Manager enters these for director P&amp;L (monthly ÷ days). Not part of daily stock taking.</p>
+    <div class="two-col">
+      <div>
+        <div class="form-group"><label>Rent (UGX / month)</label><input class="input" id="mgrFixedRent" type="number" min="0" step="1000"></div>
+        <div class="form-group"><label>Salaries (UGX / month)</label><input class="input" id="mgrFixedSalaries" type="number" min="0" step="1000"></div>
+        <div class="form-group"><label>Utilities (UGX / month)</label><input class="input" id="mgrFixedUtilities" type="number" min="0" step="1000"></div>
+      </div>
+      <div>
+        <div class="form-group"><label>Security (UGX / month)</label><input class="input" id="mgrFixedSecurity" type="number" min="0" step="1000"></div>
+        <div class="form-group"><label>Other fixed (UGX / month)</label><input class="input" id="mgrFixedOther" type="number" min="0" step="1000"></div>
+        <div class="recon-row"><span>Monthly total</span><strong id="mgrFixedMonthlyTotal">UGX 0</strong></div>
+        <div class="form-group"><label>Notes</label><textarea class="textarea-inp" id="mgrFixedNotes" rows="2"></textarea></div>
+      </div>
+    </div>
+  </div>
   <div class="two-col" style="margin-bottom:1rem">
     <div class="card">
       <div class="card-header"><span class="card-title">Month-end checklist</span><button class="btn btn-sm btn-red" onclick="saveAccountantChecklist()">Save</button></div>
@@ -1149,16 +1070,34 @@ canvas{display:block;width:100%!important}
 
 <!-- ══════════ MANAGER PAGES ══════════ -->
 <div class="page" id="page-manager-rdc-review">
-  <div class="alert a-info"><span>ℹ</span>Review daily RDC submissions. Use <strong>Edit report</strong> to correct mistakes, then Approve. Or reopen for the accountant to fix.</div>
+  <div class="alert a-info"><span>ℹ</span>Review daily RDC submissions. Use <strong>Edit report</strong> to correct mistakes, then Approve. Select multiple rows to <strong>bulk approve</strong>. Open <strong>Comments</strong> for a note thread with the accountant.</div>
   <div class="card">
     <div class="card-header">
       <span class="card-title">RDC daily sheets review queue</span>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input class="input" type="month" id="rdcReviewMonth" style="width:auto;min-height:36px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span class="badge bw" id="rdcReviewPendingChip">—</span>
+        <input class="input" type="month" id="rdcReviewMonth" style="width:auto;min-height:36px" onchange="loadRdcReviewPage()">
         <button class="btn btn-sm btn-red" onclick="loadRdcReviewPage()">Refresh</button>
       </div>
     </div>
-    <div class="tbl-wrap"><table id="rdcReviewTable"><tr><th>Date</th><th>Status</th><th>Grand total</th><th>Variance</th><th>Submitted</th><th>Review</th><th>Action</th></tr><tr><td colspan="7" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
+    <div id="rdcBulkBar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;padding:0 0 .8rem">
+      <span style="font-size:13px"><strong id="rdcBulkCount">0</strong> selected</span>
+      <button class="btn btn-sm btn-black" type="button" onclick="rdcBulkApproveSelected()">Bulk approve</button>
+    </div>
+    <div class="tbl-wrap"><table id="rdcReviewTable"><tr><th></th><th>Date</th><th>Status</th><th>Grand total</th><th>Variance</th><th>Submitted</th><th>Review</th><th>Action</th></tr><tr><td colspan="8" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
+  </div>
+  <div class="card" id="rdcCommentsPanel" style="display:none;margin-top:1rem">
+    <div class="card-header">
+      <span class="card-title" id="rdcCommentsTitle">Comment thread</span>
+      <button class="btn btn-sm" type="button" onclick="rdcCloseComments()">Close</button>
+    </div>
+    <input type="hidden" id="rdcCommentsDate" value="">
+    <div id="rdcCommentsList" style="margin-bottom:.8rem"></div>
+    <div class="form-group" style="margin:0">
+      <label>Add comment</label>
+      <textarea class="textarea-inp" id="rdcCommentsInput" rows="2" placeholder="Note for accountant / review trail…"></textarea>
+    </div>
+    <div style="margin-top:.6rem"><button class="btn btn-sm btn-red" type="button" onclick="rdcPostComment()">Post comment</button></div>
   </div>
 </div>
 
@@ -1183,14 +1122,14 @@ canvas{display:block;width:100%!important}
     <div class="metric-card"><div class="metric-label">Edit requests</div><div class="metric-value">—</div></div>
   </div>
 
-  <div class="page-section-label">Reporting &amp; handoff</div>
-  <div class="card" id="mgrHandoffCard" style="margin-bottom:1rem"><div style="padding:1rem;color:var(--gray-mid)">Loading handoff…</div></div>
+  <div class="page-section-label">Daily checklist &amp; handoff</div>
+  <div class="card" id="mgrHandoffCard" style="margin-bottom:1rem"><div style="padding:1rem;color:var(--gray-mid)">Loading checklist…</div></div>
 
   <div class="page-section-label">Approvals &amp; alerts</div>
   <div class="two-col" style="margin-bottom:1rem">
     <div class="card" id="mgrExceptionsCard"><div style="padding:1rem;color:var(--gray-mid)">Loading exceptions…</div></div>
     <div class="card">
-      <div class="card-header"><span class="card-title">Sales awaiting confirmation</span><span class="badge bd">5 pending</span></div>
+      <div class="card-header"><span class="card-title">Sales awaiting confirmation</span><span class="badge bd" id="mgrPendingSalesBadge">—</span></div>
       <div class="tbl-wrap"><table id="mgrPendingSalesTable">
         <tr><th>User</th><th>Vehicle</th><th>Customer</th><th>Amount</th><th>Time</th><th>Action</th></tr>
         <tr><td colspan="6" style="color:var(--gray-mid)">Loading…</td></tr>
@@ -1201,7 +1140,7 @@ canvas{display:block;width:100%!important}
 
 <!-- CCBA DAILY BOARDS (Inventory + OCCD) -->
 <div class="page" id="page-manager-ccba-boards">
-  <div class="alert a-info"><span>ℹ</span><strong>Daily CCBA reporting:</strong> Digitize your physical whiteboards — fill inventory and OCCD dashboard here each day before submitting to CCBA.</div>
+  <div class="alert a-info"><span>ℹ</span><strong>Daily CCBA reporting:</strong> Fill Inventory + OCCD boards here. When submitted, their figures are pulled into the executive brief PDF. You can still send the brief without them. SKU map is one-time setup for MyCCBA orders (not sent to executives).</div>
   <div class="occd-toolbar">
     <div class="occd-toolbar-left">
       <strong style="font-size:13px">Board date</strong>
@@ -1218,11 +1157,11 @@ canvas{display:block;width:100%!important}
   <div class="occd-module-tabs" id="occdModuleTabs">
     <button type="button" class="occd-module-tab active" data-occd-tab="inventory" onclick="switchOccdTab('inventory')">Inventory board</button>
     <button type="button" class="occd-module-tab" data-occd-tab="occd" onclick="switchOccdTab('occd')">OCCD dashboard</button>
-    <button type="button" class="occd-module-tab" data-occd-tab="sku-map" onclick="switchOccdTab('sku-map')">SKU map</button>
+    <button type="button" class="occd-module-tab" data-occd-tab="sku-map" onclick="switchOccdTab('sku-map')">SKU map (setup)</button>
   </div>
   <div id="occdBoardsRoot"></div>
   <div class="occd-tab-panel" data-occd-panel="sku-map" id="occdSkuMapPanel">
-    <div class="alert a-info" style="margin-top:1rem"><span>ℹ</span>Map depot product SKUs to CCBA catalog codes for replenishment orders and warehouse snapshots.</div>
+    <div class="alert a-info" style="margin-top:1rem"><span>ℹ</span><strong>What this is:</strong> Match each depot product to its <strong>CCBA catalog code</strong> so MyCCBA orders and warehouse snapshots use the right SKUs. This is setup — not a daily board and not part of the executive brief.</div>
     <div class="btn-group">
       <button class="btn" onclick="loadCcbaProductMap()">Refresh</button>
       <button class="btn btn-black" onclick="runCcbaStockSync()">Save warehouse snapshot</button>
@@ -1291,7 +1230,7 @@ canvas{display:block;width:100%!important}
     </div>
   </div>
   <div class="page-section">
-    <div class="page-section-label">2. Deliveries &amp; confirmation</div>
+    <div class="page-section-label">2. Deliveries &amp; dispatch</div>
     <div class="btn-group" style="margin-bottom:.8rem">
       <button class="btn btn-red" onclick="openModal('incomingModal')">+ Record Coca-Cola delivery</button>
       <button class="btn" onclick="openModal('dispatchModal')">Dispatch vehicle</button>
@@ -1307,36 +1246,20 @@ canvas{display:block;width:100%!important}
       </p>
       <div id="mgrDeliveryConfirmList"><p style="color:var(--gray-mid)">Loading…</p></div>
     </div>
-    <div class="card">
-      <div class="card-header"><span class="card-title">Monthly fixed costs</span><button class="btn btn-sm btn-red" onclick="saveManagerFixedCosts()">Save</button></div>
-      <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">Director P&amp;L uses these as daily allocation (monthly ÷ days).</p>
-      <div class="form-group"><label>Rent (UGX / month)</label><input class="input" id="mgrFixedRent" type="number" min="0" step="1000"></div>
-      <div class="form-group"><label>Salaries (UGX / month)</label><input class="input" id="mgrFixedSalaries" type="number" min="0" step="1000"></div>
-      <div class="form-group"><label>Utilities (UGX / month)</label><input class="input" id="mgrFixedUtilities" type="number" min="0" step="1000"></div>
-      <div class="form-group"><label>Security (UGX / month)</label><input class="input" id="mgrFixedSecurity" type="number" min="0" step="1000"></div>
-      <div class="form-group"><label>Other fixed (UGX / month)</label><input class="input" id="mgrFixedOther" type="number" min="0" step="1000"></div>
-      <div class="recon-row"><span>Monthly total</span><strong id="mgrFixedMonthlyTotal">UGX 0</strong></div>
-      <div class="form-group"><label>Notes</label><textarea class="textarea-inp" id="mgrFixedNotes" rows="2"></textarea></div>
-    </div>
-  </div>
-  <div class="page-section">
-    <div class="page-section-label">Stock &amp; deliveries today</div>
     <div class="two-col">
-    <div class="card">
-      <div class="card-header"><span class="card-title">Current warehouse stock</span><span class="chip">Updated 14:30</span></div>
-      <div class="tbl-wrap"><table id="mgrStockTable">
-        <tr><th>Product</th><th>SKU</th><th>Warehouse</th><th>With vehicles</th><th>Sold today</th><th>Level</th></tr>
-        <tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr>
-      </table></div>
-    </div>
-    <div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Current warehouse stock</span></div>
+        <div class="tbl-wrap"><table id="mgrStockTable">
+          <tr><th>Product</th><th>SKU</th><th>Warehouse</th><th>With vehicles</th><th>Sold today</th><th>Level</th></tr>
+          <tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr>
+        </table></div>
+      </div>
       <div class="card">
         <div class="card-header"><span class="card-title">Coca-Cola delivery records — today</span><button class="btn btn-sm btn-red" onclick="openModal('incomingModal')">+ Record</button></div>
         <div id="deliveryList">
           <p style="padding:1rem;color:var(--gray-mid)">Loading deliveries…</p>
         </div>
       </div>
-    </div>
     </div>
   </div>
 </div>
@@ -1345,8 +1268,11 @@ canvas{display:block;width:100%!important}
 <div class="page" id="page-director-brief">
   <div class="alert a-info" id="directorBriefAlert" style="display:none"></div>
   <div class="rdc-bal-toolbar">
-    <span class="chip">Director brief — <span id="dirBriefDate">today</span></span>
-    <button class="btn btn-sm" onclick="loadDirectorBriefPage()" style="margin-left:auto">Refresh</button>
+    <span class="chip">Director brief</span>
+    <input class="input" type="date" id="dirBriefDatePicker" style="width:auto;min-height:36px" onchange="loadDirectorBriefPage()">
+    <button class="btn btn-sm" type="button" onclick="directorBriefSetDate(0)">Today</button>
+    <button class="btn btn-sm" type="button" onclick="directorBriefSetDate(-1)">Yesterday</button>
+    <button class="btn btn-sm" type="button" onclick="loadDirectorBriefPage()" style="margin-left:auto">Refresh</button>
   </div>
   <div class="metric-grid">
     <div class="metric-card hi"><div class="metric-label">Revenue</div><div class="metric-value" id="dirRevenue">—</div></div>
@@ -1388,7 +1314,7 @@ canvas{display:block;width:100%!important}
     <button class="btn" onclick="ccbaSaveDraft(true)">Mark ready</button>
     <button class="btn btn-black" onclick="ccbaSubmitToPortal()">Submit &amp; open MyCCBA</button>
     <button class="btn" onclick="ccbaOpenPortal()">Open MyCCBA</button>
-    <button class="btn" onclick="ccbaExportCsv()">Export CSV</button>
+    <button class="btn" onclick="ccbaExportCsv()">Export Excel</button>
   </div>
   <div class="two-col">
     <div class="card">
@@ -1428,7 +1354,7 @@ canvas{display:block;width:100%!important}
 
 <div class="page" id="page-manager-reports">
   <div class="btn-group">
-    <button class="btn btn-red" onclick="LapokAPI.exportCsv('sales')">Export CSV</button>
+    <button class="btn btn-red" onclick="LapokAPI.exportCsv('sales')">Export Excel</button>
     <button class="btn" onclick="loadReportsTab('sales')">Refresh</button>
   </div>
   <div class="two-col">
@@ -1700,31 +1626,6 @@ canvas{display:block;width:100%!important}
   <div class="modal-actions"><button class="btn" onclick="closeModal('dispatchModal')">Cancel</button><button class="btn btn-red" onclick="saveDispatch(this)">Confirm dispatch</button></div>
 </div></div>
 
-<div class="modal-overlay" id="addVehicleModal"><div class="modal">
-  <div class="modal-handle"></div>
-  <div class="modal-title">Add vehicle</div>
-  <div class="form-row"><div class="form-group"><label>Vehicle type</label><select class="select-inp"><option>Truck</option><option>Tuktuk</option></select></div><div class="form-group"><label>Registration / ID</label><input class="input" placeholder="e.g. UAP 445Z or TUK-003"></div></div>
-  <div class="form-row"><div class="form-group"><label>Make / model</label><input class="input" placeholder="e.g. Isuzu NPR"></div><div class="form-group"><label>Capacity (crates)</label><input class="input" type="number" placeholder="e.g. 150"></div></div>
-  <div class="form-row"><div class="form-group"><label>Assign driver / rider</label><select class="select-inp"><option>None</option><option>David Ssemuju</option><option>Grace Apio</option><option>Ruth Nambi</option><option>Joseph Okello</option></select></div><div class="form-group"><label>Status</label><select class="select-inp"><option>Active</option><option>Inactive</option></select></div></div>
-  <div class="modal-actions"><button class="btn" onclick="closeModal('addVehicleModal')">Cancel</button><button class="btn btn-red" onclick="closeModal('addVehicleModal');alert('Vehicle added to fleet.')">Save vehicle</button></div>
-</div></div>
-
-<div class="modal-overlay" id="vehicleDetailModal"><div class="modal">
-  <div class="modal-handle"></div>
-  <div class="modal-title">Vehicle — KCA 201T</div>
-  <div class="tbl-wrap"><table style="min-width:240px">
-    <tr><td style="color:var(--gray-mid);width:130px;font-size:12px">Registration</td><td><strong>KCA 201T</strong></td></tr>
-    <tr><td style="color:var(--gray-mid);font-size:12px">Type</td><td><span class="badge b-truck">Truck</span></td></tr>
-    <tr><td style="color:var(--gray-mid);font-size:12px">Model</td><td>Isuzu NPR</td></tr>
-    <tr><td style="color:var(--gray-mid);font-size:12px">Assigned to</td><td>Ruth Nambi</td></tr>
-    <tr><td style="color:var(--gray-mid);font-size:12px">Capacity</td><td>150 crates</td></tr>
-    <tr><td style="color:var(--gray-mid);font-size:12px">Current load</td><td>120 crates</td></tr>
-    <tr><td style="color:var(--gray-mid);font-size:12px">Route today</td><td>Kampala Central</td></tr>
-    <tr><td style="color:var(--gray-mid);font-size:12px">Status</td><td><span class="badge bs">On route</span></td></tr>
-  </table></div>
-  <div class="modal-actions"><button class="btn" onclick="closeModal('vehicleDetailModal')">Close</button><button class="btn btn-red" onclick="closeModal('vehicleDetailModal');alert('Vehicle marked inactive.')">Mark inactive</button></div>
-</div></div>
-
 <div class="modal-overlay" id="addCustModal"><div class="modal">
   <div class="modal-handle"></div>
   <div class="modal-title">Add new customer</div>
@@ -1815,7 +1716,7 @@ canvas{display:block;width:100%!important}
 </div></div>
 
 <script src="assets/presentation-config.js?v=20260629"></script>
-<script src="assets/api.js?v=20260708n"></script>
+<script src="assets/api.js?v=20260713j"></script>
 <script>
 const ICONS={
   home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
@@ -1843,17 +1744,27 @@ const ROLES={
   ]},
   executive:{name:'Mary Atim',email:'executive@lapok.ug',pill:'rp-admin',badge:'Executive',nav:[
     {id:'admin-dashboard',l:'Executive dashboard',i:'home'},
+    {id:'director-brief',l:'Director brief',i:'chart'},
     {id:'report-exchange',l:'PDF reports',i:'receipt'},
-    {id:'admin-exceptions',l:'Exception center',i:'chart'},
-    {id:'admin-customers',l:'Receivables & customers',i:'custs'},
     {id:'admin-reports',l:'Reports & analytics',i:'chart'},
-    {id:'admin-audit',l:'Audit log',i:'edit'}
+    {id:'admin-exceptions',l:'Exception center',i:'chart'},
+    {id:'admin-customers',l:'Receivables overview',i:'custs'},
+    {id:'accountant-welfare',l:'Staff welfare',i:'edit'},
+    {id:'accountant-improvements',l:'Month-end',i:'chart'}
   ]},
   manager:{name:'Sarah Nakato',email:'manager@ccoutlet.ug',pill:'rp-manager',badge:'Manager',nav:[
     {id:'manager-dashboard',l:'Dashboard',i:'home'},
     {id:'manager-stock',l:'Stock taking',i:'box'},
+    {id:'manager-ccba-boards',l:'CCBA boards',i:'chart'},
+    {id:'manager-rdc-review',l:'RDC daily sheets',i:'chart'},
     {id:'report-exchange',l:'PDF reports',i:'receipt'},
-    {id:'manager-reports',l:'Reports',i:'chart'}
+    {id:'admin-exceptions',l:'Exception center',i:'chart'},
+    {id:'admin-editreqs',l:'Edit requests',i:'edit'},
+    {id:'admin-customers',l:'Customers & receivables',i:'custs'},
+    {id:'manager-ccba-order',l:'Order via MyCCBA',i:'box'},
+    {id:'manager-reports',l:'Reports',i:'chart'},
+    {id:'accountant-improvements',l:'Month-end',i:'chart'},
+    {id:'accountant-welfare',l:'Staff welfare',i:'edit'}
   ]},
   user:{name:'David Ssemuju',email:'david@ccoutlet.ug',pill:'rp-user',badge:'Field User',nav:[
     {id:'user-dashboard',l:'My dashboard',i:'home'},
@@ -1896,10 +1807,12 @@ document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click
 
 function confirmSale(btn){btn.textContent='✓ Done';btn.className='btn btn-sm';btn.disabled=true;btn.closest('tr').style.opacity='.5'}
 function approveReq(btn,action){
+  // Demo fallback — live app.js overrides this with the API-backed version.
   const row=btn.closest('tr');row.style.opacity='.5';
   row.querySelectorAll('button').forEach(b=>b.disabled=true);
   const last=row.cells[row.cells.length-1];
-  last.innerHTML=action==='approved'?'<span class="badge bs">Approved</span>':'<span class="badge bd">Rejected</span>';
+  const ok=action==='approved'||action==='approve';
+  last.innerHTML=ok?'<span class="badge bs">Approved</span>':'<span class="badge bd">Rejected</span>';
 }
 function filterTable(tid,q){document.querySelectorAll('#'+tid+' tr:not(:first-child)').forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(q.toLowerCase())?'':'none'})}
 function searchCustomers(q){document.querySelectorAll('#customerList .cust-card').forEach(c=>{c.style.display=c.textContent.toLowerCase().includes(q.toLowerCase())?'':'none'})}
@@ -1966,11 +1879,13 @@ Thank you for your business!
 }
 function printReceipt(){if(document.getElementById('receiptPreview').textContent.includes('Fill in'))return alert('Generate a receipt first');alert('Receipt sent to printer / WhatsApp')}
 
-/* ── CHARTS ── */
-const days=Array.from({length:30},(_,i)=>String(i+1));
-const sales=  [3.1,3.8,4.2,3.9,4.8,5.1,4.4,3.6,4.0,4.7,5.2,4.9,3.8,4.1,4.5,5.0,4.8,3.9,4.2,4.6,5.1,4.4,3.7,4.0,4.9,5.3,4.6,4.1,4.5,3.72];
-const expenses=[2.1,2.5,2.8,2.6,3.1,3.3,2.9,2.4,2.7,3.1,3.4,3.2,2.5,2.7,3.0,3.2,3.1,2.6,2.8,3.0,3.3,2.9,2.5,2.7,3.2,3.4,3.0,2.7,2.9,2.51];
-const profit=sales.map((s,i)=>+(s-expenses[i]).toFixed(2));
+/* ── CHARTS (mutable — loadLiveCharts overwrites with API data) ── */
+let days=Array.from({length:30},(_,i)=>String(i+1));
+let sales=  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+let expenses=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+let profit=sales.map((s,i)=>0);
+let productShareData=[];
+let monthlyChart={labels:['—'],sales:[0],expenses:[0],profit:[0]};
 
 function rRect(ctx,x,y,w,h,r){
   if(h<0){y+=h;h=-h}r=Math.min(r,h/2,w/2);
@@ -1981,31 +1896,36 @@ function rRect(ctx,x,y,w,h,r){
 }
 
 let chartsDrawn=false;
-function drawCharts(){if(chartsDrawn)return;chartsDrawn=true;drawMainChart();drawDonutChart();drawProfitChart()}
+function drawCharts(){chartsDrawn=true;drawMainChart();drawDonutChart();drawProfitChart()}
 
 function drawMainChart(){
   const canvas=document.getElementById('mainChart');if(!canvas)return;
   const W=canvas.offsetWidth||500,H=180;canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
   canvas.style.width=W+'px';canvas.style.height=H+'px';
-  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
+  const ctx=canvas.getContext('2d');ctx.setTransform(1,0,0,1,0,0);ctx.scale(devicePixelRatio,devicePixelRatio);
   const pad={t:15,r:15,b:30,l:38};const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
-  const maxV=Math.ceil(Math.max(...sales,...expenses,...profit)*1.15);
-  const xStep=cw/(days.length-1);
+  const series=[...sales,...expenses,...profit];
+  const maxRaw=Math.max(0.1,...series);
+  const maxV=Math.ceil(maxRaw*1.15*10)/10 || 1;
+  const n=Math.max(2,days.length);
+  const xStep=cw/(n-1);
   ctx.clearRect(0,0,W,H);ctx.font='10px Inter,system-ui';
   for(let i=0;i<=4;i++){
     const y=pad.t+ch-ch*(i/4);
     ctx.strokeStyle='rgba(0,0,0,.06)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
     ctx.fillStyle='#9A9A9A';ctx.textAlign='right';ctx.fillText((maxV*i/4).toFixed(1),pad.l-5,y+3);
   }
-  [0,6,13,19,24,29].forEach(i=>{ctx.fillStyle='#9A9A9A';ctx.textAlign='center';ctx.fillText(days[i],pad.l+i*xStep,H-5)});
+  const tickIdx=[0,Math.floor((n-1)/4),Math.floor((n-1)/2),Math.floor(3*(n-1)/4),n-1];
+  tickIdx.forEach(i=>{if(days[i]==null)return;ctx.fillStyle='#9A9A9A';ctx.textAlign='center';ctx.fillText(String(days[i]),pad.l+i*xStep,H-5)});
   const profPts=profit.map((v,i)=>[pad.l+i*xStep,pad.t+ch-(v/maxV)*ch]);
   const g=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);g.addColorStop(0,'rgba(22,163,74,.12)');g.addColorStop(1,'rgba(22,163,74,0)');
   ctx.beginPath();profPts.forEach((p,i)=>i===0?ctx.moveTo(...p):ctx.lineTo(...p));
-  ctx.lineTo(pad.l+cw,pad.t+ch);ctx.lineTo(pad.l,pad.t+ch);ctx.closePath();ctx.fillStyle=g;ctx.fill();
+  ctx.lineTo(pad.l+(n-1)*xStep,pad.t+ch);ctx.lineTo(pad.l,pad.t+ch);ctx.closePath();ctx.fillStyle=g;ctx.fill();
   [[sales,'#D42B2B',false],[expenses,'#374151',true],[profit,'#16a34a',false]].forEach(([data,color,dash])=>{
     const pts=data.map((v,i)=>[pad.l+i*xStep,pad.t+ch-(v/maxV)*ch]);
     ctx.setLineDash(dash?[5,4]:[]);ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.lineCap='round';
     ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(...p):ctx.lineTo(...p));ctx.stroke();ctx.setLineDash([]);
+    if(!pts.length)return;
     const last=pts[pts.length-1];
     ctx.beginPath();ctx.arc(last[0],last[1],4,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
     ctx.beginPath();ctx.arc(last[0],last[1],2,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
@@ -2016,33 +1936,52 @@ function drawDonutChart(){
   const canvas=document.getElementById('donutChart');if(!canvas)return;
   const W=canvas.offsetWidth||260,H=180;canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
   canvas.style.width=W+'px';canvas.style.height=H+'px';
-  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
-  const data=[1840,820,610,520,420],colors=['#D42B2B','#374151','#D97706','#1d4ed8','#16a34a'];
-  const total=data.reduce((a,b)=>a+b,0),cx=W/2,cy=H/2-5,r=Math.min(cx,cy)-18,ir=r*0.58;
+  const ctx=canvas.getContext('2d');ctx.setTransform(1,0,0,1,0,0);ctx.scale(devicePixelRatio,devicePixelRatio);
+  const colors=['#D42B2B','#374151','#D97706','#1d4ed8','#16a34a','#7c3aed','#0891b2'];
+  const rows=(productShareData||[]).slice(0,7);
+  const data=rows.map(r=>Number(r.cartons||0));
+  const labels=rows.map(r=>String(r.name||'—'));
+  const total=data.reduce((a,b)=>a+b,0)||1;
+  const cx=W/2,cy=H/2-5,r=Math.min(cx,cy)-18,ir=r*0.58;
+  ctx.clearRect(0,0,W,H);
+  if(!rows.length){
+    ctx.font='12px Inter,system-ui';ctx.fillStyle='#9A9A9A';ctx.textAlign='center';
+    ctx.fillText('No MTD sales yet',cx,cy);
+    const legend=document.getElementById('donutLegend');
+    if(legend)legend.innerHTML='';
+    return;
+  }
   let angle=-Math.PI/2;
-  data.forEach((v,i)=>{const s=(v/total)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,angle,angle+s);ctx.closePath();ctx.fillStyle=colors[i];ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();angle+=s});
+  data.forEach((v,i)=>{const s=(v/total)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,angle,angle+s);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();angle+=s});
   ctx.beginPath();ctx.arc(cx,cy,ir,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
-  ctx.font='bold 13px Inter,system-ui';ctx.fillStyle='#0D0D0D';ctx.textAlign='center';ctx.fillText('4,210',cx,cy+2);
+  ctx.font='bold 13px Inter,system-ui';ctx.fillStyle='#0D0D0D';ctx.textAlign='center';ctx.fillText(total.toLocaleString(),cx,cy+2);
   ctx.font='10px Inter,system-ui';ctx.fillStyle='#9A9A9A';ctx.fillText('crates',cx,cy+14);
+  const legend=document.getElementById('donutLegend');
+  if(legend){
+    legend.innerHTML=labels.map((name,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${colors[i%colors.length]}"></div>${name}</div>`).join('');
+  }
 }
 
 function drawProfitChart(){
   const canvas=document.getElementById('profitChart');if(!canvas)return;
   const W=canvas.offsetWidth||700,H=130;canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
   canvas.style.width=W+'px';canvas.style.height=H+'px';
-  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
-  const months=['Jan','Feb','Mar','Apr','May*'],mp=[18.2,21.4,24.8,22.9,26.1],me=[13.1,15.3,17.6,16.1,18.4];
-  const mpr=mp.map((v,i)=>+(v-me[i]).toFixed(1));
+  const ctx=canvas.getContext('2d');ctx.setTransform(1,0,0,1,0,0);ctx.scale(devicePixelRatio,devicePixelRatio);
+  const months=monthlyChart.labels||['—'];
+  const mp=monthlyChart.sales||[0];
+  const me=monthlyChart.expenses||[0];
+  const mpr=monthlyChart.profit||mp.map((v,i)=>+(v-(me[i]||0)).toFixed(1));
   const pad={t:10,r:15,b:28,l:38},cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
-  const barW=cw/months.length,bw=Math.min(barW*0.22,18),maxV=Math.ceil(Math.max(...mp)*1.15);
+  const barW=cw/Math.max(1,months.length),bw=Math.min(barW*0.22,18);
+  const maxV=Math.ceil(Math.max(0.1,...mp,...me,...mpr)*1.15)||1;
   ctx.clearRect(0,0,W,H);ctx.font='10px Inter,system-ui';
   for(let i=0;i<=3;i++){const y=pad.t+ch-ch*(i/3);ctx.strokeStyle='rgba(0,0,0,.06)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();ctx.fillStyle='#9A9A9A';ctx.textAlign='right';ctx.fillText((maxV*i/3).toFixed(0),pad.l-5,y+3)}
   months.forEach((m,i)=>{
     const cx=pad.l+i*barW+barW/2;
-    [[mp[i],-bw*1.1,'#D42B2B'],[me[i],0,'#374151'],[mpr[i],bw*1.1,'#16a34a']].forEach(([val,off,color])=>{
+    [[mp[i]||0,-bw*1.1,'#D42B2B'],[me[i]||0,0,'#374151'],[mpr[i]||0,bw*1.1,'#16a34a']].forEach(([val,off,color])=>{
       const bh=(val/maxV)*ch,x=cx+off-bw/2,y=pad.t+ch-bh;
       const g=ctx.createLinearGradient(0,y,0,y+bh);g.addColorStop(0,color);g.addColorStop(1,color+'88');
-      ctx.fillStyle=g;rRect(ctx,x,y,bw,bh,3);ctx.fill();
+      ctx.fillStyle=g;rRect(ctx,x,y,bw,Math.max(bh,0),3);ctx.fill();
     });
     ctx.fillStyle='#9A9A9A';ctx.textAlign='center';ctx.fillText(m,cx,H-5);
   });
@@ -2052,17 +1991,20 @@ function drawReportChart(){
   const canvas=document.getElementById('reportChart');if(!canvas)return;
   const W=canvas.offsetWidth||600,H=180;canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
   canvas.style.width=W+'px';canvas.style.height=H+'px';
-  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
-  const s7=sales.slice(0,7),e7=expenses.slice(0,7),p7=profit.slice(0,7);
+  const ctx=canvas.getContext('2d');ctx.setTransform(1,0,0,1,0,0);ctx.scale(devicePixelRatio,devicePixelRatio);
+  const len=Math.min(7,sales.length,expenses.length,profit.length,days.length);
+  const s7=sales.slice(-len),e7=expenses.slice(-len),p7=profit.slice(-len),d7=days.slice(-len);
   const pad={t:15,r:15,b:30,l:38},cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
-  const maxV=Math.ceil(Math.max(...s7,...e7)*1.15),xStep=cw/6;
+  const maxV=Math.ceil(Math.max(0.1,...s7,...e7,...p7)*1.15)||1;
+  const xStep=len>1?cw/(len-1):cw;
   ctx.clearRect(0,0,W,H);ctx.font='10px Inter,system-ui';
   for(let i=0;i<=4;i++){const y=pad.t+ch-ch*(i/4);ctx.strokeStyle='rgba(0,0,0,.06)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();ctx.fillStyle='#9A9A9A';ctx.textAlign='right';ctx.fillText((maxV*i/4).toFixed(1),pad.l-5,y+3)}
-  s7.forEach((_,i)=>{ctx.fillStyle='#9A9A9A';ctx.textAlign='center';ctx.fillText('May '+days[i],pad.l+i*xStep,H-5)});
+  d7.forEach((lab,i)=>{ctx.fillStyle='#9A9A9A';ctx.textAlign='center';ctx.fillText(String(lab),pad.l+i*xStep,H-5)});
   [[s7,'#D42B2B',false],[e7,'#374151',true],[p7,'#16a34a',false]].forEach(([data,color,dash])=>{
     const pts=data.map((v,i)=>[pad.l+i*xStep,pad.t+ch-(v/maxV)*ch]);
     ctx.setLineDash(dash?[5,4]:[]);ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.lineCap='round';
     ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(...p):ctx.lineTo(...p));ctx.stroke();ctx.setLineDash([]);
+    if(!pts.length)return;
     const last=pts[pts.length-1];ctx.beginPath();ctx.arc(last[0],last[1],4,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
     ctx.beginPath();ctx.arc(last[0],last[1],2,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
   });
@@ -2072,21 +2014,23 @@ setInterval(()=>{const el=document.getElementById('clockChip');if(el)el.textCont
 window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementById('page-admin-dashboard').classList.contains('active'))setTimeout(drawCharts,150)});
 
 </script>
-<script src="assets/app.js"></script>
-<script src="assets/phase45.js"></script>
-<script src="assets/integration-placeholders.js"></script>
+<script src="assets/app.js?v=20260713m"></script>
+<script src="assets/phase45.js?v=20260713n"></script>
+<script src="assets/integration-placeholders.js?v=20260713e"></script>
 <script src="assets/report-exchange.js?v=20260703"></script>
-<script src="assets/manager-ops.js?v=20260708m"></script>
+<script src="assets/manager-ops.js?v=20260713j"></script>
+<script src="assets/occd-boards.js?v=20260713f"></script>
+<script src="assets/ccba.js?v=20260713e"></script>
 <script src="assets/rdc-balancing.js?v=20260708i"></script>
-<script src="assets/cash-handover.js?v=20260701"></script>
-<script src="assets/rdc-hub.js?v=20260708j"></script>
-<script src="assets/rdc-review.js?v=20260708i"></script>
-<script src="assets/accountant-improvements.js"></script>
+<script src="assets/cash-handover.js?v=20260713b"></script>
+<script src="assets/rdc-hub.js?v=20260713d"></script>
+<script src="assets/rdc-review.js?v=20260713g"></script>
+<script src="assets/accountant-improvements.js?v=20260713b"></script>
 <script src="assets/accountant-welfare.js?v=20260630"></script>
-<script src="assets/notifications.js?v=20260708j"></script>
+<script src="assets/notifications.js?v=20260713k"></script>
 <script src="assets/cadet-dashboard.js?v=20260708j"></script>
 <script src="assets/cadet-daily.js?v=20260708d"></script>
-<script src="assets/depot-snapshots.js?v=20260708m"></script>
-<script src="assets/director-brief.js?v=20260708c"></script>
+<script src="assets/depot-snapshots.js?v=20260713b"></script>
+<script src="assets/director-brief.js?v=20260713i"></script>
 </body>
 </html>

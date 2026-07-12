@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/simple_pdf.php';
+require_once __DIR__ . '/occd_boards.php';
 
 const REPORT_LEADERSHIP_ROLES = ['accountant', 'manager', 'executive', 'admin'];
 
@@ -718,10 +719,10 @@ function report_build_manager_layout(string $date, ?string $preparedBy = null): 
     $onRoute = (int) $pdo->query("SELECT COUNT(*) FROM vehicles WHERE status = 'on_route'")->fetchColumn();
     $vehicles = (int) $pdo->query("SELECT COUNT(*) FROM vehicles WHERE is_active = 1")->fetchColumn();
 
-    $inv = $pdo->prepare("SELECT status FROM manager_daily_boards WHERE board_date = ? AND board_type = 'inventory_board' LIMIT 1");
+    $inv = $pdo->prepare("SELECT status, submitted_at, payload_json FROM manager_daily_boards WHERE board_date = ? AND board_type = 'inventory_board' LIMIT 1");
     $inv->execute([$date]);
     $invRow = $inv->fetch();
-    $occd = $pdo->prepare("SELECT status FROM manager_daily_boards WHERE board_date = ? AND board_type = 'occd_dashboard' LIMIT 1");
+    $occd = $pdo->prepare("SELECT status, submitted_at, payload_json FROM manager_daily_boards WHERE board_date = ? AND board_type = 'occd_dashboard' LIMIT 1");
     $occd->execute([$date]);
     $occdRow = $occd->fetch();
 
@@ -744,6 +745,9 @@ function report_build_manager_layout(string $date, ?string $preparedBy = null): 
             'Cash variance: ' . simple_pdf_ugx((float) $sheetRow['variance']),
         ]
         : ['No RDC sheet submitted for this date.'];
+
+    $invLines = occd_inventory_brief_lines($invRow ?: null);
+    $occdLines = occd_dashboard_brief_lines($occdRow ?: null);
 
     return [
         'doc_title' => 'Executive operations brief - ' . $date,
@@ -769,11 +773,12 @@ function report_build_manager_layout(string $date, ?string $preparedBy = null): 
                 'lines' => $rdcLines,
             ],
             [
-                'heading' => 'CCBA boards',
-                'lines' => [
-                    'Inventory board: ' . ($invRow['status'] ?? 'not started'),
-                    'OCCD dashboard: ' . ($occdRow['status'] ?? 'not started'),
-                ],
+                'heading' => 'CCBA inventory board',
+                'lines' => $invLines,
+            ],
+            [
+                'heading' => 'CCBA OCCD dashboard',
+                'lines' => $occdLines,
             ],
             [
                 'heading' => 'Low stock',
@@ -839,7 +844,7 @@ function report_generate_pack(string $role, int $userId, string $date, ?string $
         $layout = report_build_manager_layout($date, $userName . ' (Manager)');
         $pdfTitle = $title ?: (string) $layout['doc_title'];
         $prefix = 'mgr-brief';
-        $summaryDefault = 'Executive operations brief generated from Outpost DMS data.';
+        $summaryDefault = 'Executive operations brief — includes CCBA inventory + OCCD boards when submitted.';
     }
     $layout['doc_title'] = $pdfTitle;
     if ($notes) {
@@ -891,10 +896,30 @@ function report_generate_pack(string $role, int $userId, string $date, ?string $
             }
         }
         $row = report_fetch_packet($prevId);
-        return $row ? report_format_packet($row, $role, $userId) : ['id' => $prevId];
+        $formatted = $row ? report_format_packet($row, $role, $userId) : ['id' => $prevId, 'to_role' => $toRole];
+        if ($toRole === 'executive') {
+            require_once __DIR__ . '/notifications.php';
+            $raw = $row ?: [
+                'id' => $prevId,
+                'to_role' => $toRole,
+                'title' => $pdfTitle,
+                'report_date' => $date,
+                'from_user_id' => $userId,
+            ];
+            $raw['to_role'] = $toRole;
+            // Re-alert on same-day replace so the bell lights again.
+            try {
+                db()->prepare(
+                    'DELETE FROM user_notifications WHERE body LIKE ?'
+                )->execute(['%#exec_pack_' . $prevId . '#%']);
+            } catch (Throwable) {
+            }
+            notify_executives_of_pack($raw, $userId);
+        }
+        return $formatted;
     }
 
-    return report_insert_packet(
+    $inserted = report_insert_packet(
         $reportType,
         $pdfTitle,
         $summary,
@@ -909,6 +934,19 @@ function report_generate_pack(string $role, int $userId, string $date, ?string $
         null,
         $notes
     );
+    if ($toRole === 'executive') {
+        require_once __DIR__ . '/notifications.php';
+        $raw = [
+            'id' => (int) ($inserted['id'] ?? 0),
+            'to_role' => $toRole,
+            'title' => $pdfTitle,
+            'packet_ref' => $inserted['packet_ref'] ?? null,
+            'report_date' => $date,
+            'from_user_id' => $userId,
+        ];
+        notify_executives_of_pack($raw, $userId);
+    }
+    return $inserted;
 }
 
 function report_create_field_eod(int $tripId, int $userId, string $userRole, float $cashReported, ?string $notes): ?array

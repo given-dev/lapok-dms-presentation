@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/permissions.php';
 require_once dirname(__DIR__, 2) . '/includes/rdc_balancing.php';
+require_once dirname(__DIR__, 2) . '/includes/rdc_comments.php';
 
 $user = require_login();
 if (!role_can($user['role'], 'rdc_balancing') && !role_can($user['role'], 'rdc_view') && !role_can($user['role'], 'rdc_review')) {
@@ -31,4 +32,25 @@ try {
     json_error('RDC tables not ready — run migrations 008 and 009.', 500);
 }
 
-json_ok(['month' => $month, 'sheets' => $sheets]);
+$pdo = db();
+$commentsReady = rdc_comments_table_ready($pdo);
+foreach ($sheets as &$sheet) {
+    $sheet['comment_count'] = $commentsReady
+        ? rdc_comments_count($pdo, (string) $sheet['balance_date'])
+        : 0;
+}
+unset($sheet);
+
+$pending = 0;
+foreach ($sheets as $s) {
+    if (in_array((string) $s['status'], ['submitted', 'under_review', 'reopened'], true)) {
+        $pending++;
+    }
+}
+
+json_ok([
+    'month' => $month,
+    'sheets' => $sheets,
+    'pending_review' => $pending,
+    'comments_ready' => $commentsReady,
+]);

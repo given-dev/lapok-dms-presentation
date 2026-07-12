@@ -42,7 +42,7 @@
 | Closing stock (7pm) | `manager-stock` | **Live** | Manager enters — RDC hub view-only |
 | Manager home landing | Login → `manager-dashboard` | **Live** | Dashboard #1; stock taking #2 with first-task card |
 | Manager confirm deliveries | `manager-stock` | **Live** | Confirm/reject today’s Coca-Cola deliveries; RDC hub shows pending status |
-| Monthly fixed costs | `manager-stock` | **Live** | Rent, salaries, utilities, security, other |
+| Monthly fixed costs | `accountant-improvements` (Month-end) | **Live** | Manager/admin edit — not on stock taking |
 | Director daily brief | `director-brief` | **Live** | P&L, shortages, expense ratio, 7pm readiness |
 
 ### Accountant — suggested additions
@@ -67,12 +67,14 @@
 
 | Feature | Page / area | Status | Notes |
 |---------|-------------|--------|-------|
-| Manager dashboard | `manager-dashboard` | **Live** | Ops metrics, handoff, pending sales |
-| RDC daily sheets review queue | `manager-rdc-review` | **Live** | Start review, approve, reject, reopen |
+| Manager dashboard | `manager-dashboard` | **Live** | Ordered daily checklist, RDC pending count, handoff |
+| RDC daily sheets review queue | `manager-rdc-review` | **Live** | Start review, approve, reject, reopen, **comments**, **bulk approve** |
 | Edit requests | `admin-editreqs` | **Live** | Approve / reject field edits |
 | Exception center | `admin-exceptions` | **Live** | Cross-role queue |
 | Customers & receivables | `admin-customers` | **Live** | Live totals + customer table |
 | Stock & deliveries | `manager-stock` | **Live** | Receive, confirm, dispatch |
+| CCBA boards | `manager-ccba-boards` | **Live** | Inventory board + OCCD dashboard + SKU map setup |
+| Order via MyCCBA | `manager-ccba-order` | **Live** | Replenishment order draft → portal |
 | PDF report exchange | `report-exchange` | **Live** | Full inbox/outbox chain |
 | Reports & analytics | `manager-reports` | **Live** | |
 
@@ -80,9 +82,9 @@
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Pending RDC reviews counter on dashboard | **Suggested** | Quick visibility without opening queue |
-| RDC review comment thread | **Suggested** | Multiple notes per sheet |
-| Bulk approve month-end RDC sheets | **Suggested** | If daily approve is too granular |
+| ~~Pending RDC reviews counter on dashboard~~ | **Live** | Checklist header + exception summary |
+| ~~RDC review comment thread~~ | **Live** | Migration **014** + Comments panel |
+| ~~Bulk approve month-end RDC sheets~~ | **Live** | Checkbox select + bulk approve on review queue |
 
 ---
 
@@ -90,11 +92,30 @@
 
 | Feature | Page / area | Status | Notes |
 |---------|-------------|--------|-------|
-| Executive dashboard | `admin-dashboard` | **Live** | Read-only |
-| PDF inbox | `report-exchange` | **Live** | Manager brief |
+| Executive dashboard | `admin-dashboard` | **Live** | Daily checklist + director P&L widget; hides admin action center |
+| Director brief | `director-brief` | **Live** | Today / yesterday / date picker P&L |
+| PDF inbox | `report-exchange` | **Live** | Acknowledge manager brief |
+| Pack-arrival bell | Notifications | **Live** | Unread when manager sends/replaces executive brief |
 | Reports & analytics | `admin-reports` | **Live** | |
-| Exception center | `admin-exceptions` | **Live** | |
+| Exception center | `admin-exceptions` | **Live** | Monitor only (no ops deep-links) |
 | Receivables overview | `admin-customers` | **Live** | |
+| Staff welfare / month-end | `accountant-welfare`, `accountant-improvements` | **Live** | View only |
+
+---
+
+## Admin module (system owner)
+
+| Feature | Page / area | Status | Notes |
+|---------|-------------|--------|-------|
+| Admin dashboard | `admin-dashboard` | **Live** | Daily checklist + action center; live charts |
+| User management | `admin-users` | **Live** | |
+| Audit log | `admin-audit` | **Live** | |
+| Customers & receivables | `admin-customers` | **Live** | |
+| Edit requests | `admin-editreqs` | **Live** | |
+| Exception center | `admin-exceptions` | **Live** | |
+| PDF reports | `report-exchange` | **Live** | |
+| Reports & analytics | `admin-reports` | **Live** | |
+| Month-end / welfare | `accountant-improvements`, `accountant-welfare` | **Live** | Admin can edit |
 
 ---
 
@@ -115,20 +136,10 @@ Month-end (last 3 days): banner on Home → accountant-improvements
 
 | Item | Status | Notes |
 |------|--------|-------|
+| Role ownership bounce | **Live** | `roleBlockedPages` + toast — see `SYSTEMS_BUILDING_GUIDE.md` §9 |
 | CCBA bank feed | **Deferred** | Phase 2 |
 | EFRIS fiscal | **Deferred** | Phase 2 — see `EFRIS_FISCAL_INTEGRATION_BLUEPRINT.md` |
 | PDF report chain | **Live** | Accountant → Manager → Executive |
-
----
-
-## Admin module
-
-| Feature | Page / area | Status | Notes |
-|---------|-------------|--------|-------|
-| Admin dashboard | `admin-dashboard` | **Live** | |
-| User management | `admin-users` | **Live** | |
-| Audit log | `admin-audit` | **Live** | |
-| Exception center | `admin-exceptions` | **Live** | |
 
 ---
 
@@ -137,3 +148,10 @@ Month-end (last 3 days): banner on Home → accountant-improvements
 | Feature | Page / area | Status | Notes |
 |---------|-------------|--------|-------|
 | Limited dashboard | `manager-dashboard` | **Partial** | Field login subset |
+
+---
+
+## Migrations (local DB)
+
+Catalog and apply-all PowerShell live in [`README.md`](../README.md) § Database setup (**001–014**). Required for this build: **008–014** (plus **003**, **005**, **011** for boards / PDF / bell).
+

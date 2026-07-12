@@ -100,7 +100,7 @@ Don’t stay on “random PHP files forever.” Grow in layers:
 
 1. Clean structure (folders for pages, APIs, includes)  
 2. **PDO + prepared statements** (never glue user input into SQL strings)  
-3. Auth: sessions, password hashing, roles (cadet / RDC / manager / admin)  
+3. Auth: sessions, password hashing, roles (cadet / RDC / manager / executive / admin)  
 4. Migrations / schema discipline (don’t edit production DB by hand)  
 5. Background-ish jobs where needed (exports, emails, sync)  
 6. Optional next step: **Laravel** for routes, auth scaffolds, migrations, security defaults  
@@ -265,6 +265,38 @@ Our product is a **business operations system** (roles, daily close, reports, ap
 - Hosting must protect **financial and operational data**.  
 - Role-based access (cadet / RDC / manager / executive / admin) is not optional — it is security.  
 - Backups and audit of critical daily sheets matter as much as new features.
+
+### Reporting chain (who owns what)
+
+```
+Cadet (field)  →  Accountant / RDC  →  Manager  →  Executive (board / MD)
+```
+
+| Role | Owns | Does not own |
+|------|------|--------------|
+| Cadet | Daily field report | Depot balancing, stock counts |
+| Accountant (RDC) | Daily balancing, cash confirm, manager pack | Opening/closing stock, executive brief |
+| Manager | Stock taking, RDC review, CCBA boards, executive brief | Cash confirm (RDC), month-end checklist edits |
+| Executive | Monitor + acknowledge PDF pack | Ops fixes, approvals, cash |
+| Admin | Users, audit, system | Day-to-day depot close |
+
+Wrong-role pages should bounce home — that is intentional security, not a bug.
+
+### Where to look (docs map)
+
+| Doc | Use it for |
+|-----|------------|
+| `README.md` | Login, demo accounts, quick start |
+| `docs/MODULE_TRACKER.md` | What is Live / Partial / Deferred per module |
+| `docs/SYSTEMS_BUILDING_GUIDE.md` | Stack, hosting, security vocabulary (this file) |
+| `docs/*_BLUEPRINT.md` | Phase 2 integrations (CCBA, EFRIS) |
+
+### Local habits that close real gaps
+
+1. **Migrations** — new tables/columns go in `database/migrations/`, then apply on XAMPP MySQL (don’t invent columns only in the UI).  
+2. **Hard refresh (Ctrl+F5)** after JS/CSS changes — scripts are cache-busted with `?v=…`.  
+3. **Demo passwords** (`password123`) are for local demos only — never use them in production.  
+4. **Role walkthroughs** — when polishing a role, walk the sidebar top to bottom as that user; fix ownership leaks (edit buttons, deep-links) before adding features.
 
 ---
 

@@ -86,12 +86,179 @@ async function loadAdminDashboard() {
       setTrend(3, d.cartons_today_delta_pct, 'vs yesterday');
       setTrend(4, d.revenue_mtd_delta_pct, 'vs same days last month');
       set('#page-admin-dashboard .metric-grid .metric-card:nth-child(6) .metric-sub', `${d.pending_orders} sales pending`);
+      loadExecutiveHomeExtras(d);
     }
     if (currentUser.role === 'admin') {
+      loadAdminHomeExtras(d);
       loadAdminActionCenter(d);
     }
   } catch (e) { console.warn('Admin dashboard:', e.message); }
 }
+
+async function refreshAdminHome() {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  await Promise.allSettled([loadAdminDashboard(), loadLiveCharts()]);
+}
+window.refreshAdminHome = refreshAdminHome;
+
+async function loadAdminHomeExtras(cachedDashboard = null) {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  const checklist = document.getElementById('adminDailyChecklist');
+  const body = document.getElementById('adminChecklistBody');
+  const actionCard = document.getElementById('adminActionCenterCard');
+  const execCheck = document.getElementById('execDailyChecklist');
+  const reportLine = document.getElementById('admReportingLine');
+  if (execCheck) execCheck.style.display = 'none';
+  if (checklist) checklist.style.display = '';
+  if (actionCard) actionCard.style.display = '';
+  if (reportLine) {
+    reportLine.innerHTML = '<strong>Admin view:</strong> Keep users and approvals healthy, watch the exception radar, then confirm the Cadet → RDC → Manager → Executive reporting chain is moving.';
+  }
+  if (!body) return;
+  try {
+    const d = cachedDashboard || await LapokAPI.get('/api/dashboard/admin.php');
+    const pending = Number(d.pending_requests || 0);
+    const exc = Number(d.exception_count || 0);
+    const low = Number(d.low_stock_count ?? (d.low_stock || []).length);
+    const active = Number(d.active_users || 0);
+    const inactive = Number(d.inactive_users || 0);
+    const welfare = Number(d.welfare_open_count || 0);
+    const briefs = Number(d.exec_briefs_open || 0);
+    const rdc = Number(d.rdc_pending_review || 0);
+    const sales = Number(d.pending_orders || 0);
+    const auditToday = Number(d.audit_today || 0);
+
+    body.innerHTML = `
+      <tr>
+        <td>1</td><td>User management</td>
+        <td><span class="badge bs">${active} active</span>
+          ${inactive ? `<span class="badge bw">${inactive} inactive</span>` : ''}</td>
+        <td><button class="btn btn-sm" onclick="showPage('admin-users')">Users</button></td>
+      </tr>
+      <tr>
+        <td>2</td><td>Edit requests</td>
+        <td><span class="badge ${pending ? 'bd' : 'bs'}">${pending} pending</span></td>
+        <td><button class="btn btn-sm ${pending ? 'btn-red' : ''}" onclick="showPage('admin-editreqs')">Review</button></td>
+      </tr>
+      <tr>
+        <td>3</td><td>Exception center</td>
+        <td><span class="badge ${exc ? 'bw' : 'bs'}">${exc} open</span>
+          <span style="font-size:11px;color:var(--gray-mid)"> · ${low} low stock</span></td>
+        <td><button class="btn btn-sm ${exc ? 'btn-red' : ''}" onclick="showPage('admin-exceptions')">Open</button></td>
+      </tr>
+      <tr>
+        <td>4</td><td>Reporting chain health</td>
+        <td><span class="badge ${rdc ? 'bw' : 'bs'}">${rdc} RDC pending</span>
+          <span class="badge ${briefs ? 'bw' : 'bs'}">${briefs} exec packs open</span>
+          <span class="badge ${sales ? 'bw' : 'bs'}">${sales} sales pending</span></td>
+        <td><button class="btn btn-sm" onclick="showPage('report-exchange')">PDF reports</button></td>
+      </tr>
+      <tr>
+        <td>5</td><td>Audit log</td>
+        <td><span class="badge ${auditToday ? 'bw' : 'bs'}">${auditToday} today</span></td>
+        <td><button class="btn btn-sm" onclick="showPage('admin-audit')">Open audit</button></td>
+      </tr>
+      <tr>
+        <td>6</td><td>Welfare / month-end</td>
+        <td><span class="badge ${welfare ? 'bw' : 'bs'}">${welfare} welfare open</span></td>
+        <td><button class="btn btn-sm" onclick="showPage('accountant-welfare')">Welfare</button>
+          <button class="btn btn-sm" onclick="showPage('accountant-improvements')">Month-end</button></td>
+      </tr>`;
+  } catch (e) {
+    console.warn('Admin extras:', e.message);
+    body.innerHTML = `<tr><td colspan="4" style="color:var(--gray-mid)">Could not load checklist. <button class="btn btn-sm" onclick="refreshAdminHome()">Retry</button></td></tr>`;
+  }
+}
+
+window.loadAdminHomeExtras = loadAdminHomeExtras;
+
+function execBriefBadge(status) {
+  const s = String(status || '');
+  if (s === 'acknowledged') return '<span class="badge bs">Acknowledged</span>';
+  if (s === 'read') return '<span class="badge bi">Read</span>';
+  if (s === 'sent') return '<span class="badge bw">New</span>';
+  if (!s) return '<span class="badge bg">None yet</span>';
+  return `<span class="badge bg">${s}</span>`;
+}
+
+async function loadExecutiveHomeExtras(cachedDashboard = null) {
+  if (!currentUser || currentUser.role !== 'executive') return;
+  const checklist = document.getElementById('execDailyChecklist');
+  const body = document.getElementById('execChecklistBody');
+  const actionCard = document.getElementById('adminActionCenterCard');
+  const reportLine = document.getElementById('admReportingLine');
+  if (actionCard) actionCard.style.display = 'none';
+  if (checklist) checklist.style.display = '';
+  const adminCheck = document.getElementById('adminDailyChecklist');
+  if (adminCheck) adminCheck.style.display = 'none';
+  if (reportLine) {
+    reportLine.innerHTML = '<strong>Executive view:</strong> Monitor depot KPIs, open Director brief, then acknowledge the manager PDF pack. Operational fixes belong to Manager / RDC.';
+  }
+  if (!body) return;
+  try {
+    const d = cachedDashboard || await LapokAPI.get('/api/dashboard/executive.php');
+    const brief = d.latest_brief;
+    const unread = Number(d.unread_briefs || 0);
+    const exc = Number(d.exception_count || 0);
+    const recvN = Number(d.receivables_count || 0);
+    const recvT = Number(d.receivables_total || 0);
+    const welfare = Number(d.welfare_open_count || 0);
+    const dir = d.director || {};
+    const readiness = dir.readiness || '—';
+    const readinessOk = readiness === 'on_track';
+    const readinessLabel = ({
+      on_track: 'On track',
+      opening_missing: 'Opening missing',
+      due: 'Close due',
+      late: 'Late',
+    })[readiness] || readiness;
+    const netOp = dir.net_operating != null ? LapokAPI.formatUgx(dir.net_operating) : '—';
+    const rdcSt = dir.rdc_status ? String(dir.rdc_status).replace(/_/g, ' ') : '—';
+
+    const briefStatus = brief
+      ? execBriefBadge(brief.status) + (brief.packet_ref ? ` <span style="font-size:11px;color:var(--gray-mid)">${brief.packet_ref}</span>` : '')
+      : '<span class="badge bg">Awaiting manager</span>';
+    const briefAction = brief
+      ? `<button class="btn btn-sm ${brief.status !== 'acknowledged' ? 'btn-red' : ''}" onclick="showPage('report-exchange')">Open inbox</button>`
+      : '<button class="btn btn-sm" onclick="showPage(\'report-exchange\')">PDF reports</button>';
+
+    body.innerHTML = `
+      <tr>
+        <td>1</td><td>Director brief (today P&amp;L)</td>
+        <td><span class="badge ${readinessOk ? 'bs' : 'bw'}">${readinessLabel}</span>
+          <span style="font-size:11px;color:var(--gray-mid)"> · Net ${netOp} · RDC ${rdcSt}</span></td>
+        <td><button class="btn btn-sm btn-red" onclick="showPage('director-brief')">Open brief</button></td>
+      </tr>
+      <tr>
+        <td>2</td><td>Manager PDF pack${unread ? ` <span class="badge bd">${unread} open</span>` : ''}</td>
+        <td>${briefStatus}</td>
+        <td>${briefAction}</td>
+      </tr>
+      <tr>
+        <td>3</td><td>Exception radar</td>
+        <td><span class="badge ${exc ? 'bw' : 'bs'}">${exc} open</span></td>
+        <td><button class="btn btn-sm" onclick="showPage('admin-exceptions')">Monitor</button></td>
+      </tr>
+      <tr>
+        <td>4</td><td>Receivables overview</td>
+        <td><span class="badge ${recvN ? 'bw' : 'bs'}">${recvN} accounts</span>
+          <span style="font-size:11px;color:var(--gray-mid)"> · ${LapokAPI.formatUgx(recvT)}</span></td>
+        <td><button class="btn btn-sm" onclick="showPage('admin-customers')">Open</button></td>
+      </tr>
+      <tr>
+        <td>5</td><td>Staff welfare / month-end</td>
+        <td><span class="badge ${welfare ? 'bw' : 'bs'}">${welfare} welfare open</span></td>
+        <td><button class="btn btn-sm" onclick="showPage('accountant-welfare')">Welfare</button>
+          <button class="btn btn-sm" onclick="showPage('accountant-improvements')">Month-end</button></td>
+      </tr>`;
+    if (typeof loadDirectorBriefWidget === 'function') loadDirectorBriefWidget();
+  } catch (e) {
+    console.warn('Executive extras:', e.message);
+    body.innerHTML = `<tr><td colspan="4" style="color:var(--gray-mid)">Could not load checklist. <button class="btn btn-sm" onclick="loadExecutiveHomeExtras()">Retry</button></td></tr>`;
+  }
+}
+
+window.loadExecutiveHomeExtras = loadExecutiveHomeExtras;
 
 async function loadAdminActionCenter(cachedDashboard = null) {
   if (currentUser?.role !== 'admin') return;
@@ -99,13 +266,16 @@ async function loadAdminActionCenter(cachedDashboard = null) {
   if (!tbody) return;
   try {
     const d = cachedDashboard || await LapokAPI.get('/api/dashboard/admin.php');
-    const exc = await LapokAPI.get('/api/exceptions/fetch.php');
+    const recvCount = Number(d.receivables_count || 0);
+    const recvTotal = Number(d.receivables_total || 0);
     const rows = [
       ['High', 'Pending edit requests', d.pending_requests || 0, "showPage('admin-editreqs')"],
-      ['High', 'Exception queue items', (exc.items || []).length, "showPage('admin-exceptions')"],
-      ['Medium', 'Low stock alerts', (d.low_stock || []).length, "showPage('admin-exceptions')"],
-      ['Medium', 'Vehicles out now', d.vehicles_out || 0, "showPage('admin-dashboard')"],
-      ['Low', 'Receivables follow-up', 'Open', "showPage('admin-customers')"],
+      ['High', 'Exception queue items', d.exception_count || 0, "showPage('admin-exceptions')"],
+      ['Medium', 'Low stock alerts', d.low_stock_count ?? (d.low_stock || []).length, "showPage('admin-exceptions')"],
+      ['Medium', 'RDC sheets pending review', d.rdc_pending_review || 0, "showPage('manager-rdc-review')"],
+      ['Medium', 'Vehicles out now', `${d.vehicles_out || 0}/${d.vehicles_total || 0}`, "showPage('admin-exceptions')"],
+      ['Low', 'Receivables (accounts owing)', `${recvCount} · ${LapokAPI.formatM(recvTotal)}`, "showPage('admin-customers')"],
+      ['Low', 'Executive packs awaiting ack', d.exec_briefs_open || 0, "showPage('report-exchange')"],
     ];
     tbody.innerHTML = rows.map((r) =>
       `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td><button class="btn btn-sm" onclick="${r[3]}">Open</button></td></tr>`
@@ -454,17 +624,20 @@ async function deactivateEditingUser() {
   loadUsersTable();
 }
 
-function exportUsersCsv() {
-  const rows = [['Full name', 'Email', 'Role', 'National ID', 'Phone', 'Vehicle', 'Active']];
-  adminUsersCache.forEach((u) => {
-    rows.push([u.full_name, u.email, u.role, u.national_id || '', u.phone || '', u.vehicle_reg || '', u.is_active ? 'Yes' : 'No']);
+async function exportUsersCsv() {
+  const headers = ['Full name', 'Email', 'Role', 'National ID', 'Phone', 'Vehicle', 'Active'];
+  const rows = adminUsersCache.map((u) => [
+    u.full_name, u.email, u.role, u.national_id || '', u.phone || '', u.vehicle_reg || '', u.is_active ? 'Yes' : 'No',
+  ]);
+  await LapokAPI.downloadBrandedExcel({
+    title: 'User directory',
+    subtitle: 'Active and inactive depot system users',
+    headers,
+    rows,
+    meta: { Users: String(rows.length), 'As of': new Date().toLocaleDateString('en-UG') },
+    filename: 'Outpost-DMS-Users-' + new Date().toISOString().slice(0, 10) + '.xls',
   });
-  const csv = rows.map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-  a.download = 'lapok-users-' + new Date().toISOString().slice(0, 10) + '.csv';
-  a.click();
-  adminToast('Users CSV exported');
+  adminToast('Users Excel exported');
 }
 
 async function loadPendingCash() {
@@ -474,15 +647,17 @@ async function loadPendingCash() {
 async function loadLiveCharts() {
   try {
     liveChartData = await LapokAPI.get('/api/reports/dashboard_charts.php?days=30');
-    if (typeof sales !== 'undefined') {
-      window.sales = liveChartData.sales;
-      window.expenses = liveChartData.expenses;
-      window.profit = liveChartData.profit;
-      window.days = liveChartData.labels;
-      window.chartsDrawn = false;
-      if (document.getElementById('page-admin-dashboard')?.classList.contains('active')) {
-        drawCharts();
-      }
+    if (Array.isArray(liveChartData.sales)) sales = liveChartData.sales;
+    if (Array.isArray(liveChartData.expenses)) expenses = liveChartData.expenses;
+    if (Array.isArray(liveChartData.profit)) profit = liveChartData.profit;
+    if (Array.isArray(liveChartData.labels)) days = liveChartData.labels;
+    productShareData = liveChartData.product_share || [];
+    if (liveChartData.monthly) monthlyChart = liveChartData.monthly;
+    chartsDrawn = false;
+    if (document.getElementById('page-admin-dashboard')?.classList.contains('active')
+      || document.getElementById('page-admin-reports')?.classList.contains('active')) {
+      drawCharts();
+      if (typeof drawReportChart === 'function') drawReportChart();
     }
   } catch (e) { console.warn('Charts:', e.message); }
 }
@@ -685,10 +860,15 @@ document.addEventListener('DOMContentLoaded', () => {
     'admin-reports': () => { initAdminReportFilters(); loadFinancialReports(); loadLiveCharts(); },
     'manager-reports': () => loadSalesReports(),
     'manager-rdc-review': () => loadRdcReviewPage(),
+    'manager-ccba-boards': () => { if (typeof loadManagerOccdBoards === 'function') loadManagerOccdBoards(); },
+    'manager-ccba-order': () => { if (typeof loadCcbaPage === 'function') loadCcbaPage(); },
     'accountant-rdc-hub': () => loadRdcHubPage(),
     'accountant-rdc': () => loadRdcBalancingPage(),
     'accountant-cash': () => loadCashHandoverPage(),
-    'accountant-improvements': () => { if (typeof loadAccountantImprovementsPage === 'function') loadAccountantImprovementsPage(); },
+    'accountant-improvements': () => {
+      if (typeof loadAccountantImprovementsPage === 'function') loadAccountantImprovementsPage();
+      if (typeof loadManagerFixedCosts === 'function') loadManagerFixedCosts();
+    },
     'accountant-welfare': () => loadAccountantWelfarePage(),
     'admin-users': () => loadUsersTable(),
     'admin-exceptions': () => loadExceptionsPage(),
@@ -698,15 +878,15 @@ document.addEventListener('DOMContentLoaded', () => {
       loadDeliveryList();
       if (typeof loadManagerOpeningStock === 'function') loadManagerOpeningStock();
       if (typeof loadManagerClosingStock === 'function') loadManagerClosingStock();
-      if (typeof loadManagerFixedCosts === 'function') loadManagerFixedCosts();
     },
     'director-brief': () => { if (typeof loadDirectorBriefPage === 'function') loadDirectorBriefPage(); },
   };
 
   const prev = hook;
   window.showPage = function (id) {
-    prev(id);
-    if (phase45Pages[id]) phase45Pages[id]();
+    const pageId = (typeof resolveAllowedPage === 'function') ? resolveAllowedPage(id) : id;
+    prev(pageId);
+    if (phase45Pages[pageId]) phase45Pages[pageId]();
   };
 
   // Enrich init

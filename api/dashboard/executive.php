@@ -64,6 +64,56 @@ $pct = static function (float $current, float $base): float {
     return round((($current - $base) / $base) * 100, 1);
 };
 
+$unreadBriefs = 0;
+$latestBrief = null;
+try {
+    $unreadBriefs = (int) $pdo->query(
+        "SELECT COUNT(*) FROM report_packets
+         WHERE to_role = 'executive' AND status IN ('sent','read')"
+    )->fetchColumn();
+    $latestBrief = $pdo->query(
+        "SELECT id, packet_ref, title, status, report_date, sent_at
+         FROM report_packets
+         WHERE to_role = 'executive'
+         ORDER BY sent_at DESC LIMIT 1"
+    )->fetch() ?: null;
+} catch (Throwable) {
+}
+
+$exceptionCount = 0;
+try {
+    $exceptionCount = (int) $pdo->query("SELECT COUNT(*) FROM edit_requests WHERE status = 'pending'")->fetchColumn();
+    $exceptionCount += count(get_low_stock_alerts());
+} catch (Throwable) {
+}
+
+$receivablesTotal = 0.0;
+$receivablesCount = 0;
+try {
+    $recv = $pdo->query(
+        "SELECT COALESCE(SUM(credit_balance),0) AS total,
+                COUNT(*) AS cnt
+         FROM customers WHERE is_active = 1 AND credit_balance > 0"
+    )->fetch() ?: [];
+    $receivablesTotal = (float) ($recv['total'] ?? 0);
+    $receivablesCount = (int) ($recv['cnt'] ?? 0);
+} catch (Throwable) {
+}
+
+$welfareOpen = 0;
+try {
+    require_once dirname(__DIR__, 2) . '/includes/staff_welfare.php';
+    $welfareOpen = (int) (welfare_summary()['open_count'] ?? 0);
+} catch (Throwable) {
+}
+
+$director = null;
+try {
+    require_once dirname(__DIR__, 2) . '/includes/depot_finance.php';
+    $director = depot_director_snapshot(date('Y-m-d'));
+} catch (Throwable) {
+}
+
 json_ok([
     'warehouse_cartons' => $warehouse,
     'revenue_today' => $revenueToday,
@@ -80,4 +130,19 @@ json_ok([
     'vehicles_out' => $vehiclesOut,
     'vehicles_total' => $vehiclesTotal,
     'low_stock' => get_low_stock_alerts(),
+    'unread_briefs' => $unreadBriefs,
+    'latest_brief' => $latestBrief,
+    'exception_count' => $exceptionCount,
+    'receivables_total' => $receivablesTotal,
+    'receivables_count' => $receivablesCount,
+    'welfare_open_count' => $welfareOpen,
+    'director' => $director ? [
+        'readiness' => $director['controls']['readiness'] ?? null,
+        'opening_submitted' => !empty($director['controls']['opening_submitted']),
+        'closing_submitted' => !empty($director['controls']['closing_submitted']),
+        'rdc_status' => $director['controls']['rdc_status'] ?? null,
+        'net_operating' => $director['profit']['net_operating'] ?? 0,
+        'expense_ratio_pct' => $director['profit']['expense_ratio_pct'] ?? 0,
+        'shortage_flag_ugx' => $director['shortages']['total_flag_ugx'] ?? 0,
+    ] : null,
 ]);

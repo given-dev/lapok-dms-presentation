@@ -192,7 +192,7 @@
     if (!el) return;
     el.innerHTML = `
       <button class="btn btn-sm" type="button" onclick="rdcHubOpenOtherDate()">Open another date…</button>
-      <button class="btn btn-sm" type="button" onclick="LapokAPI.exportRdcSheet('${today}')">Export today (CSV)</button>`;
+      <button class="btn btn-sm" type="button" onclick="LapokAPI.exportRdcSheet('${today}')">Export today (Excel)</button>`;
   }
 
   function renderCashNudge(ctx) {
