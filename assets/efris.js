@@ -1,5 +1,5 @@
 /**
- * LAPOK DMS — Fiscal-first EFRIS import (device → Lapok)
+ * LAPOK DMS &mdash; Fiscal-first EFRIS import (device → Lapok)
  */
 
 let efrisActiveReceiptId = null;
@@ -34,7 +34,7 @@ async function loadFiscalReceiptsPage() {
 
     const sel = document.getElementById('efrisCustomerSelect');
     if (sel) {
-      const opts = ['<option value="">— Select customer —</option>'];
+      const opts = ['<option value="">&mdash; Select customer &mdash;</option>'];
       efrisCustomersCache.forEach((c) => {
         opts.push(`<option value="${c.id}"${efrisSelectedCustomerId === c.id ? ' selected' : ''}>${c.name}</option>`);
       });
@@ -46,7 +46,7 @@ async function loadFiscalReceiptsPage() {
     if (badge) badge.textContent = `${pending.pending_count || 0} pending`;
 
     if (!receipts.length) {
-      listEl.innerHTML = '<div class="alert a-info"><span>ℹ</span>No fiscal receipts waiting. Complete a sale on the cash register — it will appear here automatically.</div>';
+      listEl.innerHTML = '<div class="alert a-info"><span>ℹ</span>No fiscal receipts waiting. Complete a sale on the cash register &mdash; it will appear here automatically.</div>';
       return;
     }
 
@@ -56,8 +56,8 @@ async function loadFiscalReceiptsPage() {
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
           <div>
             <div class="cust-name">${r.efris_invoice_no}</div>
-            <div class="cust-detail">${LapokAPI.formatTime(r.fiscal_timestamp)} · ${LapokAPI.formatUgx(r.amount_total)}</div>
-            <div class="cust-detail" style="margin-top:3px">${(r.items || []).map((i) => i.product_name + ' ×' + i.qty).join(', ') || '—'}</div>
+            <div class="cust-detail">${LapokAPI.formatTime(r.fiscal_timestamp)} &middot; ${LapokAPI.formatUgx(r.amount_total)}</div>
+            <div class="cust-detail" style="margin-top:3px">${(r.items || []).map((i) => i.product_name + ' ×' + i.qty).join(', ') || '&mdash;'}</div>
           </div>
           ${efrisStatusBadge(r.status)}
         </div>
@@ -103,22 +103,22 @@ async function efrisShowReceipt(receiptId) {
       <div class="recon-row"><span>Fiscal time</span><strong>${LapokAPI.formatTime(receipt.fiscal_timestamp)}</strong></div>
       <div class="recon-row"><span>Total</span><strong>${LapokAPI.formatUgx(receipt.amount_total)}</strong></div>
       <div class="recon-row"><span>Payment</span><strong>${receipt.payment_type}</strong></div>
-      ${linked ? `<div class="recon-row"><span>Lapok order</span><strong>${receipt.order_ref || '—'}</strong></div>` : ''}
+      ${linked ? `<div class="recon-row"><span>Lapok order</span><strong>${receipt.order_ref || '&mdash;'}</strong></div>` : ''}
       <hr class="divider">
       <div class="tbl-wrap"><table>
         <tr><th>Product</th><th>Qty</th><th>Unit</th><th>Subtotal</th><th>Map</th></tr>
         ${lines}
       </table></div>
       ${canLink ? `
-        <div class="alert a-info" style="margin-top:1rem"><span>ℹ</span>Sale already happened on the fiscal device. Pick the customer to record it in Outpost — no need to re-enter products.</div>
+        <div class="alert a-info" style="margin-top:1rem"><span>ℹ</span>Sale already happened on the fiscal device. Pick the customer to record it in Outpost &mdash; no need to re-enter products.</div>
         <div class="form-group" style="margin-top:.8rem">
           <label>Customer</label>
           <select class="select-inp" id="efrisCustomerSelectDetail" onchange="efrisSelectedCustomerId=parseInt(this.value)||null">
-            <option value="">— Select customer —</option>
+            <option value="">&mdash; Select customer &mdash;</option>
             ${efrisCustomersCache.map((c) => `<option value="${c.id}"${efrisSelectedCustomerId === c.id ? ' selected' : ''}>${c.name}</option>`).join('')}
           </select>
         </div>
-        <button class="btn btn-red btn-full" style="margin-top:.8rem" onclick="confirmFiscalReceipt()" ${receipt.status === 'unmapped' ? 'disabled title="Unmapped products — ask admin"' : ''}>Record in Outpost</button>
+        <button class="btn btn-red btn-full" style="margin-top:.8rem" onclick="confirmFiscalReceipt()" ${receipt.status === 'unmapped' ? 'disabled title="Unmapped products &mdash; ask admin"' : ''}>Record in Outpost</button>
       ` : ''}
     `;
   } catch (e) {
@@ -168,10 +168,10 @@ async function loadEfrisAdminPage() {
     const unmapped = maps.filter((m) => !m.mapped).length;
 
     root.innerHTML = `
-      <div class="alert a-info"><span>ℹ</span><strong>Fiscal-first mode:</strong> Cadets sell on the cash register. Receipts import into Lapok automatically — they only pick the customer to link stock and reports.</div>
+      <div class="alert a-info"><span>ℹ</span><strong>Fiscal-first mode:</strong> Cadets sell on the cash register. Receipts import into Lapok automatically &mdash; they only pick the customer to link stock and reports.</div>
       <div class="metric-grid" style="margin-bottom:1rem">
         <div class="metric-card"><div class="metric-label">Mode</div><div class="metric-value" style="font-size:14px">${cfg.integration_mode || 'fiscal_first'}</div></div>
-        <div class="metric-card"><div class="metric-label">Seller TIN</div><div class="metric-value" style="font-size:14px">${cfg.seller_tin || '—'}</div></div>
+        <div class="metric-card"><div class="metric-label">Seller TIN</div><div class="metric-value" style="font-size:14px">${cfg.seller_tin || '&mdash;'}</div></div>
         <div class="metric-card"><div class="metric-label">Device ingest</div><div class="metric-value" style="font-size:14px">${cfg.ingest_configured ? 'Ready' : 'Not set'}</div></div>
         <div class="metric-card"><div class="metric-label">Unmapped SKUs</div><div class="metric-value">${unmapped}</div></div>
       </div>
@@ -207,7 +207,7 @@ async function loadEfrisAdminPage() {
           <td>${LapokAPI.formatTime(r.fiscal_timestamp)}</td>
           <td>${LapokAPI.formatUgx(r.amount_total)}</td>
           <td>${efrisStatusBadge(r.status)}</td>
-          <td>${r.customer_name || '—'}</td>
+          <td>${r.customer_name || '&mdash;'}</td>
         </tr>`
       ).join('');
       recEl.innerHTML = `<div class="tbl-wrap"><table>

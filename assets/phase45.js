@@ -1,5 +1,5 @@
 /**
- * LAPOK DMS — Phases 4 & 5 UI wiring
+ * LAPOK DMS &mdash; Phases 4 & 5 UI wiring
  */
 
 let liveChartData = null;
@@ -143,7 +143,7 @@ async function loadAdminHomeExtras(cachedDashboard = null) {
       <tr>
         <td>3</td><td>Exception center</td>
         <td><span class="badge ${exc ? 'bw' : 'bs'}">${exc} open</span>
-          <span style="font-size:11px;color:var(--gray-mid)"> · ${low} low stock</span></td>
+          <span style="font-size:11px;color:var(--gray-mid)"> &middot; ${low} low stock</span></td>
         <td><button class="btn btn-sm ${exc ? 'btn-red' : ''}" onclick="showPage('admin-exceptions')">Open</button></td>
       </tr>
       <tr>
@@ -204,7 +204,7 @@ async function loadExecutiveHomeExtras(cachedDashboard = null) {
     const recvT = Number(d.receivables_total || 0);
     const welfare = Number(d.welfare_open_count || 0);
     const dir = d.director || {};
-    const readiness = dir.readiness || '—';
+    const readiness = dir.readiness || '&mdash;';
     const readinessOk = readiness === 'on_track';
     const readinessLabel = ({
       on_track: 'On track',
@@ -212,8 +212,8 @@ async function loadExecutiveHomeExtras(cachedDashboard = null) {
       due: 'Close due',
       late: 'Late',
     })[readiness] || readiness;
-    const netOp = dir.net_operating != null ? LapokAPI.formatUgx(dir.net_operating) : '—';
-    const rdcSt = dir.rdc_status ? String(dir.rdc_status).replace(/_/g, ' ') : '—';
+    const netOp = dir.net_operating != null ? LapokAPI.formatUgx(dir.net_operating) : '&mdash;';
+    const rdcSt = dir.rdc_status ? String(dir.rdc_status).replace(/_/g, ' ') : '&mdash;';
 
     const briefStatus = brief
       ? execBriefBadge(brief.status) + (brief.packet_ref ? ` <span style="font-size:11px;color:var(--gray-mid)">${brief.packet_ref}</span>` : '')
@@ -226,7 +226,7 @@ async function loadExecutiveHomeExtras(cachedDashboard = null) {
       <tr>
         <td>1</td><td>Director brief (today P&amp;L)</td>
         <td><span class="badge ${readinessOk ? 'bs' : 'bw'}">${readinessLabel}</span>
-          <span style="font-size:11px;color:var(--gray-mid)"> · Net ${netOp} · RDC ${rdcSt}</span></td>
+          <span style="font-size:11px;color:var(--gray-mid)"> &middot; Net ${netOp} &middot; RDC ${rdcSt}</span></td>
         <td><button class="btn btn-sm btn-red" onclick="showPage('director-brief')">Open brief</button></td>
       </tr>
       <tr>
@@ -242,7 +242,7 @@ async function loadExecutiveHomeExtras(cachedDashboard = null) {
       <tr>
         <td>4</td><td>Receivables overview</td>
         <td><span class="badge ${recvN ? 'bw' : 'bs'}">${recvN} accounts</span>
-          <span style="font-size:11px;color:var(--gray-mid)"> · ${LapokAPI.formatUgx(recvT)}</span></td>
+          <span style="font-size:11px;color:var(--gray-mid)"> &middot; ${LapokAPI.formatUgx(recvT)}</span></td>
         <td><button class="btn btn-sm" onclick="showPage('admin-customers')">Open</button></td>
       </tr>
       <tr>
@@ -274,7 +274,7 @@ async function loadAdminActionCenter(cachedDashboard = null) {
       ['Medium', 'Low stock alerts', d.low_stock_count ?? (d.low_stock || []).length, "showPage('admin-exceptions')"],
       ['Medium', 'RDC sheets pending review', d.rdc_pending_review || 0, "showPage('manager-rdc-review')"],
       ['Medium', 'Vehicles out now', `${d.vehicles_out || 0}/${d.vehicles_total || 0}`, "showPage('admin-exceptions')"],
-      ['Low', 'Receivables (accounts owing)', `${recvCount} · ${LapokAPI.formatM(recvTotal)}`, "showPage('admin-customers')"],
+      ['Low', 'Receivables (accounts owing)', `${recvCount} &middot; ${LapokAPI.formatM(recvTotal)}`, "showPage('admin-customers')"],
       ['Low', 'Executive packs awaiting ack', d.exec_briefs_open || 0, "showPage('report-exchange')"],
     ];
     tbody.innerHTML = rows.map((r) =>
@@ -293,9 +293,9 @@ async function loadFieldDashboard() {
     const s = d.summary;
     if (trip) {
       document.getElementById('fieldVehicleIcon').textContent = trip.vehicle_type === 'truck' ? '🚛' : '🛺';
-      document.getElementById('fieldVehicleTitle').textContent = trip.registration + ' — Assigned vehicle';
+      document.getElementById('fieldVehicleTitle').textContent = trip.registration + ' &mdash; Assigned vehicle';
       document.getElementById('fieldVehicleDetail').textContent =
-        `Route: ${trip.route_name || trip.route_area || '—'} · Capacity: ${trip.capacity} cartons`;
+        `Route: ${trip.route_name || trip.route_area || '&mdash;'} &middot; Capacity: ${trip.capacity} cartons`;
       document.getElementById('fieldVehicleBadges').innerHTML =
         `<span class="badge bs">${trip.status}</span>`;
       document.getElementById('fieldLoadTotal').textContent = s.total_loaded;
@@ -305,7 +305,7 @@ async function loadFieldDashboard() {
     document.getElementById('fmRevenue').textContent = LapokAPI.formatUgx(s.revenue_today);
     document.getElementById('fmRemaining').textContent = s.total_remaining;
     document.getElementById('fmReceipts').textContent = s.receipts_today;
-    document.getElementById('fmStops').textContent = s.stops_total ? `0/${s.stops_total}` : '—';
+    document.getElementById('fmStops').textContent = s.stops_total ? `0/${s.stops_total}` : '&mdash;';
 
     const lt = document.getElementById('fieldLoadTable');
     if (lt) {
@@ -319,7 +319,7 @@ async function loadFieldDashboard() {
     if (ot) {
       ot.innerHTML = '<tr><th>Time</th><th>Customer</th><th>Amount</th><th>Status</th></tr>' +
         (d.orders_today || []).map((o) =>
-          `<tr><td>${LapokAPI.formatTime(o.created_at)}</td><td>${o.customer_name || '—'}</td><td>${Number(o.amount_total).toLocaleString()}</td><td><span class="badge ${o.status === 'confirmed' ? 'bs' : 'bw'}">${o.status}</span></td></tr>`
+          `<tr><td>${LapokAPI.formatTime(o.created_at)}</td><td>${o.customer_name || '&mdash;'}</td><td>${Number(o.amount_total).toLocaleString()}</td><td><span class="badge ${o.status === 'confirmed' ? 'bs' : 'bw'}">${o.status}</span></td></tr>`
         ).join('');
     }
     if (trip && typeof startFieldLocationPing === 'function') startFieldLocationPing();
@@ -335,7 +335,7 @@ async function loadMyRoute() {
       if (alert) alert.innerHTML = '<span>ℹ</span>No route assigned.';
       return;
     }
-    if (alert) alert.innerHTML = `<span>ℹ</span>Today's route: <strong>${d.route.name}</strong> — ${d.stops.length} stops.` + (d.trip ? ` Vehicle: ${d.trip.vehicle_reg}` : '');
+    if (alert) alert.innerHTML = `<span>ℹ</span>Today's route: <strong>${d.route.name}</strong> &mdash; ${d.stops.length} stops.` + (d.trip ? ` Vehicle: ${d.trip.vehicle_reg}` : '');
     if (d.trip) document.getElementById('routeVehicleChip').textContent = d.trip.vehicle_reg;
     document.getElementById('rsStops').textContent = d.stops.length;
 
@@ -343,11 +343,11 @@ async function loadMyRoute() {
       const done = st.last_order_status === 'confirmed' || st.last_order_status === 'delivered';
       const dot = done ? 'done' : (i === 0 ? 'active' : 'pending');
       const badge = st.last_amount
-        ? `<span class="badge ${done ? 'bs' : 'bw'}">${done ? 'Done' : 'Pending'} — ${Number(st.last_amount).toLocaleString()}</span>`
+        ? `<span class="badge ${done ? 'bs' : 'bw'}">${done ? 'Done' : 'Pending'} &mdash; ${Number(st.last_amount).toLocaleString()}</span>`
         : '';
       return `<div class="stop"><div class="stop-dot ${dot}"></div><div>
         <div style="font-size:13px;font-weight:600">${st.stop_order}. ${st.name}</div>
-        <div style="font-size:12px;color:var(--gray-mid)">${st.location || '—'}</div>
+        <div style="font-size:12px;color:var(--gray-mid)">${st.location || '&mdash;'}</div>
         <div style="margin-top:4px">${badge}</div>
       </div></div>`;
     }).join('');
@@ -372,7 +372,7 @@ async function loadAdminCustomers(q = '') {
       if (totalEl) totalEl.textContent = LapokAPI.formatM(total);
       if (totalSub) {
         totalSub.textContent = total >= 8000000
-          ? 'Above 8M UGX — prioritize collections'
+          ? 'Above 8M UGX &mdash; prioritize collections'
           : 'UGX ' + total.toLocaleString();
       }
       if (countEl) countEl.textContent = String(owing.length);
@@ -382,7 +382,7 @@ async function loadAdminCustomers(q = '') {
     const rows = customers.map((c) => {
       const bal = Number(c.credit_balance);
       const balCell = bal > 0 ? `<span class="badge bd">${bal.toLocaleString()}</span>` : '0';
-      return `<tr><td>${c.name}</td><td>${c.phone || '—'}</td><td>${c.location || '—'}</td><td><span class="badge bg">${c.category}</span></td><td>${balCell}</td><td><button class="btn btn-sm" onclick="viewCustomerHistory(${c.id},'${c.name.replace(/'/g, "\\'")}')">History</button></td></tr>`;
+      return `<tr><td>${c.name}</td><td>${c.phone || '&mdash;'}</td><td>${c.location || '&mdash;'}</td><td><span class="badge bg">${c.category}</span></td><td>${balCell}</td><td><button class="btn btn-sm" onclick="viewCustomerHistory(${c.id},'${c.name.replace(/'/g, "\\'")}')">History</button></td></tr>`;
     }).join('');
     table.innerHTML = '<tr><th>Name</th><th>Phone</th><th>Location</th><th>Category</th><th>Balance (UGX)</th><th>Actions</th></tr>' + (rows || '<tr><td colspan="6">No customers</td></tr>');
   } catch (e) { console.warn('Customers:', e.message); }
@@ -395,11 +395,11 @@ async function loadUserCustomers() {
     const d = await LapokAPI.get('/api/customers/fetch_customers.php');
     list.innerHTML = (d.customers || []).map((c) => {
       const bal = Number(c.credit_balance);
-      const balNote = bal > 0 ? ` · Balance: ${LapokAPI.formatUgx(bal)}` : '';
+      const balNote = bal > 0 ? ` &middot; Balance: ${LapokAPI.formatUgx(bal)}` : '';
       return `<div class="cust-card" onclick="selectCustomer(this,'${c.name.replace(/'/g, "\\'")}','${(c.phone || '').replace(/'/g, "\\'")}','${(c.location || '').replace(/'/g, "\\'")}',${c.id})">
         <div style="display:flex;justify-content:space-between;gap:8px"><div>
           <div class="cust-name">${c.name}</div>
-          <div class="cust-detail">${c.phone || '—'} · ${c.location || '—'}</div>
+          <div class="cust-detail">${c.phone || '&mdash;'} &middot; ${c.location || '&mdash;'}</div>
           <div class="cust-detail" style="margin-top:3px">Total: ${LapokAPI.formatUgx(c.lifetime_total)}${balNote}</div>
         </div><span class="badge bs">${c.category}</span></div></div>`;
     }).join('') || '<p style="color:var(--gray-mid)">No customers on your route.</p>';
@@ -413,7 +413,7 @@ async function viewCustomerHistory(id, name) {
       `<tr><td>${o.order_ref}</td><td>${o.status}</td><td>${Number(o.amount_total).toLocaleString()}</td><td>${LapokAPI.formatDate(o.created_at)}</td></tr>`
     ).join('');
     document.getElementById('reportsDetailBody').innerHTML =
-      `<h4 style="margin-bottom:.8rem">${name} — Balance: ${LapokAPI.formatUgx(d.customer.credit_balance)}</h4>
+      `<h4 style="margin-bottom:.8rem">${name} &mdash; Balance: ${LapokAPI.formatUgx(d.customer.credit_balance)}</h4>
       <table><tr><th>Ref</th><th>Status</th><th>Amount</th><th>Date</th></tr>${rows || '<tr><td colspan="4">No orders</td></tr>'}</table>`;
     showPage('admin-reports');
   } catch (e) { adminToast(e.message, true); }
@@ -426,10 +426,10 @@ async function loadRoutes() {
     const d = await LapokAPI.get('/api/routes/fetch_routes.php');
     el.innerHTML = (d.routes || []).map((r) => `
       <div class="card" style="margin-bottom:.8rem">
-        <div class="card-header"><span class="card-title">${r.name}</span><span class="chip">${r.zone || '—'} · ${r.stop_count} stops</span></div>
+        <div class="card-header"><span class="card-title">${r.name}</span><span class="chip">${r.zone || '&mdash;'} &middot; ${r.stop_count} stops</span></div>
         <p style="font-size:12px;color:var(--gray-mid);margin-bottom:.6rem">${r.description || ''}</p>
         <div class="tbl-wrap"><table><tr><th>#</th><th>Customer</th><th>Location</th></tr>
-        ${(r.stops || []).map((s) => `<tr><td>${s.stop_order}</td><td>${s.customer_name}</td><td>${s.location || '—'}</td></tr>`).join('') || '<tr><td colspan="3">No stops assigned</td></tr>'}
+        ${(r.stops || []).map((s) => `<tr><td>${s.stop_order}</td><td>${s.customer_name}</td><td>${s.location || '&mdash;'}</td></tr>`).join('') || '<tr><td colspan="3">No stops assigned</td></tr>'}
         </table></div>
       </div>`).join('') || '<p>No routes yet.</p>';
   } catch (e) { console.warn('Routes:', e.message); }
@@ -458,7 +458,7 @@ async function loadAuditLog() {
     setText('auditCountChip', `${adminAuditCache.length} entries`);
     const rows = adminAuditCache.map((e, idx) => {
       const when = LapokAPI.formatDate(e.created_at) + ' ' + LapokAPI.formatTime(e.created_at);
-      const ch = e.new_values ? JSON.stringify(e.new_values).slice(0, 120) : (e.old_values ? JSON.stringify(e.old_values).slice(0, 120) : '—');
+      const ch = e.new_values ? JSON.stringify(e.new_values).slice(0, 120) : (e.old_values ? JSON.stringify(e.old_values).slice(0, 120) : '&mdash;');
       return `<tr>
         <td>${when}</td>
         <td>${e.user_name || 'System'}</td>
@@ -488,7 +488,7 @@ function initAuditFilters() {
   const from = document.getElementById('auditFrom');
   const to = document.getElementById('auditTo');
   if (from && !from.value) from.value = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
-  if (to && !to.value) to.value = new Date().toISOString().slice(0, 10);
+  if (to && !to.value) to.value = LapokAPI.localIsoDate();
 }
 
 async function loadUsersTable() {
@@ -515,8 +515,8 @@ function applyUsersFilter() {
   const rows = filtered.map((u) => {
       const ini = u.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2);
       return `<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar av-red">${ini}</div><div><div>${u.full_name}</div><div style="font-size:11px;color:var(--gray-mid)">${u.email}</div></div></div></td>
-        <td>${roleBadge(u.role)}</td><td>${u.national_id || '—'}</td><td>${u.phone || '—'}</td>
-        <td>${u.vehicle_reg ? `<span class="badge b-tuk">${u.vehicle_reg}</span>` : '—'}</td>
+        <td>${roleBadge(u.role)}</td><td>${u.national_id || '&mdash;'}</td><td>${u.phone || '&mdash;'}</td>
+        <td>${u.vehicle_reg ? `<span class="badge b-tuk">${u.vehicle_reg}</span>` : '&mdash;'}</td>
         <td><label class="toggle"><input type="checkbox" ${u.is_active ? 'checked' : ''} onchange="toggleUserActive(${u.id}, this.checked)"><span class="slider"></span></label></td>
         <td><button class="btn btn-sm" onclick="openEditUserModal(${u.id})">Edit</button></td></tr>`;
   }).join('');
@@ -561,7 +561,7 @@ function openEditUserModal(id) {
   document.getElementById('editUserPassword').value = '';
   const idField = document.getElementById('editUserVehicleId');
   if (idField) idField.value = u.vehicle_id || '';
-  setText('editUserTitle', `Edit user — ${u.full_name || 'User'}`);
+  setText('editUserTitle', `Edit user &mdash; ${u.full_name || 'User'}`);
   const err = document.getElementById('editUserErr');
   if (err) err.style.display = 'none';
   openModal('editUserModal');
@@ -635,7 +635,7 @@ async function exportUsersCsv() {
     headers,
     rows,
     meta: { Users: String(rows.length), 'As of': new Date().toLocaleDateString('en-UG') },
-    filename: 'Outpost-DMS-Users-' + new Date().toISOString().slice(0, 10) + '.xls',
+    filename: 'Outpost-DMS-Users-' + LapokAPI.localIsoDate() + '.xls',
   });
   adminToast('Users Excel exported');
 }
@@ -676,7 +676,7 @@ async function loadFinancialReports() {
     const body = document.getElementById('reportsDetailBody');
     if (body) {
       const recv = (d.receivables || []).map((r) =>
-        `<tr><td>${r.name}</td><td>${r.phone || '—'}</td><td class="deficit">${Number(r.credit_balance).toLocaleString()}</td></tr>`
+        `<tr><td>${r.name}</td><td>${r.phone || '&mdash;'}</td><td class="deficit">${Number(r.credit_balance).toLocaleString()}</td></tr>`
       ).join('');
       body.innerHTML = `<p style="margin-bottom:.8rem"><strong>Total receivables:</strong> ${LapokAPI.formatUgx(d.total_receivables)}</p>
         <table><tr><th>Customer</th><th>Phone</th><th>Balance</th></tr>${recv || '<tr><td colspan="3">None</td></tr>'}</table>`;
@@ -707,7 +707,7 @@ async function loadSalesReports() {
     }
     const body = document.getElementById('reportsDetailBody');
     if (body) {
-      body.innerHTML = `<p>Total revenue: <strong>${LapokAPI.formatUgx(d.summary?.revenue)}</strong> · Orders: ${d.summary?.orders} · Cartons: ${d.summary?.cartons}</p>`;
+      body.innerHTML = `<p>Total revenue: <strong>${LapokAPI.formatUgx(d.summary?.revenue)}</strong> &middot; Orders: ${d.summary?.orders} &middot; Cartons: ${d.summary?.cartons}</p>`;
     }
   } catch (e) { console.warn('Sales reports:', e.message); }
 }
@@ -736,7 +736,7 @@ async function initAdminReportFilters() {
   const fromEl = document.getElementById('reportFrom');
   const toEl = document.getElementById('reportTo');
   if (fromEl && !fromEl.value) fromEl.value = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
-  if (toEl && !toEl.value) toEl.value = new Date().toISOString().slice(0, 10);
+  if (toEl && !toEl.value) toEl.value = LapokAPI.localIsoDate();
   try {
     const [routes, vehicles, users] = await Promise.all([
       LapokAPI.get('/api/routes/fetch_routes.php'),

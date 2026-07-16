@@ -1,5 +1,5 @@
 /**
- * Accountant month-end workspace — synced via API (all depot roles can view).
+ * Accountant month-end workspace &mdash; synced via API (all depot roles can view).
  */
 (function () {
   const LEGACY_STORE_KEY = 'lapok.accountant.command.center.v1';
@@ -55,7 +55,7 @@
       banner.style.marginBottom = '1rem';
       page.querySelector('.rdc-bal-toolbar')?.after(banner);
     }
-    banner.innerHTML = '<span>ℹ</span><div>View only for checklist/notes — those are edited by the accountant. <strong>Monthly fixed costs</strong> above stay editable for the manager.</div>';
+    banner.innerHTML = '<span>ℹ</span><div>View only for checklist/notes &mdash; those are edited by the accountant. <strong>Monthly fixed costs</strong> above stay editable for the manager.</div>';
   }
 
   function applyReadOnlyUi() {
@@ -121,11 +121,11 @@
     const el = document.getElementById('accMonthEndSync');
     if (!el) return;
     if (!at) {
-      el.textContent = 'Not saved yet — shared across depot roles when you save.';
+      el.textContent = 'Not saved yet &mdash; shared across depot roles when you save.';
       return;
     }
     const when = new Date(at).toLocaleString('en-UG', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-    el.textContent = `Last saved ${when}${byName ? ' by ' + byName : ''} — synced for manager & leadership.`;
+    el.textContent = `Last saved ${when}${byName ? ' by ' + byName : ''} &mdash; synced for manager & leadership.`;
   }
 
   function fmtUgx(value) {
@@ -297,7 +297,7 @@
     const legacy = loadLegacyState();
     if (legacy && !data.updated_at) {
       state = { ...state, ...legacy };
-      await persistState('Imported from this device — now synced for all roles.');
+      await persistState('Imported from this device &mdash; now synced for all roles.');
       clearLegacyState();
     }
     return data;

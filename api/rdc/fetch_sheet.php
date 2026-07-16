@@ -12,7 +12,7 @@ if (!role_can($user['role'], 'rdc_balancing') && !role_can($user['role'], 'rdc_v
 
 $date = trim($_GET['date'] ?? date('Y-m-d'));
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-    json_error('Invalid date — use YYYY-MM-DD');
+    json_error('Invalid date  -  use YYYY-MM-DD');
 }
 
 try {
@@ -20,7 +20,7 @@ try {
     $stmt->execute([$date]);
     $row = $stmt->fetch();
 } catch (Throwable $e) {
-    json_error('RDC tables not ready — run migrations 008 and 009.', 500);
+    json_error('RDC tables not ready  -  run migrations 008 and 009.', 500);
 }
 
 if (!$row) {

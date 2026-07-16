@@ -1,5 +1,5 @@
 /**
- * Lapok DMS — Manager fleet map (drivers, cadets, routes)
+ * Lapok DMS &mdash; Manager fleet map (drivers, cadets, routes)
  */
 let fleetMapInstance = null;
 let fleetMapLayers = { markers: [], routes: [], stops: [] };
@@ -84,20 +84,20 @@ function renderFleetSidebar(fleet) {
     const crew = [
       v.driver ? `Driver: ${escFleet(v.driver.name)}` : '',
       v.cadet ? `Cadet: ${escFleet(v.cadet.name)}` : '',
-    ].filter(Boolean).join(' · ') || 'Unassigned crew';
+    ].filter(Boolean).join(' &middot; ') || 'Unassigned crew';
     const route = v.route?.name || v.registration;
     const stops = v.route?.stops?.length || 0;
     const ping = v.last_ping?.recorded_at
       ? LapokAPI.formatTime(v.last_ping.recorded_at)
-      : '—';
+      : '&mdash;';
     return `<div class="fleet-card" data-vehicle-id="${v.vehicle_id}" onclick="fleetFocusVehicle(${v.vehicle_id})">
       <div class="fleet-card-top">
         <span class="fleet-card-plate" style="border-left:4px solid ${color}">${escFleet(v.registration)}</span>
         <span class="badge ${v.trip ? 'bs' : 'bg'}">${v.trip ? 'On route' : 'Idle'}</span>
       </div>
       <div class="fleet-card-meta">${crew}</div>
-      <div class="fleet-card-meta"><strong>Route:</strong> ${escFleet(route)} · ${stops} stops</div>
-      <div class="fleet-card-meta" style="font-size:11px;color:var(--gray-mid)">${fleetSourceLabel(v.position_source)} · ${ping}</div>
+      <div class="fleet-card-meta"><strong>Route:</strong> ${escFleet(route)} &middot; ${stops} stops</div>
+      <div class="fleet-card-meta" style="font-size:11px;color:var(--gray-mid)">${fleetSourceLabel(v.position_source)} &middot; ${ping}</div>
     </div>`;
   }).join('');
 }
@@ -155,7 +155,7 @@ async function refreshFleetMap() {
         ].filter(Boolean).join('<br>') || 'No crew assigned';
         const popup = `<strong>${escFleet(v.registration)}</strong> (${v.vehicle_type})<br>
           ${crew}<br>
-          <strong>Route:</strong> ${escFleet(v.route?.name || '—')}<br>
+          <strong>Route:</strong> ${escFleet(v.route?.name || '&mdash;')}<br>
           <small>${fleetSourceLabel(v.position_source)}</small>`;
         const marker = L.marker([v.position.lat, v.position.lng], {
           icon: fleetVehicleIcon(v.vehicle_type, color),
@@ -188,7 +188,7 @@ function stopFleetMapRefresh() {
   }
 }
 
-/** Field users — send GPS ping when on an active trip (browser geolocation). */
+/** Field users &mdash; send GPS ping when on an active trip (browser geolocation). */
 let fleetLocationPingTimer = null;
 
 function startFieldLocationPing() {

@@ -7,9 +7,9 @@ start_session();
 
 $user = current_user();
 if ($user === null) {
-    header('Location: login.html');
+    header('Location: index.html');
     exit;
 }
 
-header('Location: index.html');
+header('Location: app.html');
 exit;

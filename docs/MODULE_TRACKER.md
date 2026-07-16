@@ -93,7 +93,7 @@
 | Feature | Page / area | Status | Notes |
 |---------|-------------|--------|-------|
 | Executive dashboard | `admin-dashboard` | **Live** | Daily checklist + director P&L widget; hides admin action center |
-| Director brief | `director-brief` | **Live** | Today / yesterday / date picker P&L |
+| Director brief | `director-brief` | **Live** | Today / yesterday / date picker P&L. Now includes opening/closing stock breakdown. |
 | PDF inbox | `report-exchange` | **Live** | Acknowledge manager brief |
 | Pack-arrival bell | Notifications | **Live** | Unread when manager sends/replaces executive brief |
 | Reports & analytics | `admin-reports` | **Live** | |

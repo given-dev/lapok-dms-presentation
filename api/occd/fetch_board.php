@@ -12,7 +12,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
 
 $date = trim($_GET['date'] ?? date('Y-m-d'));
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-    json_error('Invalid date — use YYYY-MM-DD');
+    json_error('Invalid date  -  use YYYY-MM-DD');
 }
 
 $type = trim($_GET['type'] ?? 'all');
@@ -33,5 +33,5 @@ try {
     }
     json_ok(occd_board_for_date($pdo, $date, $type));
 } catch (Throwable $e) {
-    json_error('Could not load boards — run migration 003_occd_daily_boards.sql if tables are missing.', 500);
+    json_error('Could not load boards  -  run migration 003_occd_daily_boards.sql if tables are missing.', 500);
 }

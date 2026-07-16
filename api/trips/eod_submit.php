@@ -56,6 +56,22 @@ if ((int) $trip['cadet_id'] !== $user['id'] && (int) $trip['driver_id'] !== $use
     json_error('Not your trip', 403);
 }
 
+if ($trip['status'] === 'returned') {
+    json_error('You have already sent your report for this trip today.', 403);
+}
+
+$checkStmt = $pdo->prepare(
+    "SELECT id FROM delivery_trips 
+     WHERE (cadet_id = ? OR driver_id = ?) 
+       AND status = 'returned' 
+       AND DATE(returned_at) = CURDATE()
+       AND id != ?"
+);
+$checkStmt->execute([$user['id'], $user['id'], $tripId]);
+if ($checkStmt->fetch()) {
+    json_error('You have already submitted a daily report today.', 403);
+}
+
 $pdo->prepare(
     'UPDATE delivery_trips SET odometer_end = ?, fuel_cost = ?, cash_reported = ?, notes = ?, status = ?, returned_at = NOW() WHERE id = ?'
 )->execute([$odometerEnd, $fuelCost, $cashReported, $notes, 'returned', $tripId]);

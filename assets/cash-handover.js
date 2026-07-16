@@ -1,5 +1,5 @@
 /**
- * Accountant — field cash handover confirmation
+ * Accountant &mdash; field cash handover confirmation
  */
 (function () {
   function todayIso() {
@@ -53,17 +53,17 @@
 
     if (!pending.length) {
       table.innerHTML = `<tr><th>Trip</th><th>Cadet</th><th>Route</th><th>Returned</th><th>Reported</th><th>Received</th><th>Variance</th><th></th></tr>
-        <tr><td colspan="8" style="text-align:center;padding:1.5rem;color:var(--gray-mid)">No pending handovers — continue to manager pack.</td></tr>`;
+        <tr><td colspan="8" style="text-align:center;padding:1.5rem;color:var(--gray-mid)">No pending handovers &mdash; continue to manager pack.</td></tr>`;
       return;
     }
 
     const rows = pending.map((t) => {
       const reported = parseFloat(t.cash_reported) || 0;
-      const returned = t.returned_at ? LapokAPI.formatTime(t.returned_at) : '—';
+      const returned = t.returned_at ? LapokAPI.formatTime(t.returned_at) : '&mdash;';
       return `<tr>
         <td>#${t.id}</td>
-        <td>${t.cadet_name || '—'}<div style="font-size:11px;color:var(--gray-mid)">${t.vehicle_reg || ''}</div></td>
-        <td>${t.route_area || '—'}</td>
+        <td>${t.cadet_name || '&mdash;'}<div style="font-size:11px;color:var(--gray-mid)">${t.vehicle_reg || ''}</div></td>
+        <td>${t.route_area || '&mdash;'}</td>
         <td>${returned}</td>
         <td>${LapokAPI.formatUgx(reported)}</td>
         <td><input class="qty-inp" type="number" min="0" step="1" id="cash-${t.id}" data-cash-trip="${t.id}" data-reported="${reported}" value="${reported}" style="width:110px"></td>
@@ -91,7 +91,7 @@
       const cls = v === 0 ? 'cash-var ok' : 'cash-var warn';
       return `<tr>
         <td>#${t.id}</td>
-        <td>${t.cadet_name || '—'}</td>
+        <td>${t.cadet_name || '&mdash;'}</td>
         <td>${LapokAPI.formatUgx(t.cash_reported)}</td>
         <td>${LapokAPI.formatUgx(t.cash_collected)}</td>
         <td class="${cls}">${fmtVariance(v)}</td>
@@ -115,7 +115,7 @@
 
       setText('cashPageChip', pending.length
         ? `${pending.length} trip${pending.length === 1 ? '' : 's'} to confirm`
-        : 'Cash handover — all clear');
+        : 'Cash handover &mdash; all clear');
 
       renderPendingTable(pending);
       renderConfirmedToday(confirmedToday);
@@ -124,7 +124,7 @@
       const nextBtn = document.getElementById('cashNextBtn');
       if (sticky) {
         sticky.textContent = pending.length
-          ? 'Confirm each trip — use Match if received equals reported'
+          ? 'Confirm each trip &mdash; use Match if received equals reported'
           : 'No pending handovers';
       }
       if (nextBtn) {

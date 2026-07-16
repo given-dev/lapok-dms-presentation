@@ -7,7 +7,7 @@ declare(strict_types=1);
  * - RDC (accountant): finish balancing (+ pack) before 19:00
  * - Manager: submit executive brief before 20:00
  *
- * Safe to call often — sends at most one notification per person per deadline key per day.
+ * Safe to call often  -  sends at most one notification per person per deadline key per day.
  */
 
 require_once __DIR__ . '/notifications.php';
@@ -327,7 +327,7 @@ function deadline_reminders_run(?DateTimeImmutable $now = null): array
     if ($cPhase !== 'quiet') {
         $sev = $cPhase === 'overdue' ? 'danger' : ($cPhase === 'urgent' ? 'warning' : 'info');
         $title = $cPhase === 'overdue'
-            ? 'Sales report overdue — submit now'
+            ? 'Sales report overdue  -  submit now'
             : 'Submit sales before ' . deadline_format_clock($cWin['due']);
         $body = $cPhase === 'overdue'
             ? 'Today\'s cadet report deadline (' . deadline_format_clock($cWin['due']) . ') has passed. Open Today\'s report and submit.'
@@ -349,7 +349,7 @@ function deadline_reminders_run(?DateTimeImmutable $now = null): array
     if ($rPhase !== 'quiet' && !deadline_rdc_sheet_done($date)) {
         $sev = $rPhase === 'overdue' ? 'danger' : ($rPhase === 'urgent' ? 'warning' : 'info');
         $title = $rPhase === 'overdue'
-            ? 'Daily close overdue — finish now'
+            ? 'Daily close overdue  -  finish now'
             : 'Finish daily close before ' . deadline_format_clock($rWin['due']);
         $body = $rPhase === 'overdue'
             ? 'RDC deadline (' . deadline_format_clock($rWin['due']) . ') has passed. Complete balancing and submit to the manager.'
@@ -371,7 +371,7 @@ function deadline_reminders_run(?DateTimeImmutable $now = null): array
     if ($mPhase !== 'quiet' && !deadline_manager_brief_done($date)) {
         $sev = $mPhase === 'overdue' ? 'danger' : ($mPhase === 'urgent' ? 'warning' : 'info');
         $title = $mPhase === 'overdue'
-            ? 'Executive brief overdue — submit now'
+            ? 'Executive brief overdue  -  submit now'
             : 'Submit to executive before ' . deadline_format_clock($mWin['due']);
         $body = $mPhase === 'overdue'
             ? 'Manager deadline (' . deadline_format_clock($mWin['due']) . ') has passed. Send today\'s executive brief from PDF reports.'

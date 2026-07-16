@@ -1,5 +1,5 @@
 /**
- * Lapok DMS — session auth + role navigation + user management
+ * Lapok DMS &mdash; session auth + role navigation + user management
  */
 const LapokAPI = {
   async request(path, options = {}) {
@@ -100,14 +100,16 @@ async function initAuth() {
   try {
     const data = await LapokAPI.me();
     if (!data.authenticated || !data.user) {
-      window.location.href = 'login.html';
+      window.location.href = 'index.html';
       return null;
     }
     window.LAPOK_USER = data.user;
     applySessionUser(data.user);
+    document.body.style.opacity = '1';
+    document.body.style.pointerEvents = 'auto';
     return data.user;
   } catch {
-    window.location.href = 'login.html';
+    window.location.href = 'index.html';
     return null;
   }
 }
@@ -135,7 +137,7 @@ function applySessionUser(user) {
 
 async function logoutApp() {
   try { await LapokAPI.logout(); } catch { /* redirect anyway */ }
-  window.location.href = 'login.html';
+  window.location.href = 'index.html';
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -162,7 +164,7 @@ async function submitPasswordChange(event) {
 }
 
 /* ────────────────────────────────────────────────────────────────
-   AUDIT LOG  — rich rendering
+   AUDIT LOG  &mdash; rich rendering
    ──────────────────────────────────────────────────────────────── */
 const ACTION_STYLES = {
   create: { cls: 'bs',   label: 'Created' },
@@ -173,7 +175,7 @@ const ACTION_STYLES = {
 };
 
 function renderChangeDiff(oldVal, newVal) {
-  if (!oldVal && !newVal) return '<span style="color:var(--gray-mid)">—</span>';
+  if (!oldVal && !newVal) return '<span style="color:var(--gray-mid)">&mdash;</span>';
   if (!oldVal) return renderJsonChips(newVal, false);
   if (!newVal) return renderJsonChips(oldVal, true);
 
@@ -189,7 +191,7 @@ function renderChangeDiff(oldVal, newVal) {
         + `<span style="color:#16a34a;font-size:10px">→ ${esc(n)}</span>`);
     }
   });
-  return diffs.length ? diffs.join(' &nbsp;·&nbsp; ') : '<span style="color:var(--gray-mid)">—</span>';
+  return diffs.length ? diffs.join(' &nbsp;&middot;&nbsp; ') : '<span style="color:var(--gray-mid)">&mdash;</span>';
 }
 
 function renderJsonChips(obj, isOld) {
@@ -198,7 +200,7 @@ function renderJsonChips(obj, isOld) {
     .filter(([, v]) => v !== null && v !== '')
     .map(([k, v]) => `<span style="font-size:10px;color:var(--gray-mid)">${k}:</span> `
       + `<span style="font-size:10px;color:${isOld ? '#ef4444' : '#16a34a'}">${esc(String(v))}</span>`)
-    .join(' &nbsp;·&nbsp; ') || '<span style="color:var(--gray-mid)">—</span>';
+    .join(' &nbsp;&middot;&nbsp; ') || '<span style="color:var(--gray-mid)">&mdash;</span>';
 }
 
 function esc(s) {
@@ -270,7 +272,7 @@ async function loadAuditLog() {
 }
 
 /* ────────────────────────────────────────────────────────────────
-   USER MANAGEMENT — load, render, modals
+   USER MANAGEMENT &mdash; load, render, modals
    ──────────────────────────────────────────────────────────────── */
 
 // Cache of users for the current session load
@@ -330,7 +332,7 @@ function renderUserTable(users) {
     const avColor  = u.is_active ? 'background:var(--gradient-primary)' : 'background:var(--gray-light);color:var(--gray)';
     const vehicle  = u.vehicle
       ? (VEHICLE_BADGE[u.vehicle.type]?.(u.vehicle) || `<span class="badge bg">${u.vehicle.code}</span>`)
-      : '<span style="color:var(--gray-mid)">—</span>';
+      : '<span style="color:var(--gray-mid)">&mdash;</span>';
 
     return `<tr style="${!u.is_active ? 'opacity:.55' : ''}">
       <td>
@@ -343,11 +345,11 @@ function renderUserTable(users) {
         </div>
       </td>
       <td>${ROLE_BADGE[u.role] || `<span class="badge bg">${esc(u.role)}</span>`}</td>
-      <td style="font-size:12px;color:var(--gray-mid)">${esc(u.national_id || '—')}</td>
-      <td style="font-size:12px">${esc(u.phone || '—')}</td>
+      <td style="font-size:12px;color:var(--gray-mid)">${esc(u.national_id || '&mdash;')}</td>
+      <td style="font-size:12px">${esc(u.phone || '&mdash;')}</td>
       <td>${vehicle}</td>
       <td>
-        <label class="toggle" title="${u.is_active ? 'Active — click to deactivate' : 'Inactive — click to activate'}">
+        <label class="toggle" title="${u.is_active ? 'Active &mdash; click to deactivate' : 'Inactive &mdash; click to activate'}">
           <input type="checkbox" ${u.is_active ? 'checked' : ''} onchange="toggleUserActive(${u.id}, this.checked)">
           <span class="slider"></span>
         </label>
@@ -393,7 +395,7 @@ function openEditUser(userId) {
   const m = document.getElementById('editUserModal');
   if (!m) return;
 
-  m.querySelector('.modal-title').textContent = 'Edit user — ' + u.name;
+  m.querySelector('.modal-title').textContent = 'Edit user &mdash; ' + u.name;
   _setVal(m, 'euId',        u.id);
   _setVal(m, 'euName',      u.name);
   _setVal(m, 'euEmail',     u.email);

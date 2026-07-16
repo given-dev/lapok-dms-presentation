@@ -1,5 +1,5 @@
 /**
- * Director / executive daily P&L brief — revenue, expenses, shortages, 7pm readiness.
+ * Director / executive daily P&L brief &mdash; revenue, expenses, shortages, 7pm readiness.
  */
 (function () {
   function ugx(n) {
@@ -25,9 +25,9 @@
       on_track: 'On track',
       opening_missing: 'Opening stock missing',
       due: '7pm close due now',
-      late: 'Late — past 7:30pm',
+      late: 'Late &mdash; past 7:30pm',
     };
-    return map[code] || code || '—';
+    return map[code] || code || '&mdash;';
   }
 
   function directorBriefSetDate(offsetDays) {
@@ -57,10 +57,43 @@
       setText('dirRdcVariance', ugx(d.shortages?.rdc_variance_ugx || 0));
       setText('dirOpeningStatus', d.controls?.opening_submitted ? 'Submitted' : 'Missing');
       setText('dirClosingStatus', d.controls?.closing_submitted ? 'Submitted' : 'Pending');
-      setText('dirRdcStatus', d.controls?.rdc_status || '—');
+      setText('dirRdcStatus', d.controls?.rdc_status || '&mdash;');
       setText('dirReadiness', readinessLabel(d.controls?.readiness));
       setText('dirTripsReturned', String(d.controls?.trips_returned || 0));
       setText('dirTripsOut', String(d.controls?.trips_out || 0));
+
+      const stockTable = document.getElementById('dirStockSnapshotTable');
+      if (stockTable) {
+        const openingLines = d.opening_snapshot?.lines || [];
+        const closingLines = d.closing_snapshot?.lines || [];
+        
+        const products = new Set();
+        const stockMap = {};
+        
+        openingLines.forEach(l => {
+          const name = l.product_name || l.name || 'Unknown';
+          products.add(name);
+          if (!stockMap[name]) stockMap[name] = { opening: 0, closing: 0 };
+          stockMap[name].opening = l.qty || 0;
+        });
+        
+        closingLines.forEach(l => {
+          const name = l.product_name || l.name || 'Unknown';
+          products.add(name);
+          if (!stockMap[name]) stockMap[name] = { opening: 0, closing: 0 };
+          stockMap[name].closing = l.qty || 0;
+        });
+        
+        const productArray = Array.from(products).sort();
+        
+        if (productArray.length > 0) {
+          stockTable.innerHTML = `<tr><th>Product</th><th>Opening Stock</th><th>Closing Stock</th></tr>` + 
+            productArray.map(p => `<tr><td>${p}</td><td>${stockMap[p].opening}</td><td>${stockMap[p].closing}</td></tr>`).join('');
+        } else {
+          stockTable.innerHTML = `<tr><th>Product</th><th>Opening Stock</th><th>Closing Stock</th></tr>
+            <tr><td colspan="3" style="color:var(--gray-mid);text-align:center">No stock counts recorded for this date.</td></tr>`;
+        }
+      }
 
       const fixedList = document.getElementById('dirFixedBreakdown');
       if (fixedList) {

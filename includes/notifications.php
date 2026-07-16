@@ -84,7 +84,7 @@ function notify_executives_of_pack(array $packet, int $senderId): int
     $ref = trim((string) ($packet['packet_ref'] ?? $packet['title'] ?? 'Manager brief'));
     $date = (string) ($packet['report_date'] ?? date('Y-m-d'));
     $title = 'Executive brief ready';
-    $body = $ref . ' for ' . $date . ' — open PDF reports to view and acknowledge. ' . $tag;
+    $body = $ref . ' for ' . $date . '  -  open PDF reports to view and acknowledge. ' . $tag;
     $opts = [
         'sender_id' => $senderId > 0 ? $senderId : null,
         'sender_role' => 'manager',
@@ -145,7 +145,7 @@ function notifications_sync_executive_packs(int $userId): void
             }
             $ref = trim((string) ($row['packet_ref'] ?? $row['title'] ?? 'Manager brief'));
             $date = (string) ($row['report_date'] ?? date('Y-m-d'));
-            notify_user($userId, 'Executive brief ready', $ref . ' for ' . $date . ' — open PDF reports to view and acknowledge. ' . $tag, [
+            notify_user($userId, 'Executive brief ready', $ref . ' for ' . $date . '  -  open PDF reports to view and acknowledge. ' . $tag, [
                 'sender_id' => (int) ($row['from_user_id'] ?? 0) ?: null,
                 'sender_role' => 'manager',
                 'severity' => 'warning',

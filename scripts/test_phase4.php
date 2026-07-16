@@ -2,12 +2,12 @@
 declare(strict_types=1);
 
 /**
- * Phase 4 smoke test — run: php scripts/test_phase4.php
+ * Phase 4 smoke test  -  run: php scripts/test_phase4.php
  */
 require_once dirname(__DIR__) . '/config/database.php';
 require_once dirname(__DIR__) . '/includes/permissions.php';
 
-echo "LAPOK DMS — Phase 4 tests\n";
+echo "LAPOK DMS  -  Phase 4 tests\n";
 echo str_repeat('-', 40) . "\n";
 
 try {

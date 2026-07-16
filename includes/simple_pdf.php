@@ -13,10 +13,10 @@ function simple_pdf_plain(string $text): string
 {
     $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     $map = [
-        '·' => ' - ',
+        ' - ' => ' - ',
         '•' => '- ',
         '–' => '-',
-        '—' => '-',
+        ' - ' => '-',
         '−' => '-',
         '‘' => "'",
         '’' => "'",
@@ -249,7 +249,7 @@ function simple_pdf_write(string $filepath, string $title, array $lines, ?array 
                 $y -= 6;
                 continue;
             }
-            // Subheading lines end with ":" and have no value — bold, no bullet
+            // Subheading lines end with ":" and have no value  -  bold, no bullet
             $isSubhead = str_ends_with($text, ':') && !str_contains(rtrim($text, ':'), ':');
             // Numbered steps keep their number; everything else gets a bullet
             $isNumbered = (bool) preg_match('/^\d+\.\s/', $text);

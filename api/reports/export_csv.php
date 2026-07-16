@@ -132,7 +132,7 @@ if ($type === 'stock') {
             (int) $r['warehouse_qty'],
             (int) $r['on_vehicles_qty'],
             (int) $r['min_stock'],
-            $r['nearest_expiry'] ?: '—',
+            $r['nearest_expiry'] ?: ' - ',
         ];
     }
     export_branded_report($reportTitle, $headers, $rows, [
@@ -174,7 +174,7 @@ while ($row = $stmt->fetch()) {
     $rows[] = [
         $row['created_at'],
         $row['order_ref'],
-        $row['customer'] ?: '—',
+        $row['customer'] ?: ' - ',
         $amt,
         $row['status'],
         $row['payment_type'],

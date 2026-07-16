@@ -1,5 +1,5 @@
 /**
- * Lapok DMS — PDF report exchange (Accountant ↔ Manager ↔ Executive)
+ * Lapok DMS &mdash; PDF report exchange (Accountant ↔ Manager ↔ Executive)
  */
 let reportExchangeData = null;
 const REPORT_FOLLOW_UP_KEY = 'lapok_report_follow_up';
@@ -27,7 +27,7 @@ function reportCanAcknowledge() {
 }
 
 function reportTodayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return LapokAPI.localIsoDate();
 }
 
 function reportPdfUrl(id) {
@@ -109,21 +109,21 @@ function renderAccountantPackPage() {
   const balStatus = reportExchangeData.balancingStatus || 'draft';
 
   const gateHtml = !sentToday && !balOk
-    ? `<div class="alert a-warning" style="margin-bottom:1rem"><span>⚠</span><div><strong>Submit balancing first.</strong> Today's sheet is <em>${escReport(balStatus.replace('_', ' '))}</em> — complete Step 1 before sending the pack. <button class="btn btn-sm" type="button" style="margin-left:8px" onclick="showPage('accountant-rdc')">Open today's close</button></div></div>`
+    ? `<div class="alert a-warning" style="margin-bottom:1rem"><span>⚠</span><div><strong>Submit balancing first.</strong> Today's sheet is <em>${escReport(balStatus.replace('_', ' '))}</em> &mdash; complete Step 1 before sending the pack. <button class="btn btn-sm" type="button" style="margin-left:8px" onclick="showPage('accountant-rdc')">Open today's close</button></div></div>`
     : '';
 
   const primaryHtml = sentToday
     ? `<div class="rdc-hub-primary done" style="display:flex">
         <div class="rdc-hub-primary-text">
           <div class="rdc-hub-primary-title">Pack sent for today</div>
-          <div class="rdc-hub-primary-sub">${escReport(sentToday.title || 'Daily pack')} · ${LapokAPI.formatDate(sentToday.sent_at)} ${LapokAPI.formatTime(sentToday.sent_at)}</div>
+          <div class="rdc-hub-primary-sub">${escReport(sentToday.title || 'Daily pack')} &middot; ${LapokAPI.formatDate(sentToday.sent_at)} ${LapokAPI.formatTime(sentToday.sent_at)}</div>
         </div>
         <button class="btn btn-red" type="button" onclick="reportOpenPdf(${sentToday.id})">View PDF</button>
       </div>`
     : `<div class="rdc-hub-primary" style="display:flex">
         <div class="rdc-hub-primary-text">
           <div class="rdc-hub-primary-title">Send today's pack to manager</div>
-          <div class="rdc-hub-primary-sub">Outpost builds a PDF from today's depot data — one tap to deliver.</div>
+          <div class="rdc-hub-primary-sub">Outpost builds a PDF from today's depot data &mdash; one tap to deliver.</div>
         </div>
         <button class="btn btn-red" type="button" id="acctPackSendBtn" onclick="reportAccountantSendPack()" ${balOk ? '' : 'disabled'}>Send pack now</button>
       </div>`;
@@ -131,7 +131,7 @@ function renderAccountantPackPage() {
   root.innerHTML = `
     <div class="rdc-bal-toolbar">
       <button class="btn btn-sm" type="button" onclick="showPage('accountant-rdc-hub')">← Home</button>
-      <span class="chip">Step 2 — Manager pack</span>
+      <span class="chip">Step 2 &mdash; Manager pack</span>
       <button class="btn btn-sm" type="button" style="margin-left:auto" onclick="loadReportExchangePage()">Refresh</button>
     </div>
     ${gateHtml}
@@ -372,5 +372,12 @@ window.reportUploadAndSend = reportUploadAndSend;
 window.reportAcknowledge = reportAcknowledge;
 
 function escReport(s) {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    // Normalize em/en dashes &mdash; catches both real UTF-8 chars and their
+    // Windows-1252 mojibake equivalents (ÔÇö = U+2014 misread as cp1252)
+    .replace(/\u2014|\u00c3\u2020\u00c3\u0087\u00c3\u00b6|\u00e2\u20ac\u201d/g, '&mdash;')
+    .replace(/\u2013/g, '&ndash;');
 }

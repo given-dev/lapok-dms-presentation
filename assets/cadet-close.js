@@ -102,9 +102,9 @@
       const summary = d.summary || {};
 
       const vehicle = document.getElementById('cadetTripVehicle');
-      if (vehicle) vehicle.textContent = trip?.registration || '—';
+      if (vehicle) vehicle.textContent = trip?.registration || '&mdash;';
       const route = document.getElementById('cadetTripRoute');
-      if (route) route.textContent = trip?.route_name || trip?.route_area || '—';
+      if (route) route.textContent = trip?.route_name || trip?.route_area || '&mdash;';
       const status = document.getElementById('cadetTripStatus');
       if (status) status.textContent = trip?.status || 'No active trip';
       const sales = document.getElementById('cadetSalesToday');
@@ -115,8 +115,26 @@
       if (cashInp && !cashInp.value) cashInp.value = String(Math.round(Number(summary.confirmed_revenue || 0)));
       renderStockRows(d.load || []);
       updateCloseSummary();
-      if (info) {
-        info.innerHTML = `<span>ℹ</span><div>Checkpoint for <strong>${trip?.registration || 'today'}</strong>. Submit by 7:00 PM so RDC can close on time.</div>`;
+      
+      const btn = document.getElementById('cadetCloseSubmitBtn');
+      if (trip && trip.status === 'returned') {
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = 'Already submitted today';
+        }
+        if (info) {
+          info.className = 'alert a-info';
+          info.innerHTML = '<span>✓</span><div>Your daily report has already been sent.</div>';
+        }
+      } else {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Submit checkpoint';
+        }
+        if (info) {
+          info.className = 'alert a-info';
+          info.innerHTML = `<span>ℹ</span><div>Checkpoint for <strong>${trip?.registration || 'today'}</strong>. Submit by 7:00 PM so RDC can close on time.</div>`;
+        }
       }
     } catch (e) {
       if (info) {

@@ -1,5 +1,5 @@
 /**
- * Staff welfare register — server-synced for accountant, manager, executive, admin.
+ * Staff welfare register &mdash; server-synced for accountant, manager, executive, admin.
  */
 (function () {
   const LEGACY_STORE_KEY = 'lapok.welfare.register.v1';
@@ -51,7 +51,7 @@
       banner.style.marginBottom = '1rem';
       page.querySelector('.rdc-bal-toolbar')?.after(banner);
     }
-    banner.innerHTML = '<span>ℹ</span><div>View only — welfare register is maintained by depot staff. Entries sync across roles.</div>';
+    banner.innerHTML = '<span>ℹ</span><div>View only &mdash; welfare register is maintained by depot staff. Entries sync across roles.</div>';
   }
 
   function applyReadOnlyUi() {
@@ -66,7 +66,7 @@
     const chip = document.getElementById('welfareSummaryChip');
     if (!chip) return;
     const n = summary.open_count || 0;
-    chip.textContent = n ? `${n} open · UGX ${Number(summary.open_amount || 0).toLocaleString()}` : 'All resolved';
+    chip.textContent = n ? `${n} open &middot; UGX ${Number(summary.open_amount || 0).toLocaleString()}` : 'All resolved';
     chip.className = 'badge ' + (n ? 'bw' : 'bs');
   }
 
@@ -88,8 +88,8 @@
         <td>${esc(typeLabel(e.type))}</td>
         <td>${Number(e.amount || 0).toLocaleString()}</td>
         <td><span class="badge ${e.status === 'resolved' ? 'bs' : 'bw'}">${esc(e.status || 'open')}</span></td>
-        <td style="max-width:200px;font-size:12px">${esc(e.notes || '—')}</td>
-        <td style="font-size:12px;color:var(--gray-mid)">${esc(e.created_by_name || '—')}</td>
+        <td style="max-width:200px;font-size:12px">${esc(e.notes || '&mdash;')}</td>
+        <td style="font-size:12px;color:var(--gray-mid)">${esc(e.created_by_name || '&mdash;')}</td>
         <td style="white-space:nowrap">${actions}</td>
       </tr>`;
     }).join('');
@@ -118,7 +118,7 @@
     }
     for (const e of legacy) {
       await LapokAPI.post('/api/welfare/save.php', {
-        date: e.date || new Date().toISOString().slice(0, 10),
+        date: e.date || LapokAPI.localIsoDate(),
         staff: e.staff || 'Unknown',
         type: e.type || 'request',
         amount: Number(e.amount || 0),
@@ -161,7 +161,7 @@
     setOpsHomeButton();
     const dateInp = document.getElementById('welfareDate');
     if (dateInp && !dateInp.value) {
-      dateInp.value = new Date().toISOString().slice(0, 10);
+      dateInp.value = LapokAPI.localIsoDate();
     }
     try {
       await fetchEntries();
@@ -179,7 +179,7 @@
     }
     const payload = {
       id: Number(document.getElementById('welfareEditId')?.value || 0) || undefined,
-      date: document.getElementById('welfareDate')?.value || new Date().toISOString().slice(0, 10),
+      date: document.getElementById('welfareDate')?.value || LapokAPI.localIsoDate(),
       staff,
       type: document.getElementById('welfareType')?.value || 'request',
       amount: parseFloat(document.getElementById('welfareAmount')?.value) || 0,

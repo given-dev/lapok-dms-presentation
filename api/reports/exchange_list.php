@@ -56,5 +56,5 @@ try {
         ],
     ]);
 } catch (Throwable $e) {
-    json_error('Could not load report exchange — run migration 005_report_exchange.sql.', 500);
+    json_error('Could not load report exchange  -  run migration 005_report_exchange.sql.', 500);
 }

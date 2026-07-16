@@ -16,7 +16,7 @@ try {
     $entries = welfare_list_entries($status !== '' ? $status : null, $limit);
     $summary = welfare_summary();
 } catch (Throwable $e) {
-    json_error('Welfare tables not ready — run migration 012_rdc_ops_sync.sql', 500);
+    json_error('Welfare tables not ready  -  run migration 012_rdc_ops_sync.sql', 500);
 }
 
 json_ok([

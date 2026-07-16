@@ -58,7 +58,7 @@ try {
         json_error('recipient_id or broadcast_cadets is required');
     }
 } catch (Throwable $e) {
-    json_error('Could not send — run migration 011_user_notifications.sql', 500);
+    json_error('Could not send  -  run migration 011_user_notifications.sql', 500);
 }
 
 json_ok([

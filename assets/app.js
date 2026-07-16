@@ -1,5 +1,5 @@
 /**
- * LAPOK DMS — Frontend ↔ API wiring (Phases 1–3)
+ * LAPOK DMS &mdash; Frontend ↔ API wiring (Phases 1–3)
  */
 let currentUser = null;
 let productCatalog = [];
@@ -189,9 +189,9 @@ async function loadPendingOrders() {
     if (metric) metric.textContent = orders.length;
     const rows = orders.map((o) =>
       `<tr data-order-id="${o.id}">
-        <td>${o.user_name?.split(' ')[0] || '—'}.</td>
-        <td>${o.vehicle_reg ? `<span class="badge b-tuk">${o.vehicle_reg}</span>` : '—'}</td>
-        <td>${o.customer_name || '—'}</td>
+        <td>${o.user_name?.split(' ')[0] || '&mdash;'}.</td>
+        <td>${o.vehicle_reg ? `<span class="badge b-tuk">${o.vehicle_reg}</span>` : '&mdash;'}</td>
+        <td>${o.customer_name || '&mdash;'}</td>
         <td>${Number(o.amount_total).toLocaleString()}</td>
         <td>${LapokAPI.formatTime(o.created_at)}</td>
         <td><button class="btn btn-sm btn-red" onclick="confirmSale(this,${o.id})">Confirm</button></td>
@@ -213,8 +213,8 @@ async function loadEditRequests() {
       b.textContent = reqs.length + ' pending';
     });
     const rowHtml = (r, full) => full
-      ? `<tr data-request-id="${r.id}"><td style="font-family:monospace;font-size:11px">${r.order_ref}</td><td>${r.user_name?.split(' ')[0] || '—'}.</td><td><span class="badge ${r.request_type === 'edit' ? 'bw' : 'bd'}">${r.request_type === 'edit' ? 'Edit' : 'Cancel'}</span></td><td>${r.reason}</td><td>${r.details || '—'}</td><td>${LapokAPI.formatTime(r.created_at)}</td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approve',${r.id})">Approve</button> <button class="btn btn-sm" onclick="approveReq(this,'reject',${r.id})">Reject</button></td></tr>`
-      : `<tr data-request-id="${r.id}"><td style="font-family:monospace;font-size:11px">${r.order_ref}</td><td>${r.user_name?.split(' ')[0] || '—'}.</td><td><span class="badge ${r.request_type === 'edit' ? 'bw' : 'bd'}">${r.request_type === 'edit' ? 'Edit' : 'Cancel'}</span></td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approve',${r.id})">Approve</button></td></tr>`;
+      ? `<tr data-request-id="${r.id}"><td style="font-family:monospace;font-size:11px">${r.order_ref}</td><td>${r.user_name?.split(' ')[0] || '&mdash;'}.</td><td><span class="badge ${r.request_type === 'edit' ? 'bw' : 'bd'}">${r.request_type === 'edit' ? 'Edit' : 'Cancel'}</span></td><td>${r.reason}</td><td>${r.details || '&mdash;'}</td><td>${LapokAPI.formatTime(r.created_at)}</td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approve',${r.id})">Approve</button> <button class="btn btn-sm" onclick="approveReq(this,'reject',${r.id})">Reject</button></td></tr>`
+      : `<tr data-request-id="${r.id}"><td style="font-family:monospace;font-size:11px">${r.order_ref}</td><td>${r.user_name?.split(' ')[0] || '&mdash;'}.</td><td><span class="badge ${r.request_type === 'edit' ? 'bw' : 'bd'}">${r.request_type === 'edit' ? 'Edit' : 'Cancel'}</span></td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approve',${r.id})">Approve</button></td></tr>`;
     const adminTable = document.querySelector('#page-admin-editreqs table');
     if (adminTable) {
       adminTable.innerHTML = '<tr><th>Ref</th><th>User</th><th>Type</th><th>Reason</th><th>Details</th><th>Time</th><th>Action</th></tr>' +
@@ -257,8 +257,8 @@ async function approveReq(btn, action, requestId) {
   const approved = apiAction === 'approve';
 
   if (!id || !apiAction) {
-    if (typeof adminToast === 'function') adminToast('Could not resolve this request — refresh and try again.', true);
-    else alert('Could not resolve this request — refresh and try again.');
+    if (typeof adminToast === 'function') adminToast('Could not resolve this request &mdash; refresh and try again.', true);
+    else alert('Could not resolve this request &mdash; refresh and try again.');
     return;
   }
 
@@ -301,7 +301,7 @@ async function saveDelivery() {
   }
   try {
     await LapokAPI.post('/api/stock/receive_delivery.php', {
-      delivery_date: dateInp?.value || new Date().toISOString().slice(0, 10),
+      delivery_date: dateInp?.value || LapokAPI.localIsoDate(),
       waybill: modal.querySelector('input[placeholder*="Waybill"]')?.value || '',
       items,
     });
@@ -325,7 +325,7 @@ function resolveAllowedPage(id) {
   const home = LapokAPI.roleHomePage?.[role] || 'manager-dashboard';
   const owner = LapokAPI.rolePageOwner?.[id] || 'another role';
   if (typeof adminToast === 'function') {
-    adminToast(`That module belongs to ${owner} — opened your home instead.`, true);
+    adminToast(`That module belongs to ${owner} &mdash; opened your home instead.`, true);
   }
   return home;
 }
