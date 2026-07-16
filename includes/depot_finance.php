@@ -63,16 +63,94 @@ function depot_daily_fixed_allocation(string $date, array $fixed): float
     return depot_monthly_fixed_total($fixed) / $days;
 }
 
-function depot_stock_lines_from_warehouse(): array
+/**
+ * Purchase qty for the stock book = sum of Coca-Cola supplier deliveries that day.
+ * Excludes manager-rejected waybills. Keyed by product_id.
+ *
+ * @return array<int, int>
+ */
+function depot_purchases_from_deliveries(string $date): array
 {
-    $lines = [];
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        return [];
+    }
+
+    $pdo = db();
+    $hasConfirm = false;
+    try {
+        $hasConfirm = (bool) $pdo->query("SHOW COLUMNS FROM supplier_deliveries LIKE 'confirm_status'")->fetch();
+    } catch (Throwable) {
+        $hasConfirm = false;
+    }
+
+    $sql = 'SELECT sdi.product_id, COALESCE(SUM(sdi.qty_delivered), 0) AS qty
+            FROM supplier_delivery_items sdi
+            JOIN supplier_deliveries sd ON sd.id = sdi.delivery_id
+            WHERE sd.delivery_date = ?';
+    if ($hasConfirm) {
+        $sql .= " AND COALESCE(sd.confirm_status, 'pending_confirm') <> 'rejected'";
+    }
+    $sql .= ' GROUP BY sdi.product_id';
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$date]);
+    $out = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $out[(int) $row['product_id']] = (int) $row['qty'];
+    }
+    return $out;
+}
+
+/**
+ * Overlay purchase from Coca-Cola deliveries onto stock book lines (source of truth).
+ *
+ * @param list<array<string, mixed>> $lines
+ * @return list<array<string, mixed>>
+ */
+function depot_apply_purchases_from_deliveries(array $lines, string $date): array
+{
+    $purchases = depot_purchases_from_deliveries($date);
+    foreach ($lines as &$line) {
+        $pid = (int) ($line['product_id'] ?? 0);
+        $line['purchase'] = (int) ($purchases[$pid] ?? 0);
+        $line['purchase_source'] = 'coca_cola_delivery';
+    }
+    unset($line);
+    return $lines;
+}
+
+function depot_stock_lines_from_warehouse(?string $date = null): array
+{
+    require_once __DIR__ . '/depot_catalog.php';
+    $ensured = depot_ensure_warehouse_products();
+    $qtyById = [];
     foreach (db()->query(stock_summary_query())->fetchAll() as $row) {
+        $qtyById[(int) $row['product_id']] = (int) ($row['warehouse_qty'] ?? 0);
+    }
+
+    $purchaseById = [];
+    if ($date !== null && $date !== '') {
+        $purchaseById = depot_purchases_from_deliveries($date);
+    }
+
+    $lines = [];
+    foreach ($ensured as $row) {
+        $productId = (int) $row['product_id'];
+        $brand = (string) ($row['brand'] ?? $row['category'] ?? '');
         $lines[] = [
-            'product_id' => (int) $row['product_id'],
+            'product_id' => $productId,
             'product_name' => (string) $row['name'],
-            'sku' => (string) ($row['sku'] ?? ''),
-            'qty' => (int) ($row['warehouse_qty'] ?? 0),
-            'category' => depot_category_for_product((string) $row['name'], (string) ($row['sku'] ?? '')),
+            'sku' => (string) $row['sku'],
+            'brand' => $brand,
+            'qty' => (int) ($qtyById[$productId] ?? 0),
+            'opening' => 0,
+            'purchase' => (int) ($purchaseById[$productId] ?? 0),
+            'sales' => 0,
+            'closing' => 0,
+            'category' => $brand,
+            'unit_price' => (float) ($row['unit_price'] ?? 0),
+            'rdc_key' => (string) ($row['rdc_key'] ?? ''),
+            'purchase_source' => 'coca_cola_delivery',
         ];
     }
     return depot_sort_lines_by_category($lines);
@@ -81,12 +159,17 @@ function depot_stock_lines_from_warehouse(): array
 /** @param list<array<string, mixed>> $lines */
 function depot_sort_lines_by_category(array $lines): array
 {
-    $order = array_flip(depot_category_order());
-    usort($lines, function ($a, $b) use ($order) {
-        $ca = $order[$a['category'] ?? 'OTHER'] ?? 99;
-        $cb = $order[$b['category'] ?? 'OTHER'] ?? 99;
-        if ($ca !== $cb) {
-            return $ca <=> $cb;
+    require_once __DIR__ . '/depot_catalog.php';
+    $brandOrder = function_exists('depot_stock_brand_order')
+        ? array_flip(depot_stock_brand_order())
+        : array_flip(depot_category_order());
+    usort($lines, function ($a, $b) use ($brandOrder) {
+        $ca = (string) ($a['brand'] ?? $a['category'] ?? 'OTHER');
+        $cb = (string) ($b['brand'] ?? $b['category'] ?? 'OTHER');
+        $ia = $brandOrder[$ca] ?? 99;
+        $ib = $brandOrder[$cb] ?? 99;
+        if ($ia !== $ib) {
+            return $ia <=> $ib;
         }
         return strcasecmp(
             (string) ($a['product_name'] ?? $a['name'] ?? ''),
@@ -100,15 +183,99 @@ function depot_sort_lines_by_category(array $lines): array
 function depot_enrich_stock_lines(array $lines): array
 {
     foreach ($lines as &$line) {
-        if (empty($line['category'])) {
+        if (empty($line['brand']) && empty($line['category'])) {
             $line['category'] = depot_category_for_product(
                 (string) ($line['product_name'] ?? $line['name'] ?? ''),
                 (string) ($line['sku'] ?? '')
             );
+            $line['brand'] = $line['category'];
+        } elseif (empty($line['brand'])) {
+            $line['brand'] = (string) $line['category'];
+        } elseif (empty($line['category'])) {
+            $line['category'] = (string) $line['brand'];
         }
     }
     unset($line);
     return depot_sort_lines_by_category($lines);
+}
+
+/** Map retired warehouse SKUs onto the current LAPOK BOOK page 1 SKUs. */
+function depot_legacy_stock_sku_map(): array
+{
+    return [
+        'EN-PREDATOR' => 'EN-GOLD',
+        'EN-PLAY' => 'EN-POWERPLAY',
+        'RGB-300' => '300-COKE',
+        'PET-300' => '330-COKE',
+        'PET-500' => '500-COKE',
+        'PET-2000' => '2L-COKE',
+        'CK-1L' => '1L-COKE',
+        'MM-400' => '400-MM-MANGO',
+        'MM-1L' => '1L-MM-MANGO',
+        'RF-250' => '280-RF-MANGO',
+        'RW-500-BOX' => 'RW-500-X24',
+        'RW-500-SHR' => 'RW-SHRINX',
+        'RW-1500' => 'RW-1500-X12',
+        'JUMBO-20' => 'RW-5000-X4',
+        'JUMBO-10' => 'RW-JUMBO',
+        'BOTTLES' => 'EMPTY-300',
+        'SHELLS' => 'EMPTY-SHELL',
+        'POWERPLAY' => 'EN-POWERPLAY',
+    ];
+}
+
+/**
+ * Rebuild stock lines from the current flavor catalog and carry forward saved counts.
+ * Drops deactivated / duplicate legacy rows (e.g. PREDATOR GOLD + PREDATOR).
+ *
+ * @param list<array<string, mixed>> $savedLines
+ * @return list<array<string, mixed>>
+ */
+function depot_merge_snapshot_onto_catalog(array $savedLines): array
+{
+    $catalog = depot_stock_lines_from_warehouse();
+    $bySku = [];
+    $byId = [];
+    foreach ($catalog as $line) {
+        $bySku[strtoupper((string) $line['sku'])] = $line;
+        $byId[(int) $line['product_id']] = &$bySku[strtoupper((string) $line['sku'])];
+    }
+    unset($line);
+
+    $legacy = depot_legacy_stock_sku_map();
+    foreach ($savedLines as $saved) {
+        $pid = (int) ($saved['product_id'] ?? 0);
+        $sku = strtoupper(trim((string) ($saved['sku'] ?? '')));
+        if (isset($legacy[$sku])) {
+            $sku = strtoupper($legacy[$sku]);
+        }
+        $target = null;
+        if ($pid > 0 && isset($byId[$pid])) {
+            $target = &$byId[$pid];
+        } elseif ($sku !== '' && isset($bySku[$sku])) {
+            $target = &$bySku[$sku];
+        } else {
+            unset($target);
+            continue;
+        }
+
+        $opening = (int) ($saved['opening'] ?? (($saved['closing'] ?? null) === null ? ($saved['qty'] ?? 0) : ($saved['opening'] ?? 0)));
+        $closing = (int) ($saved['closing'] ?? 0);
+        if (!isset($saved['closing']) && isset($saved['qty']) && isset($saved['opening']) === false) {
+            // Older snapshots only stored qty — treat as the count for that snapshot type later in UI.
+            $opening = (int) ($saved['qty'] ?? 0);
+        }
+        $sales = (int) ($saved['sales'] ?? 0);
+
+        $target['opening'] = max((int) ($target['opening'] ?? 0), $opening);
+        // Purchase is driven by Coca-Cola deliveries — do not carry manual snapshot values.
+        $target['sales'] = max((int) ($target['sales'] ?? 0), $sales);
+        $target['closing'] = max((int) ($target['closing'] ?? 0), $closing);
+        $target['qty'] = max((int) ($target['qty'] ?? 0), (int) ($saved['qty'] ?? max($opening, $closing)));
+        unset($target);
+    }
+
+    return array_values($bySku);
 }
 
 function depot_director_snapshot(string $date): array

@@ -138,6 +138,16 @@ For a depot with **UGX 500M+ monthly throughput**, even **0.5% improvement in co
 4. **Budget Phase 2** at **UGX 45M – 65M** all-in (build + first-year hosting + training).  
 5. **Plan go-live** on a single route first (pilot), then roll out all tuktuks/trucks.
 
+### Internal build sequence (presentation folder · July 2026)
+
+Not a commercial change — team coding order inside `lapok-dms-presentation`:
+
+1. **Cadet receive dispatch** (acknowledge load after manager dispatch).  
+2. **Accountant (RDC) polish** — primary attacking point (Home → Today's close → cash → manager pack).  
+3. Keep CCBA SKU map / warehouse sync off daily boards until MyCCBA integration phase (`CCBA_INTEGRATION_BLUEPRINT.md` §0).
+
+See `docs/MODULE_TRACKER.md` → **Current build focus**.
+
 ---
 
 ## 8. Folder reference

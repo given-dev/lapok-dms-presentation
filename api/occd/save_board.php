@@ -26,16 +26,30 @@ if (!is_array($payload)) {
     json_error('payload is required');
 }
 
+$allowEdit = !empty($body['allow_edit']);
+
 $status = $submit ? 'submitted' : 'draft';
 $pdo = db();
 
 try {
     $existing = occd_fetch_board_row($pdo, $date, $type);
-    if ($existing && $existing['status'] === 'submitted') {
-        json_error('This board was already submitted for the day. Contact admin to reopen.');
+    if ($existing && $existing['status'] === 'submitted' && !$allowEdit) {
+        json_error('This board is locked (already submitted). Unlock with Edit, then save again.');
     }
 
-    $status = $submit ? 'submitted' : 'draft';
+    // Editing a submitted board without re-submit reopens it as draft.
+    if ($existing && $existing['status'] === 'submitted' && $allowEdit && !$submit) {
+        $status = 'draft';
+    } else {
+        $status = $submit ? 'submitted' : 'draft';
+    }
+
+    if ($type === 'occd_dashboard') {
+        $payload = occd_apply_unforgivable_openings($payload, $date);
+    } elseif ($type === 'inventory_board') {
+        $payload = occd_apply_inventory_auto_fields($payload, $date);
+    }
+
     $json = json_encode($payload, JSON_UNESCAPED_UNICODE);
     if ($json === false) {
         json_error('Invalid payload');

@@ -105,18 +105,13 @@ const LapokAPI = (() => {
     formatM: (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 }),
     formatDigits: (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 }),
     formatDate: (s) => {
-<<<<<<< HEAD
-      if (!s) return '&mdash;';
-      return new Date(s).toLocaleDateString('en-UG', { day: '2-digit', month: 'short', year: 'numeric' });
-=======
       if (!s) return '—';
       const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
       const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
       return d.toLocaleDateString('en-UG', { day: '2-digit', month: 'short', year: 'numeric' });
->>>>>>> origin/main
     },
     formatTime: (s) => {
-      if (!s) return '&mdash;';
+      if (!s) return '—';
       return new Date(s).toLocaleTimeString('en-UG', { hour: '2-digit', minute: '2-digit' });
     },
     progressClass: (pct) => (pct < 30 ? 'p-red' : pct < 60 ? 'p-amber' : 'p-green'),
@@ -125,11 +120,7 @@ const LapokAPI = (() => {
       window.open(resolvePath('/api/reports/export_csv.php?type=' + encodeURIComponent(type) + params), '_blank');
     },
     exportRdcSheet: (date) => {
-<<<<<<< HEAD
       const d = date || LapokAPI.localIsoDate();
-=======
-      const d = date || todayIso();
->>>>>>> origin/main
       window.open(resolvePath('/api/reports/export_csv.php?type=rdc_sheet&date=' + encodeURIComponent(d)), '_blank');
     },
     /**
@@ -142,13 +133,8 @@ const LapokAPI = (() => {
       const headers = opts.headers || [];
       const rows = opts.rows || [];
       const meta = opts.meta || {};
-<<<<<<< HEAD
       let filename = opts.filename || (`Outpost-DMS-${title.replace(/[^a-zA-Z0-9]+/g, '-')}-${LapokAPI.localIsoDate()}.xls`);
-      // Client-side HTML Excel cannot embed logos (Excel blocks them) &mdash; use OD mark.
-=======
-      let filename = opts.filename || (`Outpost-DMS-${title.replace(/[^a-zA-Z0-9]+/g, '-')}-${todayIso()}.xls`);
       // Client-side HTML Excel cannot embed logos (Excel blocks them) — use OD mark.
->>>>>>> origin/main
       filename = filename.replace(/\.xlsx$/i, '.xls');
       const esc = (v) => String(v ?? '')
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -244,6 +230,7 @@ const LapokAPI = (() => {
         { section: 'Monitoring' },
         { id: 'admin-exceptions', l: 'Exception center', i: 'chart' },
         { id: 'admin-customers', l: 'Receivables overview', i: 'custs' },
+        { id: 'admin-users', l: 'Freeze accounts', i: 'users' },
         { id: 'accountant-welfare', l: 'Staff welfare', i: 'edit' },
         { id: 'accountant-improvements', l: 'Month-end', i: 'chart' },
       ],
@@ -290,10 +277,11 @@ const LapokAPI = (() => {
       'accountant-cash': 'RDC',
       'manager-dashboard': 'Manager',
       'manager-stock': 'Manager',
+      'manager-delivery': 'Manager',
       'manager-rdc-review': 'Manager',
       'manager-ccba-boards': 'Manager',
       'manager-ccba-order': 'Manager',
-      'admin-users': 'Admin',
+      'admin-users': 'Admin / Executive',
       'admin-audit': 'Admin',
       'admin-editreqs': 'Manager / Admin',
       'admin-customers': 'Manager',
@@ -304,14 +292,14 @@ const LapokAPI = (() => {
       cadet: [
         'accountant-rdc-hub', 'accountant-rdc', 'accountant-cash',
         'accountant-improvements', 'accountant-welfare',
-        'manager-dashboard', 'manager-stock', 'manager-rdc-review',
+        'manager-dashboard', 'manager-stock', 'manager-delivery', 'manager-rdc-review',
         'manager-ccba-boards', 'manager-ccba-order',
         'admin-dashboard', 'admin-users', 'admin-editreqs', 'admin-exceptions',
         'admin-customers', 'admin-reports', 'admin-audit',
         'director-brief', 'report-exchange',
       ],
       accountant: [
-        'manager-dashboard', 'manager-stock', 'manager-rdc-review',
+        'manager-dashboard', 'manager-stock', 'manager-delivery', 'manager-rdc-review',
         'manager-ccba-boards', 'manager-ccba-order',
         'admin-users', 'admin-audit', 'admin-editreqs', 'admin-customers',
       ],
@@ -322,9 +310,9 @@ const LapokAPI = (() => {
       ],
       executive: [
         'accountant-rdc-hub', 'accountant-cash', 'accountant-rdc',
-        'manager-dashboard', 'manager-stock', 'manager-rdc-review',
+        'manager-dashboard', 'manager-stock', 'manager-delivery', 'manager-rdc-review',
         'manager-ccba-boards', 'manager-ccba-order',
-        'admin-users', 'admin-editreqs', 'admin-audit',
+        'admin-editreqs', 'admin-audit',
         'cadet-dashboard', 'cadet-daily',
       ],
     },

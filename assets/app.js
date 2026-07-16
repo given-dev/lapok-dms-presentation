@@ -117,6 +117,7 @@ function applyUserSession(user) {
   rb.className = 'role-pill ' + (LapokAPI.rolePill[role] || 'rp-user');
   document.getElementById('navMenu').innerHTML = renderNavMenu(nav);
   items.forEach((n) => { LABELS[n.id] = n.l; });
+  LABELS['manager-delivery'] = 'Coca-Cola delivery';
   const homePage = LapokAPI.roleHomePage?.[role] || items[0]?.id;
   if (homePage) {
     showPage(homePage);
@@ -137,18 +138,27 @@ async function refreshDashboardData() {
 async function loadStockTable() {
   const table = document.getElementById('mgrStockTable') || document.querySelector('#page-manager-stock table');
   if (!table) return;
+  table.classList.add('wh-stock-table');
   try {
     const data = await LapokAPI.get('/api/stock/fetch_stock.php');
     productCatalog = data.stock || [];
+    let lastCat = null;
     const rows = productCatalog.map((s) => {
+      const cat = s.category || s.brand || 'OTHER';
+      let catRow = '';
+      if (cat !== lastCat) {
+        lastCat = cat;
+        catRow = `<tr class="wh-stock-cat"><td colspan="6">${cat}</td></tr>`;
+      }
       const low = s.low_stock ? `<span class="badge bd">${s.warehouse_qty}</span>` : s.warehouse_qty;
-      const exp = s.expiring_soon ? ' style="background:#FFFBEB"' : '';
-      return `<tr${exp} data-product-id="${s.product_id}">
-        <td>${s.name}</td><td>${s.sku}</td><td>${low}</td><td>${s.on_vehicles_qty}</td><td>${s.sold_today}</td>
+      const exp = s.expiring_soon ? ' class="wh-stock-exp"' : '';
+      return `${catRow}<tr${exp} data-product-id="${s.product_id}">
+        <td class="wh-stock-name">${s.name}</td><td class="wh-stock-sku">${s.sku}</td><td>${low}</td><td>${s.on_vehicles_qty}</td><td>${s.sold_today}</td>
         <td><div class="progress-bar"><div class="progress-fill ${LapokAPI.progressClass(s.level_percent)}" style="width:${s.level_percent}%"></div></div></td>
       </tr>`;
     }).join('');
-    table.innerHTML = '<tr><th>Product</th><th>SKU</th><th>Warehouse</th><th>With vehicles</th><th>Sold today</th><th>Level</th></tr>' + rows;
+    table.innerHTML = '<tr><th>Product</th><th>SKU</th><th>Warehouse</th><th>With vehicles</th><th>Sold today</th><th>Level</th></tr>' +
+      (rows || '<tr><td colspan="6" style="color:var(--gray-mid)">No stock lines</td></tr>');
 
     const whEl = document.querySelector('#page-admin-dashboard .metric-card.hi .metric-value');
     if (whEl && data.summary) whEl.textContent = Number(data.summary.total_warehouse_cartons).toLocaleString();
@@ -277,43 +287,8 @@ async function approveReq(btn, action, requestId) {
 }
 
 async function saveDelivery() {
-  const modal = document.getElementById('incomingModal');
-  const dateInp = modal.querySelector('input[type="date"]');
-  const items = [];
-  modal.querySelectorAll('tbody tr').forEach((tr, i) => {
-    const product = productCatalog[i];
-    if (!product) return;
-    const inputs = tr.querySelectorAll('input');
-    const qtyDelivered = parseInt(inputs[1]?.value) || 0;
-    if (qtyDelivered <= 0) return;
-    items.push({
-      product_id: product.product_id,
-      qty_ordered: parseInt(inputs[0]?.value) || qtyDelivered,
-      qty_delivered: qtyDelivered,
-      batch_number: inputs[2]?.value || `BATCH-${product.sku}-${Date.now()}`,
-      expiry_date: inputs[3]?.value || LapokAPI.localIsoDate(new Date(), 180),
-      unit_cost: parseFloat(inputs[4]?.value) || product.unit_price * 0.6,
-    });
-  });
-  if (!items.length) {
-    alert('Enter delivered quantities');
-    return;
-  }
-  try {
-    await LapokAPI.post('/api/stock/receive_delivery.php', {
-<<<<<<< HEAD
-      delivery_date: dateInp?.value || LapokAPI.localIsoDate(),
-=======
-      delivery_date: dateInp?.value || LapokAPI.todayIso(),
->>>>>>> origin/main
-      waybill: modal.querySelector('input[placeholder*="Waybill"]')?.value || '',
-      items,
-    });
-    closeModal('incomingModal');
-    await loadStockTable();
-    alert('Delivery recorded. Stock updated.');
-  } catch (e) {
-    alert(e.message);
+  if (typeof saveDeliveryEnhanced === 'function') {
+    return saveDeliveryEnhanced(document.getElementById('incomingSaveBtn'));
   }
 }
 

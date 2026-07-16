@@ -26,12 +26,24 @@ UPDATE vehicles SET driver_id = NULL, cadet_id = 5 WHERE id = 3;
 UPDATE vehicles SET driver_id = NULL, cadet_id = NULL WHERE id = 4;
 
 INSERT INTO products (id, name, sku, unit_price, min_stock) VALUES
-(1, 'Coke 500ml', 'CK-500', 20000, 80),
-(2, 'Coke 1L', 'CK-1L', 22000, 100),
-(3, 'Fanta Orange', 'FT-OR', 18000, 80),
-(4, 'Sprite 500ml', 'SP-500', 19000, 80),
-(5, 'Sprite 1L', 'SP-1L', 20000, 80),
-(6, 'Novida', 'NV-OR', 20000, 100);
+(1, '300ML RGB', 'RGB-300', 18500, 80),
+(2, '300ML PET', 'PET-300', 10000, 80),
+(3, 'PET-500ML', 'PET-500', 15000, 80),
+(4, '1L COCA-COLA', 'CK-1L', 12500, 80),
+(5, 'PET-2000ML', 'PET-2000', 25500, 60),
+(6, 'PREDATOR GOLD', 'EN-GOLD', 17500, 40),
+(7, 'PREDATOR MANGO', 'EN-MANGO', 17500, 40),
+(8, 'POWERPLAY', 'EN-PLAY', 17500, 40),
+(9, '400ML M.MAIDS', 'MM-400', 25500, 60),
+(10, '1LITRES M/MAIDS', 'MM-1L', 25500, 60),
+(11, 'REFRESH-250ML', 'RF-250', 10000, 60),
+(12, 'RWENZORI 500MLS-BOX', 'RW-500-BOX', 17400, 80),
+(13, 'RWENZORI 500MLS-SHRINKS', 'RW-500-SHR', 10000, 80),
+(14, 'RWENZORI 1.5MLS-BOX', 'RW-1500', 18600, 60),
+(15, 'JUMBO 20L', 'JUMBO-20', 10800, 20),
+(16, 'JUMBO 10L', 'JUMBO-10', 5500, 20),
+(17, 'BOTTLES', 'BOTTLES', 400, 50),
+(18, 'SHELLS', 'SHELLS', 6400, 40);
 
 INSERT INTO customers (id, name, phone, location, category, credit_balance) VALUES
 (1, 'Nandos Supermarket', '+256 772 555 001', 'Kampala Road, Shop 14', 'regular', 0),
@@ -52,21 +64,33 @@ INSERT INTO supplier_deliveries (id, delivery_date, delivery_time, waybill, invo
 VALUES (1, '2026-05-04', '09:00:00', 'WB-2026-0504-001', 'INV-CC-0504-0091', 'UBA 223K', 'Coca-Cola Driver', 2, '2 crates Fanta short-delivered.', 2);
 
 INSERT INTO supplier_delivery_items (delivery_id, product_id, qty_ordered, qty_delivered, batch_number, expiry_date, unit_cost) VALUES
-(1, 1, 300, 300, 'CC500-MAY26-A', '2026-11-30', 12000),
-(1, 3, 100, 98, 'FTOR-MAY26-A', '2026-10-15', 11000),
-(1, 6, 200, 200, 'NVOR-MAY26-A', '2026-12-01', 10000);
+(1, 3, 300, 300, 'PET500-MAY26-A', '2026-11-30', 9000),
+(1, 1, 100, 98, 'RGB300-MAY26-A', '2026-10-15', 11000),
+(1, 6, 200, 200, 'ENGOLD-MAY26-A', '2026-12-01', 10500);
 
 INSERT INTO batches (product_id, batch_number, expiry_date, qty_warehouse, qty_on_vehicles, unit_cost, delivery_id) VALUES
-(1, 'CC500-MAY26-A', '2026-11-30', 42, 38, 12000, 1),
-(2, 'CK1L-JUN26-A', '2026-12-15', 210, 40, 13000, NULL),
-(3, 'FTOR-MAY26-A', '2026-10-15', 98, 22, 11000, 1),
-(4, 'SP500-JUN26-A', '2026-11-20', 155, 35, 11500, NULL),
-(5, 'SP1L-MAY26-A', '2026-09-30', 18, 12, 12000, NULL),
-(6, 'NVOR-MAY26-A', '2026-12-01', 310, 60, 10000, 1);
+(1, 'RGB300-MAY26-A', '2026-10-15', 98, 22, 11000, 1),
+(2, 'PET300-JUN26-A', '2026-12-15', 120, 20, 6000, NULL),
+(3, 'PET500-MAY26-A', '2026-11-30', 150, 40, 9000, 1),
+(4, 'CK1L-JUN26-A', '2026-12-15', 100, 20, 7500, NULL),
+(5, 'PET2L-MAY26-A', '2026-11-20', 80, 15, 15000, NULL),
+(6, 'ENGOLD-MAY26-A', '2026-12-01', 60, 10, 10500, 1),
+(7, 'ENMANGO-JUN26-A', '2026-12-01', 60, 0, 10500, NULL),
+(8, 'ENPLAY-JUN26-A', '2026-12-01', 60, 0, 10500, NULL),
+(9, 'MM400-JUN26-A', '2026-11-30', 80, 0, 15000, NULL),
+(10, 'MM1L-JUN26-A', '2026-11-30', 80, 0, 15000, NULL),
+(11, 'RF250-JUN26-A', '2026-11-30', 80, 0, 6000, NULL),
+(12, 'RW500B-JUN26-A', '2026-12-31', 100, 0, 10000, NULL),
+(13, 'RW500S-JUN26-A', '2026-12-31', 100, 0, 6000, NULL),
+(14, 'RW1500-JUN26-A', '2026-12-31', 80, 0, 11000, NULL),
+(15, 'J20-JUN26-A', '2027-06-01', 30, 0, 6500, NULL),
+(16, 'J10-JUN26-A', '2027-06-01', 30, 0, 3300, NULL),
+(17, 'BOT-JUN26-A', '2027-12-01', 200, 0, 200, NULL),
+(18, 'SHL-JUN26-A', '2027-12-01', 80, 0, 3800, NULL);
 
 INSERT INTO stock_movements (product_id, batch_id, movement_type, qty, reference_type, reference_id, user_id, notes) VALUES
-(1, 1, 'stock_in', 300, 'supplier_delivery', 1, 2, 'Initial delivery'),
-(3, 3, 'stock_in', 98, 'supplier_delivery', 1, 2, 'Initial delivery'),
+(3, 3, 'stock_in', 300, 'supplier_delivery', 1, 2, 'Initial delivery'),
+(1, 1, 'stock_in', 98, 'supplier_delivery', 1, 2, 'Initial delivery'),
 (6, 6, 'stock_in', 200, 'supplier_delivery', 1, 2, 'Initial delivery');
 
 -- Active trip for TUK-001
@@ -74,8 +98,8 @@ INSERT INTO delivery_trips (id, vehicle_id, driver_id, cadet_id, route_id, route
 VALUES (1, 3, NULL, 5, 1, 'Owino / Katwe', 'on_route', '2026-05-07 09:10:00', 45230);
 
 INSERT INTO trip_load_items (trip_id, product_id, batch_id, qty_loaded, qty_sold) VALUES
-(1, 1, 1, 15, 12),
-(1, 3, 3, 10, 8),
+(1, 3, 3, 15, 12),
+(1, 1, 1, 10, 8),
 (1, 6, 6, 10, 6),
 (1, 4, 4, 5, 2);
 

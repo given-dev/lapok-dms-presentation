@@ -3,11 +3,14 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/stock.php';
+require_once dirname(__DIR__, 2) . '/includes/depot_catalog.php';
 
 require_login();
 
+depot_ensure_warehouse_products();
+
 $page = max(1, (int) ($_GET['page'] ?? 1));
-$perPage = min(100, max(10, (int) ($_GET['per_page'] ?? 50)));
+$perPage = min(200, max(10, (int) ($_GET['per_page'] ?? 100)));
 $search = trim($_GET['search'] ?? '');
 $lowOnly = ($_GET['low_only'] ?? '') === '1';
 
@@ -40,11 +43,20 @@ $stock = array_map(function ($row) {
         $expiringSoon = $days <= 30;
     }
     $levelPct = $min > 0 ? min(100, round(($warehouse / $min) * 100)) : 100;
+    $name = (string) $row['name'];
+    $sku = (string) ($row['sku'] ?? '');
+    $brand = '';
+    foreach (depot_manager_warehouse_catalog() as $def) {
+        if (strcasecmp((string) $def['sku'], $sku) === 0) {
+            $brand = (string) $def['brand'];
+            break;
+        }
+    }
 
     return [
         'product_id' => (int) $row['product_id'],
-        'name' => $row['name'],
-        'sku' => $row['sku'],
+        'name' => $name,
+        'sku' => $sku,
         'unit_price' => (float) $row['unit_price'],
         'min_stock' => $min,
         'warehouse_qty' => $warehouse,
@@ -56,8 +68,20 @@ $stock = array_map(function ($row) {
         'expiring_soon' => $expiringSoon,
         'low_stock' => $warehouse < $min,
         'level_percent' => $levelPct,
+        'category' => $brand !== '' ? $brand : depot_category_for_product($name, $sku),
+        'brand' => $brand,
     ];
 }, $pageRows);
+
+$order = array_flip(depot_stock_brand_order());
+usort($stock, function ($a, $b) use ($order) {
+    $ca = $order[$a['category'] ?? ''] ?? 99;
+    $cb = $order[$b['category'] ?? ''] ?? 99;
+    if ($ca !== $cb) {
+        return $ca <=> $cb;
+    }
+    return strcasecmp((string) $a['name'], (string) $b['name']);
+});
 
 $totalWarehouse = array_sum(array_column($stock, 'warehouse_qty'));
 

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 
-$user = require_roles(['admin']);
+$user = require_roles(['admin', 'executive']);
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     json_error('Method not allowed', 405);
@@ -20,6 +20,34 @@ $stmt->execute([$id]);
 $old = $stmt->fetch();
 if (!$old) {
     json_error('User not found', 404);
+}
+
+$actorRole = (string) ($user['role'] ?? '');
+$isExecutive = $actorRole === 'executive';
+
+// Executives may only freeze / unfreeze accounts (is_active).
+if ($isExecutive) {
+    if (!array_key_exists('is_active', $body)) {
+        json_error('Executives can only freeze or unfreeze accounts', 403);
+    }
+    if ($id === (int) $user['id']) {
+        json_error('You cannot freeze your own account');
+    }
+    if (in_array((string) $old['role'], ['admin', 'executive'], true) && !(int) ($body['is_active'] ?? 0)) {
+        json_error('Executives cannot freeze admin or executive accounts');
+    }
+
+    $isActive = (int) (bool) $body['is_active'];
+    db()->prepare('UPDATE users SET is_active = ? WHERE id = ?')->execute([$isActive, $id]);
+    audit_log(
+        (int) $user['id'],
+        'users',
+        $id,
+        $isActive ? 'unfreeze' : 'freeze',
+        ['is_active' => (int) $old['is_active']],
+        ['is_active' => $isActive]
+    );
+    json_ok(['user_id' => $id, 'is_active' => $isActive]);
 }
 
 $validRoles = ['admin', 'executive', 'manager', 'accountant', 'field_user', 'driver', 'cadet'];

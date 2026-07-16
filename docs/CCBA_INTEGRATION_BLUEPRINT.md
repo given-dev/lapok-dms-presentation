@@ -1,9 +1,25 @@
 # Lapok DMS ↔ CCBA (MyCCBA) Integration Blueprint
 
-**Version:** 1.0 (draft)  
-**Date:** June 2026  
+**Version:** 1.1 (draft)  
+**Date:** July 2026  
 **Audience:** Lapok leadership, managers, developers, CCBA account rep  
 **Goal:** Enter replenishment and stock data **once in Lapok**; sync to CCBA without duplicate work.
+
+---
+
+## 0. IMPORTANT — what is live vs Phase 2 (do not mix)
+
+**Manager daily CCBA boards** (`manager-ccba-boards`) are for **internal** Inventory + OCCD reporting (executive brief). They are **not** the MyCCBA integration surface.
+
+| Feature | Status on boards UI | When to restore |
+|---------|---------------------|-----------------|
+| Inventory board + OCCD dashboard | **Live** (daily) | Now |
+| **SKU map** (`ccba_product_map` admin UI) | **Removed from boards** — Phase 2 | When MyCCBA product mapping ships |
+| **Sync warehouse snapshot** / daily stock sync | **Removed from boards** — Phase 2 | When MyCCBA stock sync ships (§7.3) |
+
+**Why this matters:** Putting SKU map / warehouse sync on the daily boards confuses managers and looks like live CCBA sync before partner credentials and workflow exist. APIs/tables may already exist in the repo — **do not re-expose them on the boards page** until this integration phase is intentionally activated. Track status in `docs/MODULE_TRACKER.md` (Cross-cutting / integrations).
+
+**Executive reporting (live):** When the manager sends the daily brief, Inventory + OCCD boards are exported as a **companion PDF** (`ccba_boards`) styled like the on-screen boards (navy banner, bordered tables). That is **internal OCCD reporting**, not MyCCBA portal sync.
 
 ---
 
@@ -238,6 +254,8 @@ Add under **Stock management**:
 
 ### 7.3 Daily stock update (level 2)
 
+> **UI status:** Not on manager daily boards until Phase 2 — see §0.
+
 1. Manager clicks **Sync stock to CCBA** on stock page  
 2. Lapok snapshots current warehouse (and optionally on-vehicles) qty per product  
 3. Phase 1: export/sync pack + open MyCCBA stock screen + manager confirms sync  
@@ -354,8 +372,8 @@ Copy this into your meeting with CCBU / MyCCBA support:
 | 3 | Assisted submit: export + “Open MyCCBA” + paste order no. | M |
 | 4 | Link `supplier_deliveries.ccba_order_id` in receive UI | S |
 | 5 | Executive dashboard widgets: open orders, delivery SLA | S |
-| 6 | `ccba_product_map` admin UI | M |
-| 7 | Daily stock snapshot button | S |
+| 6 | `ccba_product_map` admin UI | M | **Phase 2** — not on daily boards (see §0) |
+| 7 | Daily stock snapshot button | S | **Phase 2** — not on daily boards (see §0) |
 | 8 | API integration (when CCBA docs available) | L |
 
 ---

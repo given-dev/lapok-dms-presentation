@@ -11,6 +11,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/notifications.php';
+require_once __DIR__ . '/cadet_reports.php';
 
 function deadline_tz(): DateTimeZone
 {
@@ -131,25 +132,7 @@ function deadline_notify(int $recipientId, string $key, string $date, string $ti
 /** Cadets who still need today's report */
 function deadline_pending_cadet_ids(string $date): array
 {
-    $pdo = db();
-    // Active trips that have not submitted a cadet report yet
-    $stmt = $pdo->prepare(
-        "SELECT DISTINCT u.id
-         FROM users u
-         JOIN delivery_trips dt ON dt.cadet_id = u.id
-         WHERE u.is_active = 1
-           AND u.role IN ('cadet','field_user')
-           AND (
-                dt.status IN ('dispatched','on_route')
-                OR (
-                    dt.status IN ('returned','completed')
-                    AND DATE(COALESCE(dt.returned_at, dt.dispatched_at)) = ?
-                    AND (dt.notes IS NULL OR dt.notes NOT LIKE '%[CADET_REPORT]%')
-                )
-           )"
-    );
-    $stmt->execute([$date]);
-    return array_map('intval', array_column($stmt->fetchAll(), 'id'));
+    return cadet_pending_report_user_ids(db(), $date);
 }
 
 function deadline_rdc_sheet_done(string $date): bool
@@ -198,6 +181,7 @@ function deadline_status_for_user(array $user, ?DateTimeImmutable $now = null): 
     if (in_array($role, ['cadet', 'field_user'], true)) {
         $win = $sched['windows']['cadet'];
         $pending = in_array($userId, deadline_pending_cadet_ids($date), true);
+        $submittedToday = cadet_report_submitted_today(db(), $userId, $date);
         $phase = deadline_phase($minute, $win['warn_from'], $win['urgent_from'], $win['due']);
         if ($pending) {
             if ($phase === 'quiet') {
@@ -217,7 +201,7 @@ function deadline_status_for_user(array $user, ?DateTimeImmutable $now = null): 
                 'link_page' => 'cadet-daily',
                 'done' => false,
             ];
-        } elseif (!$pending) {
+        } elseif ($submittedToday) {
             $banner = [
                 'role' => 'cadet',
                 'phase' => 'done',

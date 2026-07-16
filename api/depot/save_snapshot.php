@@ -47,20 +47,33 @@ if (!is_array($lines) || !count($lines)) {
 $clean = [];
 foreach ($lines as $line) {
     $pid = (int) ($line['product_id'] ?? 0);
-    $qty = (int) ($line['qty'] ?? 0);
     if ($pid <= 0) {
         continue;
     }
+    $opening = max(0, (int) ($line['opening'] ?? $line['qty'] ?? 0));
+    $purchase = max(0, (int) ($line['purchase'] ?? 0));
+    $sales = max(0, (int) ($line['sales'] ?? 0));
+    $closing = max(0, (int) ($line['closing'] ?? ($type === 'closing' ? ($line['qty'] ?? 0) : 0)));
+    $qty = $type === 'closing' ? $closing : $opening;
     $clean[] = [
         'product_id' => $pid,
         'product_name' => trim((string) ($line['product_name'] ?? '')),
         'sku' => trim((string) ($line['sku'] ?? '')),
-        'qty' => max(0, $qty),
+        'brand' => trim((string) ($line['brand'] ?? $line['category'] ?? '')),
+        'category' => trim((string) ($line['brand'] ?? $line['category'] ?? '')),
+        'qty' => $qty,
+        'opening' => $opening,
+        'purchase' => $purchase,
+        'sales' => $sales,
+        'closing' => $closing,
     ];
 }
 if (!count($clean)) {
     json_error('No valid stock lines');
 }
+
+// Purchase always mirrors Coca-Cola deliveries for this date (not manual entry).
+$clean = depot_apply_purchases_from_deliveries($clean, $date);
 
 $pdo = db();
 $stmt = $pdo->prepare(
