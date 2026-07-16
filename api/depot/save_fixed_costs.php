@@ -15,7 +15,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 $body = read_json_body();
 $month = trim((string) ($body['cost_month'] ?? date('Y-m')));
 if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
-    json_error('Invalid month — use YYYY-MM');
+    json_error('Invalid month  -  use YYYY-MM');
 }
 
 $rent = max(0, (float) ($body['rent_ugx'] ?? 0));

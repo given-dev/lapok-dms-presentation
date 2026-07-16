@@ -19,7 +19,7 @@ try {
         ? notifications_mark_read((int) $user['id'])
         : notifications_mark_read((int) $user['id'], $ids);
 } catch (Throwable $e) {
-    json_error('Notifications not available — run migration 011.', 500);
+    json_error('Notifications not available  -  run migration 011.', 500);
 }
 
 json_ok([

@@ -143,7 +143,7 @@ $message = count($flags) > 0
 if (!empty($mergeResult['merged'])) {
     $message .= ' Consolidated into today\'s balancing sheet.';
 } elseif (($mergeResult['reason'] ?? '') === 'sheet_locked') {
-    $message .= ' Today\'s sheet is already submitted — tell accountant to add manually.';
+    $message .= ' Today\'s sheet is already submitted  -  tell accountant to add manually.';
 }
 
 json_ok([

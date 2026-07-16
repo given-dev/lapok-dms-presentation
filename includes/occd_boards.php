@@ -365,7 +365,7 @@ function occd_board_for_date(PDO $pdo, string $date, string $type): array
 function occd_inventory_brief_lines($row): array
 {
     if (!$row || empty($row['payload_json'])) {
-        return ['Inventory board: not started — submit CCBA boards before the executive brief.'];
+        return ['Inventory board: not started  -  submit CCBA boards before the executive brief.'];
     }
     $payload = json_decode((string) $row['payload_json'], true);
     if (!is_array($payload)) {
@@ -407,17 +407,17 @@ function occd_inventory_brief_lines($row): array
     }
 
     $out = [
-        'Status: ' . $status . ($row['submitted_at'] ? ' · submitted ' . $row['submitted_at'] : ''),
-        'OCCD: ' . trim((string) ($header['occd_name'] ?? '—')) . ' · Region: ' . trim((string) ($header['region'] ?? '—')),
+        'Status: ' . $status . ($row['submitted_at'] ? '  -  submitted ' . $row['submitted_at'] : ''),
+        'OCCD: ' . trim((string) ($header['occd_name'] ?? ' - ')) . '  -  Region: ' . trim((string) ($header['region'] ?? ' - ')),
         'SKU lines filled: ' . $skuCount,
         'Grand opening: ' . number_format($grandOpening, 0)
-            . ' · Recommended: ' . number_format($grandRecommended, 0)
-            . ' · On order: ' . number_format($grandOnOrder, 0),
+            . '  -  Recommended: ' . number_format($grandRecommended, 0)
+            . '  -  On order: ' . number_format($grandOnOrder, 0),
     ];
     foreach ($byCat as $cat => $tot) {
-        $out[] = $cat . ' — opening ' . number_format($tot['opening'], 0)
-            . ' · recommended ' . number_format($tot['recommended'], 0)
-            . ' · on order ' . number_format($tot['on_order'], 0)
+        $out[] = $cat . '  -  opening ' . number_format($tot['opening'], 0)
+            . '  -  recommended ' . number_format($tot['recommended'], 0)
+            . '  -  on order ' . number_format($tot['on_order'], 0)
             . ' (' . $tot['skus'] . ' SKUs)';
     }
     return $out;
@@ -432,7 +432,7 @@ function occd_inventory_brief_lines($row): array
 function occd_dashboard_brief_lines($row): array
 {
     if (!$row || empty($row['payload_json'])) {
-        return ['OCCD dashboard: not started — submit CCBA boards before the executive brief.'];
+        return ['OCCD dashboard: not started  -  submit CCBA boards before the executive brief.'];
     }
     $payload = json_decode((string) $row['payload_json'], true);
     if (!is_array($payload)) {
@@ -442,8 +442,8 @@ function occd_dashboard_brief_lines($row): array
     $status = (string) ($row['status'] ?? 'draft');
     $header = $payload['header'] ?? [];
     $out = [
-        'Status: ' . $status . ($row['submitted_at'] ? ' · submitted ' . $row['submitted_at'] : ''),
-        'OCCD: ' . trim((string) ($header['occd_name'] ?? '—')) . ' · Region: ' . trim((string) ($header['region'] ?? '—')),
+        'Status: ' . $status . ($row['submitted_at'] ? '  -  submitted ' . $row['submitted_at'] : ''),
+        'OCCD: ' . trim((string) ($header['occd_name'] ?? ' - ')) . '  -  Region: ' . trim((string) ($header['region'] ?? ' - ')),
     ];
 
     $sales = $payload['sales_performance']['values']['current_month']['total'] ?? null;
@@ -451,9 +451,9 @@ function occd_dashboard_brief_lines($row): array
         $cy = (float) ($sales['cy'] ?? 0);
         $target = (float) ($sales['target'] ?? 0);
         $py = (float) ($sales['py'] ?? 0);
-        $out[] = 'Sales MTD total — CY ' . number_format($cy, 0)
-            . ' · Target ' . number_format($target, 0)
-            . ' · PY ' . number_format($py, 0);
+        $out[] = 'Sales MTD total  -  CY ' . number_format($cy, 0)
+            . '  -  Target ' . number_format($target, 0)
+            . '  -  PY ' . number_format($py, 0);
         if ($target > 0) {
             $out[] = 'vs target: ' . number_format((($cy - $target) / $target) * 100, 1) . '%';
         }
@@ -461,9 +461,9 @@ function occd_dashboard_brief_lines($row): array
 
     $ytd = $payload['sales_performance']['values']['ytd']['total'] ?? null;
     if (is_array($ytd)) {
-        $out[] = 'Sales YTD total — CY ' . number_format((float) ($ytd['cy'] ?? 0), 0)
-            . ' · Target ' . number_format((float) ($ytd['target'] ?? 0), 0)
-            . ' · PY ' . number_format((float) ($ytd['py'] ?? 0), 0);
+        $out[] = 'Sales YTD total  -  CY ' . number_format((float) ($ytd['cy'] ?? 0), 0)
+            . '  -  Target ' . number_format((float) ($ytd['target'] ?? 0), 0)
+            . '  -  PY ' . number_format((float) ($ytd['py'] ?? 0), 0);
     }
 
     $outletValues = $payload['outlet_data']['values'] ?? [];
@@ -488,14 +488,14 @@ function occd_dashboard_brief_lines($row): array
         }
         $rowVals = $service[$key] ?? null;
         if (is_array($rowVals) && (($rowVals['mtd'] ?? '') !== '' || ($rowVals['ytd'] ?? '') !== '')) {
-            $out[] = $label . ' — MTD ' . ($rowVals['mtd'] !== '' ? $rowVals['mtd'] : '—')
-                . ' · YTD ' . ($rowVals['ytd'] !== '' ? $rowVals['ytd'] : '—');
+            $out[] = $label . '  -  MTD ' . ($rowVals['mtd'] !== '' ? $rowVals['mtd'] : ' - ')
+                . '  -  YTD ' . ($rowVals['ytd'] !== '' ? $rowVals['ytd'] : ' - ');
         }
     }
     $exec = $payload['execution_model']['values'] ?? [];
     if (isset($exec['nps']) && is_array($exec['nps'])) {
-        $out[] = 'NPS — MTD ' . (($exec['nps']['mtd'] ?? '') !== '' ? $exec['nps']['mtd'] : '—')
-            . ' · YTD ' . (($exec['nps']['ytd'] ?? '') !== '' ? $exec['nps']['ytd'] : '—');
+        $out[] = 'NPS  -  MTD ' . (($exec['nps']['mtd'] ?? '') !== '' ? $exec['nps']['mtd'] : ' - ')
+            . '  -  YTD ' . (($exec['nps']['ytd'] ?? '') !== '' ? $exec['nps']['ytd'] : ' - ');
     }
 
     $uf = $payload['unforgivable_packs']['values'] ?? [];
@@ -509,12 +509,12 @@ function occd_dashboard_brief_lines($row): array
         $ufRec += (float) ($v['recommended'] ?? 0);
     }
     if ($ufOpen > 0 || $ufRec > 0) {
-        $out[] = 'Unforgivable packs — opening ' . number_format($ufOpen, 0)
-            . ' · recommended ' . number_format($ufRec, 0);
+        $out[] = 'Unforgivable packs  -  opening ' . number_format($ufOpen, 0)
+            . '  -  recommended ' . number_format($ufRec, 0);
     }
 
     if (count($out) <= 2) {
-        $out[] = 'Board submitted with limited figures — open CCBA boards for full detail.';
+        $out[] = 'Board submitted with limited figures  -  open CCBA boards for full detail.';
     }
     return $out;
 }

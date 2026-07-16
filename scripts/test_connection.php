@@ -2,12 +2,12 @@
 declare(strict_types=1);
 
 /**
- * Phase 1 smoke test — run: php scripts/test_connection.php
+ * Phase 1 smoke test  -  run: php scripts/test_connection.php
  */
 require_once dirname(__DIR__) . '/config/database.php';
 require_once dirname(__DIR__) . '/includes/auth.php';
 
-echo "LAPOK DMS — Connection & auth test\n";
+echo "LAPOK DMS  -  Connection & auth test\n";
 echo str_repeat('-', 40) . "\n";
 
 try {

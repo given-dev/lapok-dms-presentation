@@ -60,7 +60,7 @@ All demo users share password **`password123`** (see [Demo accounts](#demo-accou
 | Today's report | `cadet-daily` | All depot products grouped like depot sales book (CSD, ENERGY, JUICE, VAD, WATER, OTHER) |
 | Notifications | Bell icon | Receive messages from manager / RDC / admin |
 
-On submit, sales, expenses, and cash **auto-sync** into the accountant's **Today's close** sheet on the **vehicle column** for the assigned trip.
+On submit, sales, expenses, and cash **auto-sync** into the accountant's **Today's close** sheet on the **vehicle column** for the assigned trip. The Cadet Daily returns and stock tables are fully dynamic, reading live stock quantities directly from the database.
 
 ### Manager
 
@@ -93,7 +93,7 @@ Receivables (`admin-customers`) are **manager-only**. Accountants see a Home nud
 
 Read-only board/MD view. In the current cleaned demo DB, no executive login is seeded.
 
-**Sidebar — Overview:** Executive dashboard (daily checklist + P&L widget), Director brief (date picker / today / yesterday)  
+**Sidebar — Overview:** Executive dashboard (daily checklist + P&L widget), Director brief (date picker / today / yesterday, **live opening/closing stock snapshot**)  
 **Sidebar — Reports:** PDF reports (acknowledge manager pack), Reports & analytics  
 **Sidebar — Monitoring:** Exception center (monitor only), Receivables overview, Staff welfare (view), Month-end (view)
 

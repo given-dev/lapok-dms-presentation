@@ -1,7 +1,11 @@
 /**
- * Lapok DMS — Manager daily OCCD / Inventory boards (whiteboard digitization)
+ * Lapok DMS &mdash; Manager daily OCCD / Inventory boards (whiteboard digitization)
  */
+<<<<<<< HEAD
+let occdBoardDate = LapokAPI.localIsoDate();
+=======
 let occdBoardDate = '';
+>>>>>>> origin/main
 let occdInventoryData = null;
 let occdDashboardData = null;
 let occdRenderContext = 'inv';
@@ -24,8 +28,8 @@ const OCCD_SERVICE_LABELS = {
 const OCCD_EXEC_LABELS = {
   digitized_outlets: 'DIGITIZED OUTLETS', active_digitized_outlets: 'ACTIVE DIGITIZED OUTLETS',
   red_score: 'RED SCORE', unforgivable_nd: 'UNFORGIVABLE ND', buying_customers: 'BUYING CUSTOMERS',
-  nps: 'NPS', obe_cwm: 'OBE — CWM', obe_sprite_otg: 'OBE — SPRITE ON THE GO',
-  obe_santa_snacking: 'OBE — SANTA SNACKING',
+  nps: 'NPS', obe_cwm: 'OBE &mdash; CWM', obe_sprite_otg: 'OBE &mdash; SPRITE ON THE GO',
+  obe_santa_snacking: 'OBE &mdash; SANTA SNACKING',
 };
 
 function occdCanEdit() {
@@ -44,22 +48,22 @@ function occdNum(v) {
 }
 
 function occdFmt(n) {
-  if (!n && n !== 0) return '—';
+  if (!n && n !== 0) return '&mdash;';
   return Number(n).toLocaleString();
 }
 
 function occdPct(n) {
-  if (!Number.isFinite(n) || !isFinite(n)) return '—';
+  if (!Number.isFinite(n) || !isFinite(n)) return '&mdash;';
   return n.toFixed(1) + '%';
 }
 
 function occdInp(val, attrs = '') {
-  if (!occdCanEdit() || occdBoardLocked()) return `<span class="occd-readonly-val">${occdFmt(occdNum(val)) || escOccd(val) || '—'}</span>`;
+  if (!occdCanEdit() || occdBoardLocked()) return `<span class="occd-readonly-val">${occdFmt(occdNum(val)) || escOccd(val) || '&mdash;'}</span>`;
   return `<input class="occd-num-inp" type="text" inputmode="numeric" value="${escOccd(val)}" ${attrs}>`;
 }
 
 function occdTxt(val, attrs = '') {
-  if (!occdCanEdit() || occdBoardLocked()) return `<span class="occd-readonly-val">${escOccd(val) || '—'}</span>`;
+  if (!occdCanEdit() || occdBoardLocked()) return `<span class="occd-readonly-val">${escOccd(val) || '&mdash;'}</span>`;
   return `<input class="occd-txt-inp" type="text" value="${escOccd(val)}" ${attrs}>`;
 }
 
@@ -183,9 +187,9 @@ function renderInventoryBoard() {
     if (isTotal) {
       rows += `<tr class="${cls}" data-inv-total="${key}" data-inv-section="${line.category || 'all'}">
         <td><strong>${escOccd(line.sku)}</strong></td>
-        <td class="occd-calc" data-field="recommended">—</td>
-        <td class="occd-calc" data-field="opening">—</td>
-        <td class="occd-calc" data-field="on_order">—</td>
+        <td class="occd-calc" data-field="recommended">&mdash;</td>
+        <td class="occd-calc" data-field="opening">&mdash;</td>
+        <td class="occd-calc" data-field="on_order">&mdash;</td>
         <td></td>
       </tr>`;
       return;
@@ -203,7 +207,7 @@ function renderInventoryBoard() {
     <div class="card occd-board-card">
       <div class="card-header">
         <span class="card-title">Inventory board</span>
-        <span class="chip">Physical cases · daily</span>
+        <span class="chip">Physical cases &middot; daily</span>
       </div>
       ${renderBoardHeader(p.header, 'INVENTORY BOARD', 'inv')}
       <div class="tbl-wrap occd-tbl">
@@ -233,7 +237,7 @@ function renderOccdDashboard() {
     <div class="card occd-board-card">
       <div class="card-header">
         <span class="card-title">OCCD dashboard</span>
-        <span class="chip">CCBA reporting · daily</span>
+        <span class="chip">CCBA reporting &middot; daily</span>
       </div>
       ${renderBoardHeader(p.header, 'OCCD DASHBOARD', 'dash')}
       <div class="occd-panels">
@@ -281,15 +285,15 @@ function renderOutletPanel(panel) {
       const v = vals[tier]?.[ch] ?? '';
       body += `<td>${occdInp(v, `data-outlet-tier="${tier}" data-outlet-ch="${ch}"`)}</td>`;
     });
-    body += `<td class="occd-calc occd-outlet-row-total">—</td>
-      <td class="occd-calc occd-outlet-row-pct">—</td></tr>`;
+    body += `<td class="occd-calc occd-outlet-row-total">&mdash;</td>
+      <td class="occd-calc occd-outlet-row-pct">&mdash;</td></tr>`;
   });
   body += `<tr class="occd-total-row" data-outlet-grand>
     <td><strong>Total</strong></td>`;
   channels.forEach((ch) => {
-    body += `<td class="occd-calc occd-outlet-col-total" data-outlet-col="${ch}">—</td>`;
+    body += `<td class="occd-calc occd-outlet-col-total" data-outlet-col="${ch}">&mdash;</td>`;
   });
-  body += `<td class="occd-calc occd-outlet-grand-total">—</td><td>100%</td></tr>`;
+  body += `<td class="occd-calc occd-outlet-grand-total">&mdash;</td><td>100%</td></tr>`;
 
   return `<div class="tbl-wrap occd-tbl"><table>${head}${body}</table></div>`;
 }
@@ -306,11 +310,11 @@ function renderSalesPanel(panel) {
       if (isTotal) {
         rows += `<tr class="occd-total-row" data-sales-total="${secKey}">
           <td><strong>Total</strong></td>
-          <td class="occd-calc" data-f="cy">—</td>
-          <td class="occd-calc" data-f="target">—</td>
-          <td class="occd-calc" data-f="py">—</td>
-          <td class="occd-calc" data-f="var_target">—</td>
-          <td class="occd-calc" data-f="var_py">—</td>
+          <td class="occd-calc" data-f="cy">&mdash;</td>
+          <td class="occd-calc" data-f="target">&mdash;</td>
+          <td class="occd-calc" data-f="py">&mdash;</td>
+          <td class="occd-calc" data-f="var_target">&mdash;</td>
+          <td class="occd-calc" data-f="var_py">&mdash;</td>
         </tr>`;
         return;
       }
@@ -319,8 +323,8 @@ function renderSalesPanel(panel) {
         <td>${occdInp(v.cy, `data-sales-sec="${secKey}" data-sales-cat="${cat}" data-f="cy"`)}</td>
         <td>${occdInp(v.target, `data-sales-sec="${secKey}" data-sales-cat="${cat}" data-f="target"`)}</td>
         <td>${occdInp(v.py, `data-sales-sec="${secKey}" data-sales-cat="${cat}" data-f="py"`)}</td>
-        <td class="occd-calc occd-sales-var-t" data-sales-sec="${secKey}" data-sales-cat="${cat}">—</td>
-        <td class="occd-calc occd-sales-var-p" data-sales-sec="${secKey}" data-sales-cat="${cat}">—</td>
+        <td class="occd-calc occd-sales-var-t" data-sales-sec="${secKey}" data-sales-cat="${cat}">&mdash;</td>
+        <td class="occd-calc occd-sales-var-p" data-sales-sec="${secKey}" data-sales-cat="${cat}">&mdash;</td>
       </tr>`;
     });
     html += `<div class="occd-subpanel"><div class="occd-subtitle">${secLabel}</div>
@@ -439,7 +443,7 @@ function recalcOutletTotals() {
       const tCell = tr.querySelector('.occd-outlet-row-total');
       const pCell = tr.querySelector('.occd-outlet-row-pct');
       if (tCell) tCell.textContent = occdFmt(rowTotals[tier]);
-      if (pCell) pCell.textContent = grand > 0 ? occdPct((rowTotals[tier] / grand) * 100) : '—';
+      if (pCell) pCell.textContent = grand > 0 ? occdPct((rowTotals[tier] / grand) * 100) : '&mdash;';
     }
   });
 

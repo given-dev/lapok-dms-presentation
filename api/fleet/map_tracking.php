@@ -17,5 +17,5 @@ try {
         'refreshed_at' => date('c'),
     ]);
 } catch (Throwable $e) {
-    json_error('Could not load fleet map — run migration 004_fleet_tracking.sql if tables are missing.', 500);
+    json_error('Could not load fleet map  -  run migration 004_fleet_tracking.sql if tables are missing.', 500);
 }

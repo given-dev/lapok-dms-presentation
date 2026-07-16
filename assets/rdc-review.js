@@ -81,8 +81,8 @@ async function loadRdcReviewPage() {
     }
     const rows = rdcReviewSheetsCache.map((s) => {
       const reviewText = s.review_note
-        ? `${rdcReviewEsc(s.review_note)}${s.reviewed_by_name ? ' · ' + rdcReviewEsc(s.reviewed_by_name) : ''}`
-        : (s.reviewed_at ? 'Reviewed' : '—');
+        ? `${rdcReviewEsc(s.review_note)}${s.reviewed_by_name ? ' &middot; ' + rdcReviewEsc(s.reviewed_by_name) : ''}`
+        : (s.reviewed_at ? 'Reviewed' : '&mdash;');
       const canBulk = rdcReviewCanBulk(s.status);
       const check = canBulk
         ? `<input type="checkbox" class="rdc-bulk-check" value="${s.balance_date}" onchange="rdcUpdateBulkBar()">`
@@ -93,7 +93,7 @@ async function loadRdcReviewPage() {
         <td>${rdcReviewBadge(s.status)}</td>
         <td>${Number(s.grand_total || 0).toLocaleString()}</td>
         <td class="${Number(s.variance || 0) === 0 ? 'surplus' : 'deficit'}">${Number(s.variance || 0).toLocaleString()}</td>
-        <td>${s.submitted_at ? LapokAPI.formatDate(s.submitted_at) + ' ' + LapokAPI.formatTime(s.submitted_at) : '—'}</td>
+        <td>${s.submitted_at ? LapokAPI.formatDate(s.submitted_at) + ' ' + LapokAPI.formatTime(s.submitted_at) : '&mdash;'}</td>
         <td>${reviewText}</td>
         <td style="white-space:normal">${rdcReviewActionButtons(s)}</td>
       </tr>`;
@@ -159,7 +159,7 @@ async function rdcOpenComments(balanceDate) {
   const title = document.getElementById('rdcCommentsTitle');
   const list = document.getElementById('rdcCommentsList');
   const dateInp = document.getElementById('rdcCommentsDate');
-  if (title) title.textContent = `Comment thread — ${balanceDate}`;
+  if (title) title.textContent = `Comment thread &mdash; ${balanceDate}`;
   if (dateInp) dateInp.value = balanceDate;
   if (panel) panel.style.display = 'block';
   if (list) list.innerHTML = '<p style="color:var(--gray-mid)">Loading…</p>';
@@ -182,7 +182,7 @@ async function rdcOpenComments(balanceDate) {
         ? `<span class="badge bw" style="margin-left:6px">${rdcReviewEsc(String(c.action_tag).replace('_', ' '))}</span>`
         : '';
       return `<div style="padding:.65rem 0;border-bottom:1px solid var(--gray-light)">
-        <div style="font-size:12px;color:var(--gray-mid)">${rdcReviewEsc(c.author_name || 'User')}${c.author_role ? ' · ' + rdcReviewEsc(c.author_role) : ''} · ${when}${tag}</div>
+        <div style="font-size:12px;color:var(--gray-mid)">${rdcReviewEsc(c.author_name || 'User')}${c.author_role ? ' &middot; ' + rdcReviewEsc(c.author_role) : ''} &middot; ${when}${tag}</div>
         <div style="margin-top:4px;font-size:13px">${rdcReviewEsc(c.body)}</div>
       </div>`;
     }).join('');

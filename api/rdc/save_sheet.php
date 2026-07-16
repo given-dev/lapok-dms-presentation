@@ -56,7 +56,7 @@ if ($locked) {
     json_error('Only the accountant can edit draft RDC sheets', 403);
 }
 
-// Only admin may change unit prices — keep existing / catalog prices for accountants/managers
+// Only admin may change unit prices  -  keep existing / catalog prices for accountants/managers
 if ($role !== 'admin' && is_array($sales)) {
     $lockedByKey = [];
     $lockedByLabel = [];

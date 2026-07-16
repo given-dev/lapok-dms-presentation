@@ -289,7 +289,7 @@ function report_insert_packet(
 }
 
 /**
- * Organized accountant pack for the manager — what RDC closes today and what needs attention.
+ * Organized accountant pack for the manager  -  what RDC closes today and what needs attention.
  *
  * @return array{doc_title: string, meta: array<string, string>, sections: list<array{heading: string, lines: list<string>}>}
  */
@@ -798,8 +798,8 @@ function report_build_field_eod_layout(array $trip, string $userRole, float $cas
         'meta' => [
             'Report date' => $date,
             'Agent' => (string) ($trip['full_name'] ?? 'Cadet') . ' (' . $userRole . ')',
-            'Vehicle' => (string) ($trip['registration'] ?? '—'),
-            'Route' => (string) ($trip['route_area'] ?: '—'),
+            'Vehicle' => (string) ($trip['registration'] ?? ' - '),
+            'Route' => (string) ($trip['route_area'] ?: ' - '),
             'Recipient' => 'Accountant (RDC)',
         ],
         'sections' => [
@@ -844,7 +844,7 @@ function report_generate_pack(string $role, int $userId, string $date, ?string $
         $layout = report_build_manager_layout($date, $userName . ' (Manager)');
         $pdfTitle = $title ?: (string) $layout['doc_title'];
         $prefix = 'mgr-brief';
-        $summaryDefault = 'Executive operations brief — includes CCBA inventory + OCCD boards when submitted.';
+        $summaryDefault = 'Executive operations brief  -  includes CCBA inventory + OCCD boards when submitted.';
     }
     $layout['doc_title'] = $pdfTitle;
     if ($notes) {

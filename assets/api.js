@@ -1,5 +1,5 @@
 /**
- * Outpost DMS — Presentation build API client (Admin · Executive · Manager · Accountant)
+ * Outpost DMS &mdash; Presentation build API client (Admin &middot; Executive &middot; Manager &middot; Accountant)
  */
 const LapokAPI = (() => {
   const base = '';
@@ -58,7 +58,7 @@ const LapokAPI = (() => {
     try {
       json = raw ? JSON.parse(raw) : null;
     } catch {
-      const hint = raw && raw.trim().startsWith('<') ? ' (server returned HTML — check API URL or PHP errors)' : '';
+      const hint = raw && raw.trim().startsWith('<') ? ' (server returned HTML &mdash; check API URL or PHP errors)' : '';
       throw new Error('Invalid server response' + hint);
     }
     if (!json || !json.success) {
@@ -91,6 +91,9 @@ const LapokAPI = (() => {
   }
 
   return {
+    localIsoDate: (d = new Date()) => {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    },
     get: (path) => request('GET', path),
     post: (path, body) => request('POST', path, body),
     todayIso,
@@ -98,17 +101,22 @@ const LapokAPI = (() => {
     monthStartIso,
     localIsoDate,
     formatUgx: (n) => 'UGX ' + Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 }),
-    /** Full digits with thousand separators — supports at least 9-digit amounts (e.g. 999,999,999). */
+    /** Full digits with thousand separators &mdash; supports at least 9-digit amounts (e.g. 999,999,999). */
     formatM: (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 }),
     formatDigits: (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 }),
     formatDate: (s) => {
+<<<<<<< HEAD
+      if (!s) return '&mdash;';
+      return new Date(s).toLocaleDateString('en-UG', { day: '2-digit', month: 'short', year: 'numeric' });
+=======
       if (!s) return '—';
       const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
       const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
       return d.toLocaleDateString('en-UG', { day: '2-digit', month: 'short', year: 'numeric' });
+>>>>>>> origin/main
     },
     formatTime: (s) => {
-      if (!s) return '—';
+      if (!s) return '&mdash;';
       return new Date(s).toLocaleTimeString('en-UG', { hour: '2-digit', minute: '2-digit' });
     },
     progressClass: (pct) => (pct < 30 ? 'p-red' : pct < 60 ? 'p-amber' : 'p-green'),
@@ -117,7 +125,11 @@ const LapokAPI = (() => {
       window.open(resolvePath('/api/reports/export_csv.php?type=' + encodeURIComponent(type) + params), '_blank');
     },
     exportRdcSheet: (date) => {
+<<<<<<< HEAD
+      const d = date || LapokAPI.localIsoDate();
+=======
       const d = date || todayIso();
+>>>>>>> origin/main
       window.open(resolvePath('/api/reports/export_csv.php?type=rdc_sheet&date=' + encodeURIComponent(d)), '_blank');
     },
     /**
@@ -130,8 +142,13 @@ const LapokAPI = (() => {
       const headers = opts.headers || [];
       const rows = opts.rows || [];
       const meta = opts.meta || {};
+<<<<<<< HEAD
+      let filename = opts.filename || (`Outpost-DMS-${title.replace(/[^a-zA-Z0-9]+/g, '-')}-${LapokAPI.localIsoDate()}.xls`);
+      // Client-side HTML Excel cannot embed logos (Excel blocks them) &mdash; use OD mark.
+=======
       let filename = opts.filename || (`Outpost-DMS-${title.replace(/[^a-zA-Z0-9]+/g, '-')}-${todayIso()}.xls`);
       // Client-side HTML Excel cannot embed logos (Excel blocks them) — use OD mark.
+>>>>>>> origin/main
       filename = filename.replace(/\.xlsx$/i, '.xls');
       const esc = (v) => String(v ?? '')
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -151,7 +168,7 @@ const LapokAPI = (() => {
           const bg = i % 2 === 0 ? '#FFFFFF' : '#F8FAFC';
           const cells = r.map((c) => {
             const n = typeof c === 'number' || (typeof c === 'string' && c !== '' && !Number.isNaN(Number(c)) && !/^0\d+/.test(c));
-            const text = n ? Number(c).toLocaleString('en-UG') : (c == null || c === '' ? '—' : c);
+            const text = n ? Number(c).toLocaleString('en-UG') : (c == null || c === '' ? '&mdash;' : c);
             return `<td style="padding:8px 10px;border:1px solid #E2E8F0;font-family:Calibri,Arial,sans-serif;font-size:11pt;text-align:${n ? 'right' : 'left'}">${esc(text)}</td>`;
           }).join('');
           return `<tr style="background:${bg}">${cells}</tr>`;
@@ -159,7 +176,7 @@ const LapokAPI = (() => {
         : `<tr><td colspan="${Math.max(1, headers.length)}" style="padding:16px;color:#94A3B8;text-align:center;border:1px solid #E2E8F0">No rows for this export.</td></tr>`;
 
       const when = new Date().toLocaleString('en-UG', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>OUTPOST DMS — ${esc(title)}</title></head>
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>OUTPOST DMS &mdash; ${esc(title)}</title></head>
 <body style="margin:0;background:#fff">
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px;font-family:Calibri,Arial,sans-serif">
   <tr><td colspan="2" style="height:6px;background:#E53E3E;font-size:1px">&nbsp;</td></tr>
@@ -177,7 +194,7 @@ const LapokAPI = (() => {
   <tr><td colspan="2" style="padding:6px 16px 14px 16px;background:#F8FAFC"><table style="border-collapse:collapse">${metaHtml}</table></td></tr>
 </table>
 <table style="border-collapse:collapse;width:100%"><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table>
-<p style="margin:16px;font-size:9pt;color:#94A3B8;font-family:Calibri,Arial,sans-serif">Generated by Outpost DMS · ${esc(when)}</p>
+<p style="margin:16px;font-size:9pt;color:#94A3B8;font-family:Calibri,Arial,sans-serif">Generated by Outpost DMS &middot; ${esc(when)}</p>
 </body></html>`;
 
       const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
@@ -264,7 +281,7 @@ const LapokAPI = (() => {
     },
     /**
      * Ownership map (see docs/SYSTEMS_BUILDING_GUIDE.md §9).
-     * Wrong-role deep-links bounce home — intentional security.
+     * Wrong-role deep-links bounce home &mdash; intentional security.
      * Managers may still open accountant-rdc to view/edit a sheet during review.
      */
     rolePageOwner: {

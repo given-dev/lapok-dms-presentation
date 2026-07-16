@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * Depot product catalog — matches LAPOK book / RDC balancing workbook.
+ * Depot product catalog  -  matches LAPOK book / RDC balancing workbook.
  * Grouped: CSD, ENERGY, JUICE, VAD, WATER, OTHER.
  */
 
