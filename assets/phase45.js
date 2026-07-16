@@ -493,18 +493,24 @@ function initAuditFilters() {
 
 async function loadUsersTable() {
   const table = document.getElementById('userTable');
-  if (!table || currentUser?.role !== 'admin') return;
+  if (!table || !['admin', 'executive'].includes(currentUser?.role)) return;
+  const isExec = currentUser?.role === 'executive';
+  const hint = document.getElementById('execUsersHint');
+  const addBtn = document.getElementById('adminAddUserBtn');
+  if (hint) hint.style.display = isExec ? '' : 'none';
+  if (addBtn) addBtn.style.display = isExec ? 'none' : '';
   try {
     const d = await LapokAPI.get('/api/users/fetch_users.php');
     adminUsersCache = d.users || [];
     applyUsersFilter();
-    hydrateUserVehicleOptions();
+    if (!isExec) hydrateUserVehicleOptions();
   } catch (e) { console.warn('Users:', e.message); }
 }
 
 function applyUsersFilter() {
   const table = document.getElementById('userTable');
   if (!table) return;
+  const isExec = currentUser?.role === 'executive';
   const q = (document.getElementById('adminUserSearch')?.value || '').toLowerCase();
   const roleFilter = document.getElementById('adminUserRoleFilter')?.value || '';
   const roleBadge = (r) => `<span class="badge ${r === 'admin' || r === 'executive' ? 'br' : r === 'manager' ? 'bw' : 'bi'}">${LapokAPI.roleLabel[r] || r}</span>`;
@@ -514,13 +520,20 @@ function applyUsersFilter() {
   });
   const rows = filtered.map((u) => {
       const ini = u.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2);
+      const canFreeze = !isExec || (!['admin', 'executive'].includes(u.role) && Number(u.id) !== Number(currentUser?.id));
+      const freezeCell = canFreeze
+        ? `<label class="toggle"><input type="checkbox" ${u.is_active ? 'checked' : ''} onchange="toggleUserActive(${u.id}, this.checked)"><span class="slider"></span></label>`
+        : `<span class="badge ${u.is_active ? 'bs' : 'bd'}">${u.is_active ? 'Active' : 'Frozen'}</span>`;
+      const actions = isExec
+        ? `<span style="font-size:11px;color:var(--gray-mid)">${u.is_active ? 'Uncheck to freeze' : 'Check to unfreeze'}</span>`
+        : `<button class="btn btn-sm" onclick="openEditUserModal(${u.id})">Edit</button>`;
       return `<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar av-red">${ini}</div><div><div>${u.full_name}</div><div style="font-size:11px;color:var(--gray-mid)">${u.email}</div></div></div></td>
         <td>${roleBadge(u.role)}</td><td>${u.national_id || '—'}</td><td>${u.phone || '—'}</td>
         <td>${u.vehicle_reg ? `<span class="badge b-tuk">${u.vehicle_reg}</span>` : '—'}</td>
-        <td><label class="toggle"><input type="checkbox" ${u.is_active ? 'checked' : ''} onchange="toggleUserActive(${u.id}, this.checked)"><span class="slider"></span></label></td>
-        <td><button class="btn btn-sm" onclick="openEditUserModal(${u.id})">Edit</button></td></tr>`;
+        <td>${freezeCell}</td>
+        <td>${actions}</td></tr>`;
   }).join('');
-  table.innerHTML = '<tr><th>Name</th><th>Role</th><th>National ID</th><th>Phone</th><th>Vehicle</th><th>Active</th><th>Actions</th></tr>' +
+  table.innerHTML = `<tr><th>Name</th><th>Role</th><th>National ID</th><th>Phone</th><th>Vehicle</th><th>${isExec ? 'Active / Freeze' : 'Active'}</th><th>Actions</th></tr>` +
     (rows || '<tr><td colspan="7" style="text-align:center;color:var(--gray-mid)">No users found</td></tr>');
 }
 
@@ -541,7 +554,7 @@ async function toggleUserActive(id, isActive) {
     await LapokAPI.post('/api/users/edit_user.php', { id, is_active: isActive ? 1 : 0 });
     const row = adminUsersCache.find((u) => u.id === id);
     if (row) row.is_active = isActive ? 1 : 0;
-    adminToast(isActive ? 'User activated' : 'User deactivated');
+    adminToast(isActive ? 'Account unfrozen' : 'Account frozen');
   } catch (e) {
     adminToast(e.message, true);
     loadUsersTable();
@@ -876,8 +889,14 @@ document.addEventListener('DOMContentLoaded', () => {
     'manager-stock': () => {
       loadStockTable();
       loadDeliveryList();
-      if (typeof loadManagerOpeningStock === 'function') loadManagerOpeningStock();
-      if (typeof loadManagerClosingStock === 'function') loadManagerClosingStock();
+      if (typeof loadManagerStockBook === 'function') loadManagerStockBook();
+      else {
+        if (typeof loadManagerOpeningStock === 'function') loadManagerOpeningStock();
+        if (typeof loadManagerClosingStock === 'function') loadManagerClosingStock();
+      }
+    },
+    'manager-delivery': () => {
+      if (typeof loadManagerDeliveryPage === 'function') loadManagerDeliveryPage();
     },
     'director-brief': () => { if (typeof loadDirectorBriefPage === 'function') loadDirectorBriefPage(); },
   };

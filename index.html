@@ -217,6 +217,50 @@ tr:hover td{background:rgba(0,0,0,.012)}
 .form-group label{font-size:12px;color:var(--black);font-weight:700;letter-spacing:-0.1px;text-transform:capitalize}
 .form-section{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-mid);margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--gray-light)}
 
+/* ── STOCK BOOK ── */
+.stock-book-card{padding:0;overflow:hidden}
+.stock-book-head{padding:16px 18px;border-bottom:1px solid var(--gray-light);background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}
+.stock-book-title{font-size:16px;font-weight:800;letter-spacing:.02em;text-transform:uppercase}
+.stock-book-sub{font-size:12px;color:var(--gray-mid);margin-top:4px}
+.stock-book-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.stock-book-meta-item{border:1px solid var(--gray-light);border-radius:10px;padding:10px 12px;background:#fff}
+.stock-book-meta-label{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gray-mid);margin-bottom:4px}
+.stock-book-meta-value{font-size:12px;font-weight:600;color:var(--black);line-height:1.4}
+.stock-book-wrap{padding:14px 18px 18px}
+.stock-book-table{min-width:860px}
+.stock-book-table th{text-align:center}
+.stock-book-table th:nth-child(1),.stock-book-table th:nth-child(2),
+.stock-book-table td:nth-child(1),.stock-book-table td:nth-child(2){text-align:left}
+.stock-book-table td{text-align:center}
+.stock-book-table .cat-row td{background:#f8fafc;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--gray);text-align:left}
+.stock-book-table .stock-book-total td{background:#eef2f7;border-top:1px solid #d8dee8}
+
+/* Warehouse stock overview — roomy rows + brand groups */
+.wh-stock-table{font-size:13px}
+.wh-stock-table th{padding:10px 12px;font-size:11px}
+.wh-stock-table td{padding:12px 12px;border-bottom:1px solid rgba(0,0,0,.07)}
+.wh-stock-table .wh-stock-cat td{background:#edf2f7;padding:10px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-dark);border-bottom:1px solid #d8dee8;border-top:2px solid #d8dee8}
+.wh-stock-table .wh-stock-name{font-weight:600;color:var(--black);letter-spacing:.01em}
+.wh-stock-table .wh-stock-sku{color:var(--gray-mid);font-size:12px}
+.wh-stock-table tr.wh-stock-exp td{background:#FFFBEB}
+.wh-stock-table tbody tr:not(.wh-stock-cat):hover td{background:rgba(26,54,93,.04)}
+.stock-book-table .num-col{width:48px}
+.stock-book-table .qty-col{width:120px}
+.stock-book-purchase{display:inline-flex;align-items:center;justify-content:center;min-width:64px;min-height:38px;padding:7px 10px;background:#eef2f7;border:1.5px dashed #c5cdd8;border-radius:8px;font-weight:700;color:var(--black);cursor:default;user-select:none;pointer-events:none}
+.stock-book-purchase.is-zero{color:var(--gray-mid);font-weight:600}
+.stock-book-th-locked{line-height:1.25}
+.stock-book-th-locked small{display:block;margin-top:2px;font-size:9px;font-weight:600;letter-spacing:.02em;text-transform:none;color:var(--gray-mid)}
+.occd-board-locked{opacity:.98}
+.occd-board-locked .occd-tbl{pointer-events:none}
+.occd-lock-banner{border-color:#cbd5e0}
+.stock-book-input{width:86px;min-height:38px;padding:7px 8px;text-align:center;border:1.5px solid var(--gray-light);border-radius:8px;font:inherit}
+.stock-book-input:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 3px var(--red-light)}
+.stock-book-input[disabled]{background:#f8fafc;color:var(--gray-mid);cursor:not-allowed}
+.stock-book-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.stock-book-actions .card{margin-bottom:0}
+.stock-book-actions .card-header{margin-bottom:.6rem}
+@media(max-width:768px){.stock-book-meta,.stock-book-actions{grid-template-columns:1fr}}
+
 /* ── OCCD DAILY BOARDS ── */
 .occd-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;padding:12px 14px;background:var(--white);border:1px solid var(--gray-light);border-radius:var(--rl);box-shadow:var(--shadow)}
 .occd-toolbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -235,6 +279,19 @@ tr:hover td{background:rgba(0,0,0,.012)}
 .rdc-cat-row td{background:#edf2f7;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-dark);font-weight:700}
 .occd-total-row td{background:#f7fafc;font-weight:700}
 .occd-grand-row td{background:#e2e8f0;font-weight:800}
+.occd-inv-table .occd-calc{text-align:right;font-variant-numeric:tabular-nums;padding-right:14px}
+.occd-inv-table .occd-num-col,.occd-dash-table .occd-num-col{text-align:right}
+.occd-inv-table .occd-num-col .occd-num-inp,
+.occd-dash-table .occd-num-col .occd-num-inp{width:100%;max-width:96px;margin-left:auto;display:block}
+.occd-inv-table th.occd-num-col small,.occd-dash-table th.occd-num-col small{display:block;font-weight:600;text-transform:none;letter-spacing:0;color:var(--gray-mid);font-size:9px}
+.occd-num-cell{display:inline-block;min-width:2.5rem;text-align:right;font-variant-numeric:tabular-nums}
+.occd-inv-table .occd-total-row td:first-child,
+.occd-inv-table .occd-grand-row td:first-child{letter-spacing:.04em;text-transform:uppercase;font-size:11px}
+.occd-inv-table .occd-total-note{color:var(--gray-mid);font-weight:500;text-align:center}
+.occd-inv-table .occd-cat-row td{border-top:2px solid #d8dee8}
+.occd-inv-table .occd-total-row td{border-top:1px solid #d8dee8}
+.occd-inv-table .occd-grand-row td{border-top:2px solid #94a3b8}
+.occd-dash-table .occd-calc{text-align:right;font-variant-numeric:tabular-nums}
 .occd-num-inp{width:72px;min-height:32px;padding:4px 6px;border:1px solid var(--gray-light);border-radius:5px;font-size:12px;text-align:right;font-family:inherit}
 .occd-txt-inp{width:100%;min-height:32px;padding:4px 8px;border:1px solid var(--gray-light);border-radius:5px;font-size:12px;font-family:inherit}
 .occd-readonly-val{display:inline-block;min-width:48px;text-align:right}
@@ -530,8 +587,9 @@ canvas{display:block;width:100%!important}
 
 <!-- ADMIN USERS -->
 <div class="page" id="page-admin-users">
-  <div class="btn-group">
-    <button class="btn btn-red" onclick="openModal('addUserModal')">+ Add user</button>
+  <div class="alert a-info" id="execUsersHint" style="display:none"><span>ℹ</span><strong>Executive:</strong> You can freeze or unfreeze accounts (Active toggle). Adding or editing users stays with Admin.</div>
+  <div class="btn-group" id="adminUsersActions">
+    <button class="btn btn-red" id="adminAddUserBtn" onclick="openModal('addUserModal')">+ Add user</button>
     <button class="btn" onclick="exportUsersCsv()">Export Excel</button>
     <button class="btn btn-sm" onclick="loadUsersTable()">Refresh</button>
   </div>
@@ -853,7 +911,7 @@ canvas{display:block;width:100%!important}
   <div id="rdcWizardPanel1" class="rdc-wizard-panel">
     <div class="card" id="rdcSalesCard">
       <div class="card-header"><span class="card-title">Sales by brand × vehicle</span></div>
-      <p style="font-size:12px;color:var(--gray-mid);margin:0 0 1rem">Products grouped like the depot sales book: <strong>CSD · ENERGY · JUICE · VAD · WATER · OTHER</strong>. Cadet data fills the matching vehicle column. Unit prices are set by admin.</p>
+      <p style="font-size:12px;color:var(--gray-mid);margin:0 0 1rem">Products grouped like the depot sales book: <strong>CSD · ENERGY · JUICE · WATER · OTHER</strong>. Cadet data fills the matching vehicle column. Unit prices are set by admin.</p>
       <div class="tbl-wrap"><table><thead id="rdcSalesHead"></thead><tbody id="rdcSalesBody"></tbody></table></div>
     </div>
   </div>
@@ -1140,7 +1198,7 @@ canvas{display:block;width:100%!important}
 
 <!-- CCBA DAILY BOARDS (Inventory + OCCD) -->
 <div class="page" id="page-manager-ccba-boards">
-  <div class="alert a-info"><span>ℹ</span><strong>Daily CCBA reporting:</strong> Fill Inventory + OCCD boards here. When submitted, their figures are pulled into the executive brief PDF. You can still send the brief without them. SKU map is one-time setup for MyCCBA orders (not sent to executives).</div>
+  <div class="alert a-info"><span>ℹ</span><strong>Daily CCBA reporting:</strong> Fill Inventory + OCCD, then save — boards lock automatically to prevent accidental edits. Use <strong>Edit</strong> when you need to change figures. Submitted boards feed the executive brief PDF.</div>
   <div class="occd-toolbar">
     <div class="occd-toolbar-left">
       <strong style="font-size:13px">Board date</strong>
@@ -1151,30 +1209,13 @@ canvas{display:block;width:100%!important}
     <div class="btn-group" style="margin:0">
       <button class="btn occd-save-btn" onclick="saveAllOccdBoards(false)">Save both drafts</button>
       <button class="btn btn-red occd-save-btn" onclick="saveAllOccdBoards(true)">Submit both boards</button>
-      <button class="btn btn-black" onclick="runCcbaStockSync()">Sync warehouse snapshot</button>
     </div>
   </div>
   <div class="occd-module-tabs" id="occdModuleTabs">
     <button type="button" class="occd-module-tab active" data-occd-tab="inventory" onclick="switchOccdTab('inventory')">Inventory board</button>
     <button type="button" class="occd-module-tab" data-occd-tab="occd" onclick="switchOccdTab('occd')">OCCD dashboard</button>
-    <button type="button" class="occd-module-tab" data-occd-tab="sku-map" onclick="switchOccdTab('sku-map')">SKU map (setup)</button>
   </div>
   <div id="occdBoardsRoot"></div>
-  <div class="occd-tab-panel" data-occd-panel="sku-map" id="occdSkuMapPanel">
-    <div class="alert a-info" style="margin-top:1rem"><span>ℹ</span><strong>What this is:</strong> Match each depot product to its <strong>CCBA catalog code</strong> so MyCCBA orders and warehouse snapshots use the right SKUs. This is setup — not a daily board and not part of the executive brief.</div>
-    <div class="btn-group">
-      <button class="btn" onclick="loadCcbaProductMap()">Refresh</button>
-      <button class="btn btn-black" onclick="runCcbaStockSync()">Save warehouse snapshot</button>
-      <button class="btn btn-red" onclick="showPage('manager-stock')">Back to stock operations</button>
-    </div>
-    <div class="card">
-      <div class="card-header"><span class="card-title">Product SKU mapping</span></div>
-      <div class="tbl-wrap"><table>
-        <tr><th>Depot product</th><th>CCBA SKU code</th><th>Pack description</th><th></th></tr>
-        <tbody id="ccbaMapBody"><tr><td colspan="4" style="text-align:center;color:var(--gray-mid)">Open this tab to load mappings…</td></tr></tbody>
-      </table></div>
-    </div>
-  </div>
 </div>
 
 <!-- MANAGER FLEET MAP -->
@@ -1214,25 +1255,72 @@ canvas{display:block;width:100%!important}
       <span>ℹ</span>
       <div style="font-size:12px"><strong>Do stock counts first.</strong> Enter opening stock at 7:00 AM before dispatch. Enter closing stock at 7:00 PM. RDC sees these figures read-only.</div>
     </div>
-    <div class="two-col">
-      <div class="card">
-        <div class="card-header"><span class="card-title">Opening stock — 7:00 AM</span><button class="btn btn-sm btn-red" onclick="saveManagerOpeningStock()">Save opening</button></div>
-        <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem" id="mgrOpeningStatus">Loading…</p>
-        <div class="tbl-wrap"><table id="mgrOpeningStockTable"><tr><th>Product</th><th>SKU</th><th>Qty</th></tr><tr><td colspan="3" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
-        <div class="form-group" style="margin-top:.8rem"><label>Notes</label><textarea class="textarea-inp" id="mgrOpeningNotes" rows="2"></textarea></div>
+    <div class="card stock-book-card" id="mgrClosingStockCard">
+      <div class="stock-book-head">
+        <div class="stock-book-title">Depot stock balancing sheet</div>
+        <div class="stock-book-sub">Matches LAPOK BOOK page 1 — Brand + exact flavor SKUs. <strong>Purchase</strong> comes from Coca-Cola deliveries (not typed here).</div>
+        <div class="stock-book-meta">
+          <div class="stock-book-meta-item">
+            <div class="stock-book-meta-label">Date</div>
+            <div class="stock-book-meta-value" id="mgrStockBookDate">Loading…</div>
+          </div>
+          <div class="stock-book-meta-item">
+            <div class="stock-book-meta-label">Opening stock status</div>
+            <div class="stock-book-meta-value" id="mgrOpeningStatus">Loading…</div>
+          </div>
+          <div class="stock-book-meta-item">
+            <div class="stock-book-meta-label">Closing stock status</div>
+            <div class="stock-book-meta-value" id="mgrClosingStatus">Loading…</div>
+          </div>
+        </div>
       </div>
-      <div class="card" id="mgrClosingStockCard">
-        <div class="card-header"><span class="card-title">Closing stock — from 6:30 PM</span><button class="btn btn-sm btn-red" id="mgrClosingSaveBtn" type="button" onclick="saveManagerClosingStock()">Save closing</button></div>
-        <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem" id="mgrClosingStatus">Loading…</p>
-        <div class="tbl-wrap"><table id="mgrClosingStockTable"><tr><th>Product</th><th>SKU</th><th>Qty</th></tr><tr><td colspan="3" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
-        <div class="form-group" style="margin-top:.8rem"><label>Notes</label><textarea class="textarea-inp" id="mgrClosingNotes" rows="2" placeholder="Shortages, recount notes…"></textarea></div>
+      <div class="stock-book-wrap">
+        <div class="alert a-info" style="margin:0 0 12px">
+          <span>ℹ</span>
+          <div style="font-size:12px"><strong>Purchase</strong> = cartons received on <a href="#" onclick="showPage('manager-delivery');return false" style="font-weight:700;color:var(--red)">Record Coca-Cola delivery</a>. Save a delivery, then this column updates automatically.</div>
+        </div>
+        <div class="tbl-wrap">
+          <table id="mgrStockBookTable" class="stock-book-table">
+            <tr>
+              <th>Brand</th>
+              <th>SKUs</th>
+              <th class="qty-col">Opening stock</th>
+              <th class="qty-col">Purchase</th>
+              <th class="qty-col">Sales</th>
+              <th class="qty-col">Closing stock</th>
+            </tr>
+            <tr><td colspan="6" style="color:var(--gray-mid)">Loading…</td></tr>
+          </table>
+        </div>
+        <div class="stock-book-actions">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Opening stock — 7:00 AM</span>
+              <button class="btn btn-sm btn-red" type="button" onclick="saveManagerOpeningStock()">Save opening</button>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label>Opening notes</label>
+              <textarea class="textarea-inp" id="mgrOpeningNotes" rows="2" placeholder="Short note for morning count..."></textarea>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Closing stock — from 6:30 PM</span>
+              <button class="btn btn-sm btn-red" id="mgrClosingSaveBtn" type="button" onclick="saveManagerClosingStock()">Save closing</button>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label>Closing notes</label>
+              <textarea class="textarea-inp" id="mgrClosingNotes" rows="2" placeholder="Shortages, recount notes…"></textarea>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
   <div class="page-section">
     <div class="page-section-label">2. Deliveries &amp; dispatch</div>
     <div class="btn-group" style="margin-bottom:.8rem">
-      <button class="btn btn-red" onclick="openModal('incomingModal')">+ Record Coca-Cola delivery</button>
+      <button class="btn btn-red" onclick="showPage('manager-delivery')">+ Record Coca-Cola delivery</button>
       <button class="btn" onclick="openModal('dispatchModal')">Dispatch vehicle</button>
       <button class="btn btn-black" onclick="showPage('admin-exceptions')">Review exceptions</button>
     </div>
@@ -1249,18 +1337,85 @@ canvas{display:block;width:100%!important}
     <div class="two-col">
       <div class="card">
         <div class="card-header"><span class="card-title">Current warehouse stock</span></div>
-        <div class="tbl-wrap"><table id="mgrStockTable">
+        <div class="tbl-wrap"><table id="mgrStockTable" class="wh-stock-table">
           <tr><th>Product</th><th>SKU</th><th>Warehouse</th><th>With vehicles</th><th>Sold today</th><th>Level</th></tr>
           <tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr>
         </table></div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">Coca-Cola delivery records — today</span><button class="btn btn-sm btn-red" onclick="openModal('incomingModal')">+ Record</button></div>
+        <div class="card-header"><span class="card-title">Coca-Cola delivery records — today</span><button class="btn btn-sm btn-red" onclick="showPage('manager-delivery')">+ Record</button></div>
         <div id="deliveryList">
           <p style="padding:1rem;color:var(--gray-mid)">Loading deliveries…</p>
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- MANAGER: Record Coca-Cola delivery (full page) -->
+<div class="page" id="page-manager-delivery">
+  <div class="rdc-bal-toolbar" style="margin-bottom:1rem">
+    <button class="btn btn-sm" type="button" onclick="showPage('manager-stock')">← Stock taking</button>
+    <span class="chip">Coca-Cola delivery</span>
+  </div>
+  <div class="alert a-info" style="margin:0 0 1rem">
+    <span>ℹ</span>
+    <div style="font-size:12px">Record the supplier truck delivery against the waybill. Quantities update warehouse stock and fill <strong>Purchase</strong> on the stock balancing sheet for that day.</div>
+  </div>
+  <div class="card" style="margin-bottom:1rem">
+    <div class="card-header"><span class="card-title">Delivery details</span></div>
+    <div class="form-row">
+      <div class="form-group"><label>Delivery date</label><input class="input" type="date" id="incomingDate"></div>
+      <div class="form-group"><label>Delivery time</label><input class="input" type="time" id="incomingTime" value="09:00"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Waybill / delivery note ref</label><input class="input" id="incomingWaybill" placeholder="WB-2026-0507-001"></div>
+      <div class="form-group"><label>Invoice number</label><input class="input" id="incomingInvoice" placeholder="INV-CC-0507-XXXX"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Coca-Cola truck plate</label><input class="input" id="incomingTruck" placeholder="e.g. UBA 223K"></div>
+      <div class="form-group"><label>Coca-Cola driver name</label><input class="input" id="incomingDriver" placeholder="Driver name"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Received by</label><input class="input" id="incomingReceivedBy" readonly></div>
+      <div class="form-group" style="display:none"><label>Link CCBA order</label><select class="select-inp" id="incomingCcbaOrder"><option value="">—</option></select></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:1rem">
+    <div class="card-header">
+      <span class="card-title">Products delivered</span>
+      <span class="chip" id="incomingProductCount">—</span>
+    </div>
+    <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">Grouped like the stock book. Leave qty at 0 for products not on this truck.</p>
+    <div class="tbl-wrap stock-book-wrap">
+      <table class="stock-book-table" id="incomingProductTable">
+        <thead>
+          <tr>
+            <th>Brand</th>
+            <th>Product</th>
+            <th class="qty-col">Qty ordered</th>
+            <th class="qty-col">Qty delivered</th>
+            <th>Batch no.</th>
+            <th>Expiry</th>
+            <th class="qty-col">Unit cost</th>
+          </tr>
+        </thead>
+        <tbody id="incomingProductBody">
+          <tr><td colspan="7" style="color:var(--gray-mid)">Loading products…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:1rem">
+    <div class="card-header"><span class="card-title">Condition &amp; notes</span></div>
+    <div class="form-group" style="margin:0">
+      <label>Notes / discrepancies</label>
+      <textarea class="textarea-inp" id="incomingNotes" rows="3" placeholder="e.g. 2 crates Fanta short-delivered. Reported to Coca-Cola rep."></textarea>
+    </div>
+  </div>
+  <div class="btn-group">
+    <button class="btn" type="button" onclick="showPage('manager-stock')">Cancel</button>
+    <button class="btn btn-red" type="button" id="incomingSaveBtn" onclick="saveDeliveryEnhanced(this)">Save delivery</button>
   </div>
 </div>
 
@@ -1483,23 +1638,86 @@ canvas{display:block;width:100%!important}
   <div class="alert a-info" id="cadetDailyInfo"><span>ℹ</span>Enter today's sales and expenses. RDC is notified automatically if something needs attention.</div>
   <div class="alert a-success" id="cadetDailyDone" style="display:none"></div>
   <div class="alert a-info" id="cadetDailyReadOnlyBanner" style="display:none"><span>🔒</span><div><strong>Submitted report — read only.</strong> You can review what you sent to RDC. Editing is locked after submit.</div></div>
-  <div class="card" style="max-width:760px;margin:0 auto">
-    <div class="card-header"><span class="card-title" id="cadetDailyTitle">Today's report</span><span class="chip" id="cadetDailyTripChip">—</span><span class="badge bs" id="cadetDailyRoBadge" style="display:none;margin-left:6px">Read only</span></div>
-    <div class="recon-row" style="margin-bottom:1rem"><span>Vehicle / route</span><strong id="cadetDailyVehicle">—</strong></div>
-    <div class="form-group">
-      <label>Sales per product (depot catalog)</label>
-      <div class="tbl-wrap"><table id="cadetSalesProductTable" class="cadet-sales-table">
-        <tr><th>Product</th><th>Loaded</th><th>Sold (qty)</th><th>Amount (UGX)</th></tr>
-        <tr><td colspan="4" style="color:var(--gray-mid)">Loading products…</td></tr>
-      </table></div>
-      <div class="recon-row" style="margin-top:.6rem"><span>Sales total</span><strong id="cadetSalesTotalDisplay">UGX 0</strong></div>
+  <div class="two-col" style="align-items:start">
+    <div class="card" style="max-width:760px;margin:0 auto;width:100%">
+      <div class="card-header"><span class="card-title" id="cadetDailyTitle">Today's report</span><span class="chip" id="cadetDailyTripChip">—</span><span class="badge bs" id="cadetDailyRoBadge" style="display:none;margin-left:6px">Read only</span></div>
+      <div class="recon-row" style="margin-bottom:1rem"><span>Vehicle / route</span><strong id="cadetDailyVehicle">—</strong></div>
+      <div class="form-group">
+        <label>Sales per product (depot catalog)</label>
+        <div class="tbl-wrap"><table id="cadetSalesProductTable" class="cadet-sales-table">
+          <tr><th>Product</th><th>Loaded</th><th>Sold (qty)</th><th>Amount (UGX)</th></tr>
+          <tr><td colspan="4" style="color:var(--gray-mid)">Loading products…</td></tr>
+        </table></div>
+        <div class="recon-row" style="margin-top:.6rem"><span>Sales total</span><strong id="cadetSalesTotalDisplay">UGX 0</strong></div>
+      </div>
+      <div class="form-section" style="margin-top:.4rem">Auxiliary information</div>
+      <p style="font-size:12px;color:var(--gray-mid);margin:-0.2rem 0 .8rem">Matches LAPOK book page 2 for your vehicle — fuel, lunch, discount, shortage, and repairs.</p>
+      <div class="form-row">
+        <div class="form-group"><label>Fuel (UGX)</label><input class="input" id="cadetAuxFuel" type="number" min="0" step="1000" value="0"></div>
+        <div class="form-group"><label>Lunch (UGX)</label><input class="input" id="cadetAuxLunch" type="number" min="0" step="1000" value="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Discount (UGX)</label><input class="input" id="cadetAuxDiscount" type="number" min="0" step="1000" value="0"></div>
+        <div class="form-group"><label>Shortage (UGX)</label><input class="input" id="cadetAuxShortage" type="number" min="0" step="1000" value="0"></div>
+      </div>
+      <div class="form-group"><label>Repairs (UGX)</label><input class="input" id="cadetAuxRepairs" type="number" min="0" step="1000" value="0"></div>
+      <div class="form-group"><label>Banking / amount collected (UGX)</label><input class="input" id="cadetCashHanded" type="number" min="0" step="1000" placeholder="Cash you are banking"></div>
+      <div class="form-group"><label>Note (required if cash ≠ sales)</label><textarea class="textarea-inp" id="cadetDailyNote" rows="2" placeholder="Short explanation for any mismatch"></textarea></div>
+      <p id="cadetDailyFlagsPreview" style="font-size:12px;color:var(--gray-mid);margin-bottom:.8rem"></p>
+      <button class="btn btn-red btn-full" id="cadetDailySubmitBtn" type="button" onclick="submitCadetDailyReport()">Submit to RDC</button>
     </div>
-    <div class="form-group"><label>Fuel expense (UGX)</label><input class="input" id="cadetFuelExpense" type="number" min="0" step="1000" value="0"></div>
-    <div class="form-group"><label>Other expense (UGX)</label><input class="input" id="cadetOtherExpense" type="number" min="0" step="1000" value="0" placeholder="Tolls, repairs, etc."></div>
-    <div class="form-group"><label>Cash handed to depot (UGX)</label><input class="input" id="cadetCashHanded" type="number" min="0" step="1000" placeholder="Cash you are handing over"></div>
-    <div class="form-group"><label>Note (required if cash ≠ sales)</label><textarea class="textarea-inp" id="cadetDailyNote" rows="2" placeholder="Short explanation for any mismatch"></textarea></div>
-    <p id="cadetDailyFlagsPreview" style="font-size:12px;color:var(--gray-mid);margin-bottom:.8rem"></p>
-    <button class="btn btn-red btn-full" id="cadetDailySubmitBtn" type="button" onclick="submitCadetDailyReport()">Submit to RDC</button>
+    <div class="card" style="width:100%">
+      <div class="card-header">
+        <span class="card-title">Report history</span>
+        <span class="badge bs">Read only</span>
+      </div>
+      <p style="font-size:12px;color:var(--gray-mid);margin:0 0 1rem">
+        This pulls the server-stored copy already used by RDC and Manager. Cadets can review it here, but cannot change it from this screen.
+      </p>
+      <div class="form-group">
+        <label>Month</label>
+        <input class="input" id="cadetHistoryMonth" type="month">
+      </div>
+      <div id="cadetHistorySummary" class="recon-row" style="margin-bottom:.8rem"><span>Reports this month</span><strong>—</strong></div>
+      <button class="btn btn-sm" type="button" id="cadetHistoryToggleBtn" onclick="toggleCadetHistoryPanel()">Show history calendar</button>
+      <div id="cadetHistoryPanel" style="display:none;margin-top:.9rem">
+      <div id="cadetHistoryCalendar" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:1rem"></div>
+      <div id="cadetHistoryEmpty" class="alert a-info" style="display:none"><span>ℹ</span><div>No submitted cadet reports for this month yet.</div></div>
+      <div id="cadetHistoryDetail" style="display:none;border:1px solid rgba(15,23,42,.08);border-radius:12px;padding:.9rem;background:#fafafa">
+        <div class="recon-row"><span>Date</span><strong id="cadetHistoryDetailDate">—</strong></div>
+        <div class="recon-row"><span>Vehicle / route</span><strong id="cadetHistoryDetailVehicle">—</strong></div>
+        <div class="recon-row"><span>Sales</span><strong id="cadetHistoryDetailSales">UGX 0</strong></div>
+        <div class="recon-row"><span>Cash handed</span><strong id="cadetHistoryDetailCash">UGX 0</strong></div>
+        <div class="recon-row"><span>Expenses</span><strong id="cadetHistoryDetailExpenses">UGX 0</strong></div>
+        <div class="form-group" style="margin-top:.6rem">
+          <label>Auxiliary information</label>
+          <div class="tbl-wrap"><table id="cadetHistoryAuxTable">
+            <tr><th>Item</th><th>Amount (UGX)</th></tr>
+            <tr><td colspan="2" style="color:var(--gray-mid)">—</td></tr>
+          </table></div>
+        </div>
+        <div class="recon-row"><span>Status</span><strong id="cadetHistoryDetailStatus">Locked server copy</strong></div>
+        <div class="form-group" style="margin-top:.8rem">
+          <label>Flags</label>
+          <div id="cadetHistoryDetailFlags" style="font-size:12px;color:var(--gray-mid)">—</div>
+        </div>
+        <div class="form-group">
+          <label>Note</label>
+          <textarea class="textarea-inp" id="cadetHistoryDetailNote" rows="2" readonly></textarea>
+        </div>
+        <div class="form-group">
+          <label>Products</label>
+          <div class="tbl-wrap"><table id="cadetHistoryDetailTable">
+            <tr><th>Product</th><th>Sold</th><th>Amount</th></tr>
+            <tr><td colspan="3" style="color:var(--gray-mid)">Pick a day to review the stored report.</td></tr>
+          </table></div>
+        </div>
+      </div>
+      </div>
+      <div id="cadetHistoryAuditHint" style="font-size:12px;color:var(--gray-mid);margin-top:.8rem">
+        Any accountant or manager correction is tracked in Admin audit logs and does not come from this cadet view.
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1597,29 +1815,11 @@ canvas{display:block;width:100%!important}
   <div class="modal-actions"><button class="btn" onclick="closeModal('auditDetailModal')">Close</button></div>
 </div></div>
 
-<div class="modal-overlay" id="incomingModal"><div class="modal">
-  <div class="modal-handle"></div>
-  <div class="modal-title">Record Coca-Cola delivery</div>
-  <div class="form-section">Delivery details</div>
-  <div class="form-row"><div class="form-group"><label>Delivery date</label><input class="input" type="date" id="incomingDate"></div><div class="form-group"><label>Delivery time</label><input class="input" type="time" id="incomingTime" value="09:00"></div></div>
-  <div class="form-row"><div class="form-group"><label>Waybill / delivery note ref</label><input class="input" id="incomingWaybill" placeholder="WB-2026-0507-001"></div><div class="form-group"><label>Invoice number</label><input class="input" id="incomingInvoice" placeholder="INV-CC-0507-XXXX"></div></div>
-  <div class="form-row"><div class="form-group"><label>Coca-Cola truck plate</label><input class="input" id="incomingTruck" placeholder="e.g. UBA 223K"></div><div class="form-group"><label>Coca-Cola driver name</label><input class="input" id="incomingDriver" placeholder="Driver name"></div></div>
-  <div class="form-row"><div class="form-group"><label>Received by</label><input class="input" id="incomingReceivedBy" readonly></div><div class="form-group"><label>Link CCBA order</label><select class="select-inp" id="incomingCcbaOrder"><option value="">— Loading —</option></select></div></div>
-  <div class="form-section">Products delivered</div>
-  <div class="tbl-wrap"><table style="margin-bottom:.8rem;min-width:300px">
-    <tr><th>Product</th><th>Qty ordered</th><th>Qty delivered</th><th>Batch no.</th><th>Expiry</th><th>Unit cost</th></tr>
-    <tbody id="incomingProductBody"><tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">Open modal to load products…</td></tr></tbody>
-  </table></div>
-  <div class="form-section">Condition & notes</div>
-  <div class="form-group"><label>Notes / discrepancies</label><textarea class="textarea-inp" id="incomingNotes" placeholder="e.g. 2 crates Fanta short-delivered. Reported to Coca-Cola rep."></textarea></div>
-  <div class="modal-actions"><button class="btn" onclick="closeModal('incomingModal')">Cancel</button><button class="btn btn-red" onclick="saveDeliveryEnhanced(this)">Save delivery</button></div>
-</div></div>
-
 <div class="modal-overlay" id="dispatchModal"><div class="modal">
   <div class="modal-handle"></div>
   <div class="modal-title">Dispatch vehicle</div>
   <div class="form-row"><div class="form-group"><label>Vehicle</label><select class="select-inp" id="dispatchVehicle"><option value="">Loading…</option></select></div><div class="form-group" id="dispatchCadetGroup"><label>Cadet / rider</label><select class="select-inp" id="dispatchCadet"><option value="">—</option></select></div></div>
-  <div class="form-row"><div class="form-group"><label>Route</label><select class="select-inp" id="dispatchRoute"><option value="">—</option></select></div><div class="form-group"><label>Route area</label><input class="input" id="dispatchRouteArea" placeholder="e.g. Owino / Katwe"></div></div>
+  <div class="form-group"><label>Area / market (optional)</label><input class="input" id="dispatchRouteArea" placeholder="e.g. Owino / Katwe"></div>
   <div class="tbl-wrap"><table style="margin-bottom:.8rem;min-width:280px"><tr><th>Product</th><th>In warehouse</th><th>Crates to load</th></tr>
     <tbody id="dispatchLoadBody"><tr><td colspan="3" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr></tbody>
   </table></div>
@@ -1702,10 +1902,18 @@ canvas{display:block;width:100%!important}
       <tbody id="rdcEditCadetSalesBody"></tbody>
     </table>
   </div>
+  <div class="form-section" style="margin-top:.6rem">Auxiliary information</div>
   <div class="form-row">
-    <div class="form-group"><label>Fuel expense (UGX)</label><input type="number" class="input" id="rdcEditCadetFuel" min="0" step="1000"></div>
-    <div class="form-group"><label>Other expense (UGX)</label><input type="number" class="input" id="rdcEditCadetOther" min="0" step="1000"></div>
-    <div class="form-group"><label>Cash handed (UGX)</label><input type="number" class="input" id="rdcEditCadetCash" min="0" step="1000"></div>
+    <div class="form-group"><label>Fuel (UGX)</label><input type="number" class="input" id="rdcEditCadetFuel" min="0" step="1000"></div>
+    <div class="form-group"><label>Lunch (UGX)</label><input type="number" class="input" id="rdcEditCadetLunch" min="0" step="1000"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Discount (UGX)</label><input type="number" class="input" id="rdcEditCadetDiscount" min="0" step="1000"></div>
+    <div class="form-group"><label>Shortage (UGX)</label><input type="number" class="input" id="rdcEditCadetShortage" min="0" step="1000"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Repairs (UGX)</label><input type="number" class="input" id="rdcEditCadetRepairs" min="0" step="1000"></div>
+    <div class="form-group"><label>Banking / cash (UGX)</label><input type="number" class="input" id="rdcEditCadetCash" min="0" step="1000"></div>
   </div>
   <div class="form-group"><label>Note / correction reason</label><textarea class="textarea-inp" id="rdcEditCadetNote" rows="2" placeholder="Why this was corrected…"></textarea></div>
   <p id="rdcEditCadetTotals" style="font-size:13px;margin:0.4rem 0 0;color:var(--gray)"></p>
@@ -1716,7 +1924,7 @@ canvas{display:block;width:100%!important}
 </div></div>
 
 <script src="assets/presentation-config.js?v=20260629"></script>
-<script src="assets/api.js?v=20260716a"></script>
+<script src="assets/api.js?v=20260716r"></script>
 <script>
 const ICONS={
   home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
@@ -1749,6 +1957,7 @@ const ROLES={
     {id:'admin-reports',l:'Reports & analytics',i:'chart'},
     {id:'admin-exceptions',l:'Exception center',i:'chart'},
     {id:'admin-customers',l:'Receivables overview',i:'custs'},
+    {id:'admin-users',l:'Freeze accounts',i:'users'},
     {id:'accountant-welfare',l:'Staff welfare',i:'edit'},
     {id:'accountant-improvements',l:'Month-end',i:'chart'}
   ]},
@@ -1776,6 +1985,7 @@ const ROLES={
   ]}
 };
 const LABELS={};Object.values(ROLES).forEach(r=>r.nav.forEach(n=>{LABELS[n.id]=n.l}));
+LABELS['manager-delivery']='Coca-Cola delivery';
 
 function switchRole(r){
   const rd=ROLES[r];
@@ -2022,14 +2232,14 @@ setInterval(refreshTopbarClock,1000);
 window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementById('page-admin-dashboard').classList.contains('active'))setTimeout(drawCharts,150)});
 
 </script>
-<script src="assets/app.js?v=20260716a"></script>
-<script src="assets/phase45.js?v=20260716a"></script>
+<script src="assets/app.js?v=20260716r"></script>
+<script src="assets/phase45.js?v=20260716q"></script>
 <script src="assets/integration-placeholders.js?v=20260713e"></script>
 <script src="assets/report-exchange.js?v=20260716a"></script>
-<script src="assets/manager-ops.js?v=20260713j"></script>
-<script src="assets/occd-boards.js?v=20260716a"></script>
+<script src="assets/manager-ops.js?v=20260716r"></script>
+<script src="assets/occd-boards.js?v=20260716g"></script>
 <script src="assets/ccba.js?v=20260716a"></script>
-<script src="assets/rdc-balancing.js?v=20260716a"></script>
+<script src="assets/rdc-balancing.js?v=20260716m"></script>
 <script src="assets/cash-handover.js?v=20260713b"></script>
 <script src="assets/rdc-hub.js?v=20260713d"></script>
 <script src="assets/rdc-review.js?v=20260716a"></script>
@@ -2037,8 +2247,8 @@ window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementBy
 <script src="assets/accountant-welfare.js?v=20260716a"></script>
 <script src="assets/notifications.js?v=20260713k"></script>
 <script src="assets/cadet-dashboard.js?v=20260708j"></script>
-<script src="assets/cadet-daily.js?v=20260708d"></script>
-<script src="assets/depot-snapshots.js?v=20260713b"></script>
+<script src="assets/cadet-daily.js?v=20260716m"></script>
+<script src="assets/depot-snapshots.js?v=20260716t"></script>
 <script src="assets/director-brief.js?v=20260713i"></script>
 </body>
 </html>

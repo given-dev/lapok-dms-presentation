@@ -473,45 +473,66 @@ async function prepareDispatchModal() {
   if (!modal) return;
   try {
     const stale = !mgrDispatchCache.loadedAt || (Date.now() - mgrDispatchCache.loadedAt > mgrDispatchCache.ttlMs);
-    if (stale || !mgrDispatchData.vehicles.length || !mgrDispatchData.routes.length || !mgrDispatchData.users.length || !mgrDispatchData.products.length) {
-      const [vehicles, routes, users, stock] = await Promise.all([
+    if (stale || !mgrDispatchData.vehicles.length || !mgrDispatchData.users.length || !mgrDispatchData.products.length) {
+      // Managers cannot call /api/users/fetch_users.php (admin-only). Use recipients for cadets.
+      // Skip mapped routes until fleet map / route stops are wired in.
+      const [vehicles, recipients, stock] = await Promise.all([
         LapokAPI.get('/api/vehicles/fetch_vehicles.php'),
-        LapokAPI.get('/api/routes/fetch_routes.php'),
-        LapokAPI.get('/api/users/fetch_users.php'),
+        LapokAPI.get('/api/notifications/recipients.php'),
         LapokAPI.get('/api/stock/fetch_stock.php'),
       ]);
       mgrDispatchData.vehicles = vehicles.vehicles || [];
-      mgrDispatchData.routes = routes.routes || [];
-      mgrDispatchData.users = users.users || [];
+      mgrDispatchData.routes = [];
+      mgrDispatchData.users = recipients.recipients || [];
       mgrDispatchData.products = stock.stock || [];
       mgrDispatchCache.loadedAt = Date.now();
     }
 
     const vSel = document.getElementById('dispatchVehicle');
     if (vSel) {
-      vSel.innerHTML = mgrDispatchData.vehicles.map((v) => {
-        const icon = v.vehicle_type === 'truck' ? '[TRUCK]' : '[TUK]';
-        const crew = v.driver_name || v.cadet_name || 'Unassigned';
-        return `<option value="${v.id}" data-driver="${v.driver_id || ''}" data-cadet="${v.cadet_id || ''}" data-route="${mgrEscapeAttr(v.current_route || '')}">${icon} ${escMgr(v.registration)} - ${escMgr(crew)}</option>`;
-      }).join('');
-    }
-    const rSel = document.getElementById('dispatchRoute');
-    if (rSel) {
-      rSel.innerHTML = '<option value="">— Select route —</option>' +
-        mgrDispatchData.routes.map((r) => `<option value="${r.id}">${escMgr(r.name)}</option>`).join('');
+      if (!mgrDispatchData.vehicles.length) {
+        vSel.innerHTML = '<option value="">No vehicles available</option>';
+      } else {
+        vSel.innerHTML = mgrDispatchData.vehicles.map((v) => {
+          const icon = v.vehicle_type === 'truck' ? '[TRUCK]' : '[TUK]';
+          const crew = v.driver_name || v.cadet_name || 'Unassigned';
+          return `<option value="${v.id}" data-driver="${v.driver_id || ''}" data-cadet="${v.cadet_id || ''}" data-route="${mgrEscapeAttr(v.current_route || '')}">${icon} ${escMgr(v.registration)} - ${escMgr(crew)}</option>`;
+        }).join('');
+      }
     }
     const dSel = document.getElementById('dispatchDriver');
     const cSel = document.getElementById('dispatchCadet');
-    const fieldUsers = mgrDispatchData.users.filter((u) => ['cadet', 'field_user'].includes(u.role) && u.is_active);
+    const fieldUsers = mgrDispatchData.users.filter((u) => ['cadet', 'field_user'].includes(u.role));
     if (dSel) dSel.closest('.form-group')?.style && (dSel.closest('.form-group').style.display = 'none');
-    if (cSel) cSel.innerHTML = '<option value="">—</option>' + fieldUsers.map((u) => `<option value="${u.id}">${escMgr(u.full_name)}</option>`).join('');
+    if (cSel) {
+      cSel.innerHTML = '<option value="">— Select cadet —</option>' +
+        fieldUsers.map((u) => `<option value="${u.id}">${escMgr(u.full_name)}</option>`).join('');
+    }
 
     const tbody = document.getElementById('dispatchLoadBody');
     if (tbody) {
-      tbody.innerHTML = mgrDispatchData.products.map((p) =>
-        `<tr data-product-id="${p.product_id}"><td>${escMgr(p.name)}</td><td>${p.warehouse_qty}</td>
-        <td><input class="qty-inp dispatch-qty" type="number" min="0" value="0" data-product-id="${p.product_id}"></td></tr>`
-      ).join('');
+      const cats = ['300ML RGB', '330ML', 'ENERGY', '500ML', '1 LITRE', 'JUICE', '2 LITRE', 'RWENZORI WATER', 'EMPTIES'];
+      const byCat = {};
+      mgrDispatchData.products.forEach((p) => {
+        const cat = p.category || p.brand || 'OTHER';
+        if (!byCat[cat]) byCat[cat] = [];
+        byCat[cat].push(p);
+      });
+      let html = '';
+      const paint = (cat, list) => {
+        if (!list?.length) return;
+        html += `<tr class="rdc-cat-row"><td colspan="3"><strong>${escMgr(cat)}</strong></td></tr>`;
+        list.forEach((p) => {
+          html += `<tr data-product-id="${p.product_id}"><td>${escMgr(p.name)} <span style="color:var(--gray-mid);font-size:11px">${escMgr(p.sku || '')}</span></td><td>${p.warehouse_qty}</td>
+          <td><input class="qty-inp dispatch-qty" type="number" min="0" value="0" data-product-id="${p.product_id}"></td></tr>`;
+        });
+      };
+      cats.forEach((cat) => paint(cat, byCat[cat]));
+      Object.keys(byCat).forEach((cat) => {
+        if (cats.includes(cat)) return;
+        paint(cat, byCat[cat]);
+      });
+      tbody.innerHTML = html || '<tr><td colspan="3" style="color:var(--gray-mid)">No warehouse products. Refresh the page.</td></tr>';
     }
     if (vSel) vSel.onchange = () => {
       const opt = vSel.selectedOptions[0];
@@ -521,6 +542,10 @@ async function prepareDispatchModal() {
       if (area && opt.dataset.route) area.value = opt.dataset.route;
     };
   } catch (e) {
+    const vSel = document.getElementById('dispatchVehicle');
+    if (vSel) vSel.innerHTML = '<option value="">Could not load vehicles</option>';
+    const tbody = document.getElementById('dispatchLoadBody');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="3" style="color:var(--red)">${escMgr(e.message || 'Load failed')}</td></tr>`;
     mgrNotify(e.message, 'error');
   }
 }
@@ -529,7 +554,6 @@ async function saveDispatch(btn) {
   const vehicleId = parseInt(document.getElementById('dispatchVehicle')?.value || '0', 10);
   const driverId = parseInt(document.getElementById('dispatchDriver')?.value || '0', 10) || null;
   const cadetId = parseInt(document.getElementById('dispatchCadet')?.value || '0', 10) || null;
-  const routeId = parseInt(document.getElementById('dispatchRoute')?.value || '0', 10) || null;
   const routeArea = document.getElementById('dispatchRouteArea')?.value.trim() || '';
   const loadItems = [];
   document.querySelectorAll('.dispatch-qty').forEach((inp) => {
@@ -540,8 +564,12 @@ async function saveDispatch(btn) {
     mgrNotify('Select a vehicle and enter load quantities.', 'error');
     return;
   }
+  if (!cadetId) {
+    mgrNotify('Select a cadet / rider.', 'error');
+    return;
+  }
   if (routeArea.length > 120) {
-    mgrNotify('Route area is too long.', 'error');
+    mgrNotify('Area / market is too long.', 'error');
     return;
   }
   if (loadItems.some((x) => !Number.isInteger(x.qty) || x.qty <= 0)) {
@@ -551,8 +579,12 @@ async function saveDispatch(btn) {
   const restoreBtn = mgrSetBusy(btn, 'Saving...');
   try {
     await LapokAPI.post('/api/vehicles/dispatch.php', {
-      vehicle_id: vehicleId, driver_id: driverId, cadet_id: cadetId,
-      route_id: routeId, route_area: routeArea, load_items: loadItems,
+      vehicle_id: vehicleId,
+      driver_id: driverId,
+      cadet_id: cadetId,
+      route_id: null,
+      route_area: routeArea,
+      load_items: loadItems,
     });
     closeModal('dispatchModal');
     mgrNotify('Vehicle dispatched. Load deducted from warehouse.', 'success');
@@ -564,10 +596,8 @@ async function saveDispatch(btn) {
   }
 }
 
-async function prepareIncomingModal() {
-  const modal = document.getElementById('incomingModal');
-  if (!modal) return;
-  const dateInp = modal.querySelector('#incomingDate');
+async function loadManagerDeliveryPage() {
+  const dateInp = document.getElementById('incomingDate');
   if (dateInp) dateInp.value = mgrTodayLocal();
   try {
     const stale = !mgrDispatchCache.loadedAt || (Date.now() - mgrDispatchCache.loadedAt > mgrDispatchCache.ttlMs);
@@ -580,45 +610,65 @@ async function prepareIncomingModal() {
     if (sel) {
       sel.innerHTML = '<option value="">Not linked in this release</option>';
       sel.disabled = true;
-      const wrap = sel.closest('.form-group');
-      if (wrap) wrap.style.display = 'none';
     }
     const tbody = document.getElementById('incomingProductBody');
+    const countEl = document.getElementById('incomingProductCount');
     if (tbody) {
-      tbody.innerHTML = productCatalog.map((p) =>
-        `<tr data-product-id="${p.product_id}"><td>${escMgr(p.name)}</td>
-        <td><input class="qty-inp" type="number" min="0" value="0" data-f="ordered"></td>
-        <td><input class="qty-inp" type="number" min="0" value="0" data-f="delivered"></td>
-        <td><input class="qty-inp" type="text" placeholder="${p.sku}-batch" style="width:100px" data-f="batch"></td>
-        <td><input class="input" type="date" style="min-height:36px;padding:4px" data-f="expiry"></td>
-        <td><input class="qty-inp" type="number" value="${Math.round((p.unit_price || 0) * 0.6)}" data-f="cost"></td></tr>`
-      ).join('');
+      const cats = ['300ML RGB', '330ML', 'ENERGY', '500ML', '1 LITRE', 'JUICE', '2 LITRE', 'RWENZORI WATER', 'EMPTIES'];
+      const byCat = {};
+      productCatalog.forEach((p) => {
+        const cat = p.category || p.brand || 'OTHER';
+        if (!byCat[cat]) byCat[cat] = [];
+        byCat[cat].push(p);
+      });
+      let html = '';
+      const paint = (cat, list) => {
+        if (!list?.length) return;
+        html += `<tr class="cat-row"><td colspan="7">${escMgr(cat)}</td></tr>`;
+        list.forEach((p, idx) => {
+          html += `<tr data-product-id="${p.product_id}">
+            <td>${idx === 0 ? escMgr(cat) : ''}</td>
+            <td>${escMgr(p.name)} <span style="color:var(--gray-mid);font-size:11px">${escMgr(p.sku || '')}</span></td>
+            <td><input class="qty-inp" type="number" min="0" value="0" data-f="ordered"></td>
+            <td><input class="qty-inp" type="number" min="0" value="0" data-f="delivered"></td>
+            <td><input class="qty-inp" type="text" placeholder="${escMgr(p.sku)}-batch" style="width:110px" data-f="batch"></td>
+            <td><input class="input" type="date" style="min-height:36px;padding:4px" data-f="expiry"></td>
+            <td><input class="qty-inp" type="number" value="${Math.round((p.unit_price || 0) * 0.6)}" data-f="cost"></td>
+          </tr>`;
+        });
+      };
+      cats.forEach((cat) => paint(cat, byCat[cat]));
+      Object.keys(byCat).forEach((cat) => {
+        if (cats.includes(cat)) return;
+        paint(cat, byCat[cat]);
+      });
+      tbody.innerHTML = html || '<tr><td colspan="7" style="color:var(--gray-mid)">No products in warehouse catalog.</td></tr>';
     }
+    if (countEl) countEl.textContent = `${productCatalog.length} SKUs`;
     const recv = document.getElementById('incomingReceivedBy');
     if (recv && currentUser) recv.value = currentUser.full_name;
   } catch (e) {
-    console.warn('Incoming modal:', e.message);
+    mgrNotify('Could not load delivery page: ' + e.message, 'error');
   }
 }
 
 async function saveDeliveryEnhanced(btn) {
-  const modal = document.getElementById('incomingModal');
-  if (!modal) return;
+  const root = document.getElementById('page-manager-delivery') || document;
   const items = [];
-  modal.querySelectorAll('#incomingProductBody tr').forEach((tr) => {
+  root.querySelectorAll('#incomingProductBody tr[data-product-id]').forEach((tr) => {
     const productId = parseInt(tr.dataset.productId || '0', 10);
     const p = productCatalog.find((x) => x.product_id === productId);
     if (!p) return;
-    const inputs = tr.querySelectorAll('input');
-    const qtyDelivered = parseInt(inputs[1]?.value || '0', 10);
+    const ordered = parseInt(tr.querySelector('[data-f="ordered"]')?.value || '0', 10);
+    const qtyDelivered = parseInt(tr.querySelector('[data-f="delivered"]')?.value || '0', 10);
     if (qtyDelivered <= 0) return;
     items.push({
       product_id: p.product_id,
-      qty_ordered: parseInt(inputs[0]?.value || '0', 10) || qtyDelivered,
+      qty_ordered: ordered || qtyDelivered,
       qty_delivered: qtyDelivered,
-      batch_number: inputs[2]?.value || `BATCH-${p.sku}-${Date.now()}`,
-      expiry_date: inputs[3]?.value || mgrDatePlusDays(180),
-      unit_cost: parseFloat(inputs[4]?.value || '0'),
+      batch_number: tr.querySelector('[data-f="batch"]')?.value || `BATCH-${p.sku}-${Date.now()}`,
+      expiry_date: tr.querySelector('[data-f="expiry"]')?.value || mgrDatePlusDays(180),
+      unit_cost: parseFloat(tr.querySelector('[data-f="cost"]')?.value || '0'),
     });
   });
   if (!items.length) {
@@ -645,9 +695,13 @@ async function saveDeliveryEnhanced(btn) {
       notes: document.getElementById('incomingNotes')?.value || '',
       items,
     });
-    closeModal('incomingModal');
-    await Promise.allSettled([loadStockTable(), loadDeliveryList()]);
     mgrNotify('Delivery recorded and linked to stock.', 'success');
+    await Promise.allSettled([
+      loadStockTable(),
+      loadDeliveryList(),
+      typeof loadManagerStockBook === 'function' ? loadManagerStockBook() : Promise.resolve(),
+    ]);
+    showPage('manager-stock');
   } catch (e) {
     mgrNotify(e.message, 'error');
   } finally {
@@ -672,6 +726,7 @@ function escMgr(s) {
 }
 
 window.saveDeliveryEnhanced = saveDeliveryEnhanced;
+window.loadManagerDeliveryPage = loadManagerDeliveryPage;
 
 function mgrWatchModalOpen(id, onOpen) {
   const el = document.getElementById(id);
@@ -687,5 +742,4 @@ function mgrWatchModalOpen(id, onOpen) {
 
 document.addEventListener('DOMContentLoaded', () => {
   mgrWatchModalOpen('dispatchModal', prepareDispatchModal);
-  mgrWatchModalOpen('incomingModal', prepareIncomingModal);
 });

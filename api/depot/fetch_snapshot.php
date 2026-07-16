@@ -20,14 +20,18 @@ if (!in_array($type, ['opening', 'closing'], true)) {
 }
 
 $snapshot = depot_snapshot_fetch($date, $type);
+$warehouseLines = depot_stock_lines_from_warehouse($date);
 if ($snapshot && !empty($snapshot['lines'])) {
-    $snapshot['lines'] = depot_enrich_stock_lines($snapshot['lines']);
+    // Always rebuild onto current LAPOK BOOK flavor catalog so legacy SKUs
+    // (PREDATOR GOLD / POWERPLAY) do not appear beside the new ENERGY rows.
+    $snapshot['lines'] = depot_merge_snapshot_onto_catalog($snapshot['lines']);
+    $snapshot['lines'] = depot_apply_purchases_from_deliveries($snapshot['lines'], $date);
 }
-$warehouseLines = depot_stock_lines_from_warehouse();
 
 json_ok([
     'date' => $date,
     'type' => $type,
     'snapshot' => $snapshot,
     'suggested_lines' => $warehouseLines,
+    'purchase_source' => 'coca_cola_delivery',
 ]);

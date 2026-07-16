@@ -282,14 +282,28 @@ Cadet (field)  →  Accountant / RDC  →  Manager  →  Executive (board / MD)
 
 Wrong-role pages should bounce home — that is intentional security, not a bug.
 
+### Current build focus (July 2026)
+
+| Order | Focus | Detail |
+|-------|--------|--------|
+| Done | Manager boards + executive brief | Inventory + OCCD only; **styled** executive stock-book table + **styled companion CCBA boards PDF** (banners/tables) |
+| **Next 1** | Cadet receive dispatch | Cadet acknowledges manager dispatch / load before route |
+| **Next 2** | **Accountant (RDC) polish** | **Primary attacking point** — Home → Today's close → cash → manager pack |
+
+Track status in `docs/MODULE_TRACKER.md` (**Current build focus**).
+
 ### Where to look (docs map)
 
 | Doc | Use it for |
 |-----|------------|
-| `README.md` | Login, demo accounts, quick start |
-| `docs/MODULE_TRACKER.md` | What is Live / Partial / Deferred per module |
+| `README.md` | Login, demo accounts, quick start, next shifts |
+| `docs/MODULE_TRACKER.md` | What is Live / Partial / Deferred / **next focus** |
+| `docs/TEAM_CHANGELOG.md` | Who changed what (newest first) |
 | `docs/SYSTEMS_BUILDING_GUIDE.md` | Stack, hosting, security vocabulary (this file) |
+| `docs/RDC_ROLE.md` | Accountant (RDC) duties vs modules |
 | `docs/*_BLUEPRINT.md` | Phase 2 integrations (CCBA, EFRIS) |
+
+**Important (CCBA):** Manager **CCBA boards** = Inventory + OCCD only. **SKU map** and **warehouse snapshot sync** are Phase 2 MyCCBA integration — deferred from the boards UI. Submitted boards ship to executives as a **separate styled PDF** (`ccba_boards`) when the manager sends the brief — see `MODULE_TRACKER.md` (Executive brief / Companion CCBA boards PDF). Details: `CCBA_INTEGRATION_BLUEPRINT.md` §0.
 
 ### Local habits that close real gaps
 

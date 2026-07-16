@@ -225,19 +225,158 @@ function simple_pdf_write(string $filepath, string $title, array $lines, ?array 
 
     $startPage(true);
 
+    $left = 50.0;
+    $tableWidth = 512.0;
+
+    $drawBanner = function (array $banner) use (&$stream, &$y, $ensureSpace, $left, $tableWidth): void {
+        $title = simple_pdf_plain((string) ($banner['title'] ?? ''));
+        $meta = $banner['meta'] ?? [];
+        $ensureSpace(70);
+        $h = 48.0 + (count($meta) > 0 ? 14.0 : 0);
+        $yBottom = $y - $h;
+        // Navy gradient approximation: solid primary + darker top bar
+        $stream .= simple_pdf_rect_ops($left, $yBottom, $tableWidth, $h, 0.102, 0.212, 0.365, true, false);
+        $stream .= simple_pdf_rect_ops($left, $y - 4, $tableWidth, 4, 0.173, 0.322, 0.510, true, false);
+        $stream .= "1 1 1 rg\n";
+        $titleY = $y - 18;
+        $tw = simple_pdf_text_width($title, 12, true);
+        $tx = $left + max(0, ($tableWidth - $tw) / 2);
+        $stream .= 'BT /F2 12 Tf ' . sprintf('%.1f %.1f', $tx, $titleY) . ' Td (' . simple_pdf_escape(simple_pdf_clip($title, 70)) . ") Tj ET\n";
+        if ($meta) {
+            $parts = [];
+            foreach ($meta as $k => $v) {
+                $parts[] = simple_pdf_plain((string) $k) . ': ' . simple_pdf_plain((string) $v);
+            }
+            $metaLine = simple_pdf_clip(implode('   |   ', $parts), 95);
+            $mw = simple_pdf_text_width($metaLine, 8, false);
+            $mx = $left + max(0, ($tableWidth - $mw) / 2);
+            $stream .= 'BT /F1 8 Tf ' . sprintf('%.1f %.1f', $mx, $titleY - 16) . ' Td (' . simple_pdf_escape($metaLine) . ") Tj ET\n";
+        }
+        $y = $yBottom - 10;
+        $stream .= "0 0 0 rg\n";
+    };
+
+    $drawTable = function (array $table) use (&$stream, &$y, $ensureSpace, $left, $tableWidth): void {
+        $columns = $table['columns'] ?? [];
+        $rows = $table['rows'] ?? [];
+        $n = max(1, count($columns));
+        $widths = $table['widths'] ?? null;
+        if (!is_array($widths) || count($widths) !== $n) {
+            $eq = $tableWidth / $n;
+            $widths = array_fill(0, $n, $eq);
+        } else {
+            $sum = array_sum($widths);
+            if ($sum > 0 && abs($sum - $tableWidth) > 1) {
+                $scale = $tableWidth / $sum;
+                $widths = array_map(static fn($w) => $w * $scale, $widths);
+            }
+        }
+        $align = $table['align'] ?? array_fill(0, $n, 'left');
+        $rowH = 14.0;
+        $headerH = 16.0;
+
+        $paintRow = function (array $cells, string $type) use (&$stream, &$y, $ensureSpace, $left, $tableWidth, $widths, $align, $n, $rowH, $headerH): void {
+            $h = ($type === 'header') ? $headerH : $rowH;
+            $ensureSpace(60 + $h);
+            $yBottom = $y - $h;
+            // Fill by row type (match OCCD UI)
+            if ($type === 'header') {
+                $stream .= simple_pdf_rect_ops($left, $yBottom, $tableWidth, $h, 0.95, 0.96, 0.97, true, false);
+            } elseif ($type === 'category') {
+                $stream .= simple_pdf_rect_ops($left, $yBottom, $tableWidth, $h, 0.929, 0.949, 0.969, true, false);
+            } elseif ($type === 'total') {
+                $stream .= simple_pdf_rect_ops($left, $yBottom, $tableWidth, $h, 0.969, 0.980, 0.988, true, false);
+            } elseif ($type === 'grand') {
+                $stream .= simple_pdf_rect_ops($left, $yBottom, $tableWidth, $h, 0.886, 0.910, 0.941, true, false);
+            } else {
+                $stream .= simple_pdf_rect_ops($left, $yBottom, $tableWidth, $h, 1, 1, 1, true, false);
+            }
+            // Outer + vertical grid
+            $stream .= "0.72 0.76 0.82 RG\n0.4 w\n";
+            $stream .= sprintf("%.2F %.2F %.2F %.2F re S\n", $left, $yBottom, $tableWidth, $h);
+            $x = $left;
+            for ($i = 0; $i < $n - 1; $i++) {
+                $x += $widths[$i];
+                $stream .= sprintf("%.2F %.2F m %.2F %.2F l S\n", $x, $yBottom, $x, $yBottom + $h);
+            }
+            // Cell text
+            $bold = in_array($type, ['header', 'category', 'total', 'grand'], true);
+            $font = $bold ? '/F2' : '/F1';
+            $size = ($type === 'header' || $type === 'category') ? 8.0 : 8.5;
+            $stream .= "0.06 0.09 0.16 rg\n";
+            $x = $left;
+            for ($i = 0; $i < $n; $i++) {
+                $cell = simple_pdf_plain((string) ($cells[$i] ?? ''));
+                $w = $widths[$i];
+                $a = $align[$i] ?? 'left';
+                $pad = 4.0;
+                $maxChars = max(3, (int) (($w - $pad * 2) / ($size * 0.50)));
+                $cell = simple_pdf_clip($cell, $maxChars);
+                $tw = simple_pdf_text_width($cell, $size, $bold);
+                if ($a === 'right') {
+                    $tx = $x + $w - $pad - $tw;
+                } elseif ($a === 'center') {
+                    $tx = $x + ($w - $tw) / 2;
+                } else {
+                    $tx = $x + $pad;
+                }
+                $ty = $yBottom + ($h - $size) / 2 + 1;
+                $stream .= 'BT ' . $font . ' ' . sprintf('%.1f', $size) . ' Tf ' . sprintf('%.1f %.1f', $tx, $ty) . ' Td (' . simple_pdf_escape($cell) . ") Tj ET\n";
+                $x += $w;
+            }
+            $y = $yBottom;
+        };
+
+        // Header
+        if ($columns) {
+            $paintRow($columns, 'header');
+        }
+        foreach ($rows as $row) {
+            $type = (string) ($row['type'] ?? 'data');
+            $cells = $row['cells'] ?? [];
+            if ($type === 'category' && count($cells) === 1) {
+                // Span-style category: first cell label, rest blank
+                $cells = array_pad([$cells[0]], $n, '');
+            }
+            $paintRow(array_values($cells), $type);
+        }
+        $y -= 8;
+        $stream .= "0 0 0 rg\n";
+    };
+
     foreach ($sections as $section) {
         $heading = simple_pdf_plain((string) ($section['heading'] ?? ''));
         $bodyLines = $section['lines'] ?? [];
-        $ensureSpace(80);
-        if ($heading !== '') {
+        $banner = $section['banner'] ?? null;
+        $table = $section['table'] ?? null;
+        $panelTitle = simple_pdf_plain((string) ($section['panel_title'] ?? ''));
+
+        if ($banner && is_array($banner)) {
+            $drawBanner($banner);
+        } elseif ($heading !== '') {
+            $ensureSpace(80);
             $stream .= "0.898 0.243 0.243 rg\n";
             $stream .= 'BT /F2 12 Tf 50 ' . sprintf('%.1f', $y) . ' Td (' . simple_pdf_escape(strtoupper(simple_pdf_clip($heading, 60))) . ") Tj ET\n";
             $y -= 16;
-            // Underline the section title lightly
             $stream .= "0.898 0.243 0.243 RG\n1 w\n50 {$y} m 320 {$y} l S\n";
             $y -= 12;
             $stream .= "0 0 0 rg\n";
         }
+
+        if ($panelTitle !== '') {
+            $ensureSpace(40);
+            $stream .= simple_pdf_rect_ops($left, $y - 16, $tableWidth, 16, 0.96, 0.97, 0.98, true, false);
+            $stream .= "0.72 0.76 0.82 RG\n0.4 w\n";
+            $stream .= sprintf("%.2F %.2F %.2F %.2F re S\n", $left, $y - 16, $tableWidth, 16);
+            $stream .= "0.06 0.09 0.16 rg\n";
+            $stream .= 'BT /F2 9 Tf ' . sprintf('%.1f %.1f', $left + 6, $y - 12) . ' Td (' . simple_pdf_escape(simple_pdf_clip($panelTitle, 80)) . ") Tj ET\n";
+            $y -= 20;
+        }
+
+        if ($table && is_array($table)) {
+            $drawTable($table);
+        }
+
         foreach ($bodyLines as $line) {
             $rawLine = (string) $line;
             $indentLevel = 0;
@@ -249,9 +388,7 @@ function simple_pdf_write(string $filepath, string $title, array $lines, ?array 
                 $y -= 6;
                 continue;
             }
-            // Subheading lines end with ":" and have no value — bold, no bullet
             $isSubhead = str_ends_with($text, ':') && !str_contains(rtrim($text, ':'), ':');
-            // Numbered steps keep their number; everything else gets a bullet
             $isNumbered = (bool) preg_match('/^\d+\.\s/', $text);
             $x = 54.0 + ($indentLevel * 14.0);
 
@@ -272,11 +409,9 @@ function simple_pdf_write(string $filepath, string $title, array $lines, ?array 
             $bullet = $isNumbered ? '' : '- ';
             $prefix = $bullet;
             if ($label !== '') {
-                // Draw bullet + bold label, then regular value on same baseline
                 $ensureSpace(60);
                 $labelBit = $prefix . $label . ': ';
                 $stream .= 'BT /F2 10 Tf ' . sprintf('%.1f %.1f', $x, $y) . ' Td (' . simple_pdf_escape($labelBit) . ") Tj ET\n";
-                // Approximate label width (Helvetica-Bold ~0.55em at 10pt)
                 $labelWidth = strlen($labelBit) * 5.4;
                 $valueChunks = simple_pdf_wrap($value, max(20, (int) ((520 - $x - $labelWidth) / 5.2)));
                 $first = array_shift($valueChunks);
@@ -290,7 +425,6 @@ function simple_pdf_write(string $filepath, string $title, array $lines, ?array 
                 continue;
             }
 
-            // Plain bulleted / numbered line (bold first word or status keyword)
             $display = $prefix . $text;
             if (preg_match('/^(PENDING|CONFIRMED|OK|CASH CONFIRMATION)\b(.*)$/i', $text, $sm)) {
                 $ensureSpace(60);
@@ -309,7 +443,6 @@ function simple_pdf_write(string $filepath, string $title, array $lines, ?array 
             $firstChunk = true;
             foreach ($chunks as $chunk) {
                 $ensureSpace(60);
-                // First chunk of a key line: lightly bold if it is a short standalone title-like line
                 $font = ($firstChunk && !$isNumbered && strlen($text) <= 40 && !str_contains($text, '|')) ? '/F2' : '/F1';
                 $stream .= 'BT ' . $font . ' 10 Tf ' . sprintf('%.1f %.1f', $firstChunk ? $x : $x + 10, $y) . ' Td (' . simple_pdf_escape($chunk) . ") Tj ET\n";
                 $y -= 12;
@@ -439,4 +572,31 @@ function simple_pdf_ugx(float $n): string
 {
     $sign = $n < 0 ? '-' : '';
     return $sign . 'UGX ' . number_format(abs($n), 0);
+}
+
+/**
+ * Approximate Helvetica string width at given font size (points).
+ */
+function simple_pdf_text_width(string $text, float $fontSize, bool $bold = false): float
+{
+    $text = simple_pdf_plain($text);
+    $factor = $bold ? 0.55 : 0.50;
+    return strlen($text) * $fontSize * $factor;
+}
+
+/**
+ * Paint a filled rectangle (PDF user space).
+ */
+function simple_pdf_rect_ops(float $x, float $y, float $w, float $h, float $r, float $g, float $b, bool $fill = true, bool $stroke = false): string
+{
+    $ops = sprintf("%.3F %.3F %.3F rg\n", $r, $g, $b);
+    $ops .= sprintf("%.2F %.2F %.2F %.2F re\n", $x, $y, $w, $h);
+    if ($fill && $stroke) {
+        $ops .= "0.75 0.75 0.75 RG\n0.4 w\nB\n";
+    } elseif ($fill) {
+        $ops .= "f\n";
+    } else {
+        $ops .= "0.7 0.7 0.7 RG\n0.4 w\nS\n";
+    }
+    return $ops;
 }

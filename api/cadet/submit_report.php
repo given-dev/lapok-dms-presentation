@@ -16,8 +16,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 }
 
 $body = read_json_body();
-$fuel = max(0, (float) ($body['fuel_expense'] ?? 0));
-$other = max(0, (float) ($body['other_expense'] ?? 0));
+$aux = cadet_normalize_auxiliary($body);
 $cashHanded = (float) ($body['cash_handed'] ?? 0);
 $note = trim((string) ($body['note'] ?? ''));
 $salesInput = is_array($body['sales_lines'] ?? null) ? $body['sales_lines'] : [];
@@ -64,23 +63,27 @@ if ($loadedTotal > 0 && $salesTotal <= 0 && $note === '') {
     json_error('Add a short note when submitting zero sales for a loaded trip.');
 }
 
-$flags = cadet_compute_flags($salesTotal, $cashHanded, $fuel, $other, $note, $salesLines);
-if (in_array('needs_note', $flags, true)) {
-    json_error('Add a short note explaining the cash/sales difference.');
-}
-
-$report = [
+$flags = cadet_compute_flags(
+    $salesTotal,
+    $cashHanded,
+    $aux['fuel'],
+    $aux['lunch'] + $aux['discount'] + $aux['shortage'] + $aux['repairs'],
+    $note,
+    $salesLines
+);
+$report = cadet_attach_auxiliary([
     'sales_total' => $salesTotal,
     'sales_lines' => $salesLines,
-    'fuel_expense' => $fuel,
-    'other_expense' => $other,
     'cash_handed' => $cashHanded,
     'note' => $note,
     'flags' => $flags,
     'submitted_at' => date('c'),
     'cadet_id' => (int) $user['id'],
     'cadet_name' => $user['full_name'],
-];
+], $aux);
+if (in_array('needs_note', $flags, true)) {
+    json_error('Add a short note explaining the cash/sales difference.');
+}
 $notes = '[CADET_REPORT] ' . json_encode($report, JSON_UNESCAPED_UNICODE);
 if ($note !== '') {
     $notes .= "\n" . $note;
@@ -92,7 +95,7 @@ try {
         'UPDATE delivery_trips
          SET fuel_cost = ?, cash_reported = ?, notes = ?, status = ?, returned_at = NOW()
          WHERE id = ?'
-    )->execute([$fuel + $other, $cashHanded, $notes, 'returned', $tripId]);
+    )->execute([cadet_auxiliary_total($aux), $cashHanded, $notes, 'returned', $tripId]);
 
     cadet_apply_trip_sales($pdo, $tripId, $salesLines);
 

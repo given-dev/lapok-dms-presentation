@@ -397,7 +397,7 @@ function rdcSalesRowHtml(line, li, cols) {
   </tr>`;
 }
 
-const RDC_PRODUCT_CATEGORIES = ['CSD', 'ENERGY', 'JUICE', 'VAD', 'WATER', 'OTHER'];
+const RDC_PRODUCT_CATEGORIES = ['CSD', 'ENERGY', 'JUICE', 'WATER', 'OTHER'];
 
 function rdcRenderSalesTable() {
   const el = document.getElementById('rdcSalesBody');
@@ -822,11 +822,18 @@ function rdcOpenCadetReportEdit(tripId) {
     : '<tr><td colspan="4" style="text-align:center;color:var(--gray-mid)">No product lines on this report</td></tr>';
 
   const fuel = document.getElementById('rdcEditCadetFuel');
-  const other = document.getElementById('rdcEditCadetOther');
+  const lunch = document.getElementById('rdcEditCadetLunch');
+  const discount = document.getElementById('rdcEditCadetDiscount');
+  const shortage = document.getElementById('rdcEditCadetShortage');
+  const repairs = document.getElementById('rdcEditCadetRepairs');
   const cash = document.getElementById('rdcEditCadetCash');
   const note = document.getElementById('rdcEditCadetNote');
-  if (fuel) fuel.value = String(Number(report.fuel_expense || entry.fuel_expense || 0));
-  if (other) other.value = String(Number(report.other_expense || entry.other_expense || 0));
+  const aux = report.auxiliary || {};
+  if (fuel) fuel.value = String(Number(aux.fuel ?? report.fuel_expense ?? entry.fuel_expense ?? 0));
+  if (lunch) lunch.value = String(Number(aux.lunch ?? report.lunch_expense ?? 0));
+  if (discount) discount.value = String(Number(aux.discount ?? report.discount ?? 0));
+  if (shortage) shortage.value = String(Number(aux.shortage ?? report.shortage ?? 0));
+  if (repairs) repairs.value = String(Number(aux.repairs ?? report.repairs_expense ?? report.other_expense ?? entry.other_expense ?? 0));
   if (cash) cash.value = String(Number(report.cash_handed || entry.cash_handed || 0));
   if (note) note.value = String(report.note || entry.note || '');
 
@@ -842,7 +849,7 @@ function rdcOpenCadetReportEdit(tripId) {
   body.querySelectorAll('.rdc-edit-amount').forEach((inp) => {
     inp.addEventListener('input', rdcUpdateCadetEditTotals);
   });
-  ['rdcEditCadetFuel', 'rdcEditCadetOther', 'rdcEditCadetCash'].forEach((id) => {
+  ['rdcEditCadetFuel', 'rdcEditCadetLunch', 'rdcEditCadetDiscount', 'rdcEditCadetShortage', 'rdcEditCadetRepairs', 'rdcEditCadetCash'].forEach((id) => {
     document.getElementById(id)?.addEventListener('input', rdcUpdateCadetEditTotals);
   });
   rdcUpdateCadetEditTotals();
@@ -856,11 +863,15 @@ function rdcUpdateCadetEditTotals() {
     sales += Number(tr.querySelector('.rdc-edit-amount')?.value || 0);
   });
   const fuel = Number(document.getElementById('rdcEditCadetFuel')?.value || 0);
-  const other = Number(document.getElementById('rdcEditCadetOther')?.value || 0);
+  const lunch = Number(document.getElementById('rdcEditCadetLunch')?.value || 0);
+  const discount = Number(document.getElementById('rdcEditCadetDiscount')?.value || 0);
+  const shortage = Number(document.getElementById('rdcEditCadetShortage')?.value || 0);
+  const repairs = Number(document.getElementById('rdcEditCadetRepairs')?.value || 0);
   const cash = Number(document.getElementById('rdcEditCadetCash')?.value || 0);
   const el = document.getElementById('rdcEditCadetTotals');
   if (el) {
-    el.textContent = `Sales ${sales.toLocaleString()} · Expenses ${(fuel + other).toLocaleString()} · Cash ${cash.toLocaleString()} · Gap ${(sales - cash).toLocaleString()}`;
+    const expenses = fuel + lunch + discount + shortage + repairs;
+    el.textContent = `Sales ${sales.toLocaleString()} · Auxiliary ${expenses.toLocaleString()} · Banking ${cash.toLocaleString()} · Gap ${(sales - cash).toLocaleString()}`;
   }
 }
 
@@ -885,8 +896,18 @@ async function rdcSaveCadetReportEdit() {
     const res = await LapokAPI.post('/api/rdc/update_cadet_report.php', {
       trip_id: rdcEditCadetTripId,
       sales_lines,
+      auxiliary: {
+        fuel: Number(document.getElementById('rdcEditCadetFuel')?.value || 0),
+        lunch: Number(document.getElementById('rdcEditCadetLunch')?.value || 0),
+        discount: Number(document.getElementById('rdcEditCadetDiscount')?.value || 0),
+        shortage: Number(document.getElementById('rdcEditCadetShortage')?.value || 0),
+        repairs: Number(document.getElementById('rdcEditCadetRepairs')?.value || 0),
+      },
       fuel_expense: Number(document.getElementById('rdcEditCadetFuel')?.value || 0),
-      other_expense: Number(document.getElementById('rdcEditCadetOther')?.value || 0),
+      lunch_expense: Number(document.getElementById('rdcEditCadetLunch')?.value || 0),
+      discount: Number(document.getElementById('rdcEditCadetDiscount')?.value || 0),
+      shortage: Number(document.getElementById('rdcEditCadetShortage')?.value || 0),
+      repairs_expense: Number(document.getElementById('rdcEditCadetRepairs')?.value || 0),
       cash_handed: Number(document.getElementById('rdcEditCadetCash')?.value || 0),
       note: document.getElementById('rdcEditCadetNote')?.value || '',
     });

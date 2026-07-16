@@ -189,6 +189,201 @@ function occd_unforgivable_empty_values(array $lines): array
     return $values;
 }
 
+/**
+ * Unforgivable board lines → manager warehouse SKUs (opening stock book).
+ * Multi-SKU keys sum flavors in that pack family.
+ *
+ * @return array<string, list<string>>
+ */
+function occd_unforgivable_sku_map(): array
+{
+    return [
+        'uf_300_coke' => ['300-COKE'],
+        'uf_300_fanta' => ['300-FANTA'],
+        'uf_330_coke' => ['330-COKE'],
+        'uf_330_fanta' => ['330-FANTA'],
+        'uf_500_coke' => ['500-COKE'],
+        'uf_500_fanta' => ['500-FANTA'],
+        'uf_2l_fanta' => ['2L-FANTA'],
+        'uf_2l_coke' => ['2L-COKE'],
+        'uf_mm_400' => ['400-MM-MANGO', '400-MM-BERRY', '400-MM-APPLE', '400-MM-ORANGE'],
+        'uf_mm_1l' => ['1L-MM-MANGO', '1L-MM-BERRY'],
+        'uf_w_500' => ['RW-SHRINX', 'RW-500-X24'],
+        'uf_w_1500' => ['RW-1500-X12'],
+        'uf_pred_300' => ['EN-GOLD', 'EN-MANGO'],
+    ];
+}
+
+/**
+ * Inventory board pack rows → manager warehouse SKUs.
+ *
+ * @return array<string, list<string>>
+ */
+function occd_inventory_sku_map(): array
+{
+    return [
+        'csd_pet_1000' => ['1L-COKE'],
+        'csd_2l_np' => ['2L-COKE', '2L-FANTA', '2L-SPRITE'],
+        'csd_300_rb' => ['300-COKE', '300-FANTA', '300-SPRITE', '300-KREST', '300-STONEY', '300-NOVIDA'],
+        'csd_330_np' => ['330-COKE', '330-FANTA', '330-STONEY', '330-NOVIDA'],
+        'csd_330_zero' => ['330-COKE-Z', '330-SPRITE-Z', '330-NOVIDA-Z'],
+        'csd_500_np' => ['500-COKE', '500-FANTA', '500-SPRITE', '500-KREST', '500-STONEY', '500-NOVIDA'],
+        'csd_330_pine' => ['330-FANTA-B'],
+        'en_pred_gold' => ['EN-GOLD'],
+        'en_pred_mango' => ['EN-MANGO'],
+        'en_play' => ['EN-POWERPLAY'],
+        'ju_1l' => ['1L-MM-MANGO', '1L-MM-BERRY'],
+        'ju_250' => ['280-RF-MANGO', '280-RF-APPLE', '280-RF-ORANGE'],
+        'ju_400_mid' => ['400-MM-MANGO', '400-MM-BERRY', '400-MM-APPLE', '400-MM-ORANGE'],
+        'ju_400_fruity' => [],
+        'ju_500' => ['500-RF-MANGO'],
+        'vad_supershake' => [],
+        'wa_1500' => ['RW-1500-X12'],
+        'wa_2000' => ['RW-5000-X4', 'RW-JUMBO'],
+        'wa_500_15' => ['RW-SHRINX'],
+        'wa_500_24' => ['RW-500-X24'],
+    ];
+}
+
+/**
+ * Opening qty by warehouse SKU from the manager's 7am stock book for $date.
+ *
+ * @return array<string, int>
+ */
+function occd_manager_opening_by_sku(string $date): array
+{
+    require_once __DIR__ . '/depot_finance.php';
+    $snap = depot_snapshot_fetch($date, 'opening');
+    if (!$snap || empty($snap['lines']) || !is_array($snap['lines'])) {
+        return [];
+    }
+    $lines = depot_merge_snapshot_onto_catalog($snap['lines']);
+    $bySku = [];
+    foreach ($lines as $line) {
+        $sku = strtoupper(trim((string) ($line['sku'] ?? '')));
+        if ($sku === '') {
+            continue;
+        }
+        $bySku[$sku] = (int) ($line['opening'] ?? $line['qty'] ?? 0);
+    }
+    return $bySku;
+}
+
+/**
+ * Open Coca-Cola (CCBA) order quantities by warehouse SKU.
+ * Includes orders that are placed / in transit, excludes draft / delivered / closed / cancelled.
+ *
+ * @return array<string, int>
+ */
+function occd_ccba_on_order_by_sku(): array
+{
+    try {
+        $sql = "SELECT UPPER(TRIM(p.sku)) AS sku,
+                       COALESCE(SUM(COALESCE(i.qty_confirmed, i.qty_requested)), 0) AS qty
+                FROM ccba_order_items i
+                JOIN ccba_orders o ON o.id = i.ccba_order_id
+                JOIN products p ON p.id = i.product_id
+                WHERE o.status IN (
+                    'ready_for_ccba', 'submitted_to_ccba', 'ccba_acknowledged',
+                    'ccba_confirmed', 'scheduled', 'dispatched', 'partial_delivery'
+                )
+                GROUP BY UPPER(TRIM(p.sku))";
+        $rows = db()->query($sql)->fetchAll();
+    } catch (Throwable) {
+        return [];
+    }
+    $out = [];
+    foreach ($rows as $row) {
+        $sku = (string) ($row['sku'] ?? '');
+        if ($sku === '') {
+            continue;
+        }
+        $out[$sku] = (int) ($row['qty'] ?? 0);
+    }
+    return $out;
+}
+
+/** @param array<string, int> $bySku @param list<string> $skus */
+function occd_sum_skus(array $bySku, array $skus): int
+{
+    $sum = 0;
+    foreach ($skus as $sku) {
+        $sum += (int) ($bySku[strtoupper($sku)] ?? 0);
+    }
+    return $sum;
+}
+
+/**
+ * Fill inventory board opening + on-order from manager opening / CCBA orders.
+ *
+ * @param array<string, mixed> $payload
+ * @return array<string, mixed>
+ */
+function occd_apply_inventory_auto_fields(array $payload, string $date): array
+{
+    if (!isset($payload['values']) || !is_array($payload['values'])) {
+        return $payload;
+    }
+    $openingBySku = occd_manager_opening_by_sku($date);
+    $onOrderBySku = occd_ccba_on_order_by_sku();
+    $map = occd_inventory_sku_map();
+    foreach ($payload['lines'] ?? [] as $line) {
+        if (($line['row_type'] ?? '') !== 'sku') {
+            continue;
+        }
+        $key = (string) ($line['key'] ?? '');
+        if ($key === '' || !isset($payload['values'][$key]) || !is_array($payload['values'][$key])) {
+            continue;
+        }
+        $skus = $map[$key] ?? [];
+        $payload['values'][$key]['opening'] = (string) occd_sum_skus($openingBySku, $skus);
+        $payload['values'][$key]['on_order'] = (string) occd_sum_skus($onOrderBySku, $skus);
+        $payload['values'][$key]['opening_source'] = 'manager_opening_stock';
+        $payload['values'][$key]['on_order_source'] = 'ccba_orders';
+    }
+    return $payload;
+}
+
+/**
+ * Fill unforgivable opening + on-order from manager opening / CCBA orders.
+ *
+ * @param array<string, mixed> $payload
+ * @return array<string, mixed>
+ */
+function occd_apply_unforgivable_openings(array $payload, string $date): array
+{
+    if (!isset($payload['unforgivable_packs']) || !is_array($payload['unforgivable_packs'])) {
+        return $payload;
+    }
+    $openingBySku = occd_manager_opening_by_sku($date);
+    $onOrderBySku = occd_ccba_on_order_by_sku();
+    $map = occd_unforgivable_sku_map();
+    $lines = $payload['unforgivable_packs']['lines'] ?? [];
+    if (!isset($payload['unforgivable_packs']['values']) || !is_array($payload['unforgivable_packs']['values'])) {
+        $payload['unforgivable_packs']['values'] = occd_unforgivable_empty_values(is_array($lines) ? $lines : []);
+    }
+    foreach (is_array($lines) ? $lines : [] as $line) {
+        $key = (string) ($line['key'] ?? '');
+        if ($key === '') {
+            continue;
+        }
+        if (!isset($payload['unforgivable_packs']['values'][$key]) || !is_array($payload['unforgivable_packs']['values'][$key])) {
+            $payload['unforgivable_packs']['values'][$key] = [
+                'recommended' => '',
+                'opening' => '0',
+                'on_order' => '0',
+                'comments' => '',
+            ];
+        }
+        $skus = $map[$key] ?? [];
+        $payload['unforgivable_packs']['values'][$key]['opening'] = (string) occd_sum_skus($openingBySku, $skus);
+        $payload['unforgivable_packs']['values'][$key]['on_order'] = (string) occd_sum_skus($onOrderBySku, $skus);
+        $payload['unforgivable_packs']['values'][$key]['opening_source'] = 'manager_opening_stock';
+        $payload['unforgivable_packs']['values'][$key]['on_order_source'] = 'ccba_orders';
+    }
+    return $payload;
+}
+
 function occd_merge_inventory_values(array $template, array $saved): array
 {
     $merged = $template;
@@ -341,9 +536,12 @@ function occd_board_for_date(PDO $pdo, string $date, string $type): array
     if ($type === 'inventory_board') {
         $template = occd_inventory_board_template();
         $payload = $saved ? occd_merge_inventory_values($template, $saved['payload']) : occd_prefill_from_stock($template, $type);
+        $payload = occd_apply_inventory_auto_fields($payload, $date);
     } else {
         $template = occd_dashboard_template();
         $payload = $saved ? occd_merge_dashboard_values($template, $saved['payload']) : occd_prefill_from_stock($template, $type);
+        // Always mirror manager opening + CCBA on-order into unforgivable columns.
+        $payload = occd_apply_unforgivable_openings($payload, $date);
     }
 
     return [

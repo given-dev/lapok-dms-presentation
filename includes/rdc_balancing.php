@@ -476,22 +476,23 @@ function rdc_apply_cadet_report_to_sheet(array &$sheet, int $vehicleId, array $r
         unset($salesLine);
     }
 
-    $fuel = (float) ($report['fuel_expense'] ?? 0);
-    $other = (float) ($report['other_expense'] ?? 0);
+    $aux = cadet_normalize_auxiliary($report);
+    $auxMap = [
+        'FUEL' => $aux['fuel'],
+        'LUNCH' => $aux['lunch'],
+        'DISCOUNT' => $aux['discount'],
+        'SHORTAGE/EXCESS' => $aux['shortage'],
+        'REPAIR' => $aux['repairs'],
+    ];
     if (!isset($sheet['expenses']) || !is_array($sheet['expenses'])) {
         $sheet['expenses'] = [];
     }
-    // Must foreach the real $sheet['expenses'] array — `?? []` creates a temporary copy
-    // so fuel/other never persist when assigned by reference.
     foreach ($sheet['expenses'] as &$expLine) {
         $label = strtoupper((string) ($expLine['label'] ?? ''));
-        if ($fuel > 0 && $label === 'FUEL') {
-            $expLine['amounts'][$vehicleKey] = $fuel;
+        if (!isset($auxMap[$label]) || $auxMap[$label] <= 0) {
+            continue;
         }
-        // Put cadet "other" expense on OTHER only (not TRANSPORT) to avoid double-count
-        if ($other > 0 && $label === 'OTHER') {
-            $expLine['amounts'][$vehicleKey] = $other;
-        }
+        $expLine['amounts'][$vehicleKey] = $auxMap[$label];
     }
     unset($expLine);
 
@@ -527,8 +528,54 @@ function rdc_sync_cadet_reports_into_sheet(PDO $pdo, string $date, bool $persist
     }
 
     if ($row) {
+        $storedSales = json_decode($row['sales_json'], true) ?: [];
+        // Rebuild sales structure from current depot catalog so new catalog rows
+        // (e.g., Predator Mango, 1L Coca-Cola) appear even on sheets created earlier.
+        $sheetSales = rdc_enrich_sales_lines(rdc_blank_sales_lines($columns));
+        $storedSalesMap = [];
+        $storedByKey = [];
+        foreach ($storedSales as $l) {
+            $lbl = strtoupper((string) ($l['label'] ?? ''));
+            if ($lbl !== '') {
+                $storedSalesMap[$lbl] = $l;
+            }
+            $legacyKey = depot_normalize_rdc_key((string) ($l['rdc_key'] ?? ''));
+            if ($legacyKey === '' && $lbl !== '') {
+                $legacyKey = depot_map_product_to_rdc_key($lbl) ?? '';
+            }
+            if ($legacyKey !== '') {
+                if (!isset($storedByKey[$legacyKey])) {
+                    $storedByKey[$legacyKey] = $l;
+                } elseif (isset($l['qty']) && is_array($l['qty'])) {
+                    // Merge variant energy rows (Predator Gold/Mango/Powerplay) into ENERGY.
+                    foreach ($l['qty'] as $k => $v) {
+                        $storedByKey[$legacyKey]['qty'][$k] = (float) ($storedByKey[$legacyKey]['qty'][$k] ?? 0) + (float) $v;
+                    }
+                }
+            }
+        }
+        foreach ($sheetSales as &$blankLine) {
+            $lbl = strtoupper((string) ($blankLine['label'] ?? ''));
+            $key = (string) ($blankLine['rdc_key'] ?? '');
+            $storedLine = null;
+            if ($lbl !== '' && isset($storedSalesMap[$lbl])) {
+                $storedLine = $storedSalesMap[$lbl];
+            } elseif ($key !== '' && isset($storedByKey[$key])) {
+                $storedLine = $storedByKey[$key];
+            }
+            if (!$storedLine || !isset($storedLine['qty']) || !is_array($storedLine['qty'])) {
+                continue;
+            }
+            foreach ($storedLine['qty'] as $k => $v) {
+                if (isset($blankLine['qty'][$k])) {
+                    $blankLine['qty'][$k] = (float) $v;
+                }
+            }
+        }
+        unset($blankLine);
+
         $sheet = [
-            'sales' => json_decode($row['sales_json'], true) ?: [],
+            'sales' => $sheetSales,
             'recoveries' => json_decode($row['recoveries_json'], true) ?: [],
             'expenses' => json_decode($row['expenses_json'], true) ?: [],
             'cash_out' => json_decode($row['cash_out_json'] ?? '[]', true) ?: [],
@@ -748,17 +795,21 @@ function rdc_update_cadet_report(PDO $pdo, int $tripId, array $body, int $editor
     $salesLines = cadet_normalize_sales_lines($enriched, $catalogByKey);
     $salesTotal = array_sum(array_map(fn($line) => (float) $line['amount'], $salesLines));
 
-    $fuel = max(0, (float) ($body['fuel_expense'] ?? 0));
-    $other = max(0, (float) ($body['other_expense'] ?? 0));
+    $aux = cadet_normalize_auxiliary($body);
     $cashHanded = max(0, (float) ($body['cash_handed'] ?? 0));
     $note = trim((string) ($body['note'] ?? ''));
 
-    $flags = cadet_compute_flags($salesTotal, $cashHanded, $fuel, $other, $note, $salesLines);
-    $report = [
+    $flags = cadet_compute_flags(
+        $salesTotal,
+        $cashHanded,
+        $aux['fuel'],
+        $aux['lunch'] + $aux['discount'] + $aux['shortage'] + $aux['repairs'],
+        $note,
+        $salesLines
+    );
+    $report = cadet_attach_auxiliary([
         'sales_total' => $salesTotal,
         'sales_lines' => $salesLines,
-        'fuel_expense' => $fuel,
-        'other_expense' => $other,
         'cash_handed' => $cashHanded,
         'note' => $note,
         'flags' => $flags,
@@ -768,7 +819,7 @@ function rdc_update_cadet_report(PDO $pdo, int $tripId, array $body, int $editor
         'corrected_at' => date('c'),
         'corrected_by' => $editorId,
         'corrected_by_name' => $editorName,
-    ];
+    ], $aux);
 
     $notes = '[CADET_REPORT] ' . json_encode($report, JSON_UNESCAPED_UNICODE);
     if ($note !== '') {
@@ -782,7 +833,7 @@ function rdc_update_cadet_report(PDO $pdo, int $tripId, array $body, int $editor
             'UPDATE delivery_trips
              SET fuel_cost = ?, cash_reported = ?, notes = ?
              WHERE id = ?'
-        )->execute([$fuel + $other, $cashHanded, $notes, $tripId]);
+        )->execute([cadet_auxiliary_total($aux), $cashHanded, $notes, $tripId]);
 
         // Reset sold qty then re-apply corrected lines
         $pdo->prepare('UPDATE trip_load_items SET qty_sold = 0, qty_returned = qty_loaded WHERE trip_id = ?')

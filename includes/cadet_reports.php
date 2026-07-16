@@ -1,6 +1,58 @@
 <?php
 declare(strict_types=1);
 
+/** LAPOK book page 2 — auxiliary information rows (per vehicle). */
+function cadet_auxiliary_defaults(): array
+{
+    return [
+        'fuel' => 0.0,
+        'lunch' => 0.0,
+        'discount' => 0.0,
+        'shortage' => 0.0,
+        'repairs' => 0.0,
+    ];
+}
+
+/**
+ * @param array<string, mixed> $input
+ * @return array{fuel: float, lunch: float, discount: float, shortage: float, repairs: float}
+ */
+function cadet_normalize_auxiliary(array $input): array
+{
+    $aux = cadet_auxiliary_defaults();
+    if (isset($input['auxiliary']) && is_array($input['auxiliary'])) {
+        foreach (array_keys($aux) as $key) {
+            $aux[$key] = max(0.0, (float) ($input['auxiliary'][$key] ?? 0));
+        }
+        return $aux;
+    }
+    $aux['fuel'] = max(0.0, (float) ($input['fuel_expense'] ?? 0));
+    $aux['lunch'] = max(0.0, (float) ($input['lunch_expense'] ?? 0));
+    $aux['discount'] = max(0.0, (float) ($input['discount'] ?? 0));
+    $aux['shortage'] = max(0.0, (float) ($input['shortage'] ?? 0));
+    $aux['repairs'] = max(0.0, (float) ($input['repairs_expense'] ?? $input['other_expense'] ?? 0));
+    return $aux;
+}
+
+/** @param array{fuel: float, lunch: float, discount: float, shortage: float, repairs: float} $aux */
+function cadet_auxiliary_total(array $aux): float
+{
+    return round(array_sum(array_map('floatval', $aux)), 2);
+}
+
+/** @param array<string, mixed> $report */
+function cadet_attach_auxiliary(array $report, array $aux): array
+{
+    $report['auxiliary'] = $aux;
+    $report['fuel_expense'] = $aux['fuel'];
+    $report['lunch_expense'] = $aux['lunch'];
+    $report['discount'] = $aux['discount'];
+    $report['shortage'] = $aux['shortage'];
+    $report['repairs_expense'] = $aux['repairs'];
+    $report['other_expense'] = round($aux['lunch'] + $aux['discount'] + $aux['shortage'] + $aux['repairs'], 2);
+    return $report;
+}
+
 function cadet_parse_report_note(?string $notes): ?array
 {
     if (!$notes || !str_contains($notes, '[CADET_REPORT]')) {
@@ -10,7 +62,10 @@ function cadet_parse_report_note(?string $notes): ?array
         return null;
     }
     $data = json_decode($m[1], true);
-    return is_array($data) ? $data : null;
+    if (!is_array($data)) {
+        return null;
+    }
+    return cadet_attach_auxiliary($data, cadet_normalize_auxiliary($data));
 }
 
 /**
@@ -32,15 +87,20 @@ function cadet_normalize_sales_lines(array $lines, array $catalogByKey): array
             $catRow = $byLabel[strtoupper((string) $line['rdc_label'])] ?? null;
             $key = $catRow['key'] ?? '';
         }
+        $key = depot_normalize_rdc_key($key);
+        if ($key === '' && !empty($line['rdc_label'])) {
+            $mapped = depot_map_product_to_rdc_key((string) $line['rdc_label']);
+            $key = $mapped ?? '';
+        }
         $qtySold = max(0, (int) ($line['qty_sold'] ?? 0));
         if ($key === '' || $qtySold <= 0 || !isset($catalogByKey[$key])) {
             continue;
         }
         $catalog = $catalogByKey[$key];
         $unitPrice = (float) ($catalog['unit_price'] ?? $catalog['price'] ?? 0);
-        $amount = array_key_exists('amount', $line)
-            ? max(0, (float) $line['amount'])
-            : $qtySold * $unitPrice;
+        // Cadet-side amounts are always server-computed from the fixed catalog price.
+        // This prevents browser edits/tampering from changing stored sales value.
+        $amount = $qtySold * $unitPrice;
         $normalized[] = [
             'rdc_key' => $key,
             'rdc_label' => (string) ($catalog['label'] ?? ''),
@@ -159,4 +219,69 @@ function cadet_apply_trip_sales(PDO $pdo, int $tripId, array $salesLines): void
         ]);
         $applied[$key] = true;
     }
+}
+
+function cadet_today_date(?DateTimeInterface $when = null): string
+{
+    return ($when ?? new DateTimeImmutable('now'))->format('Y-m-d');
+}
+
+/**
+ * Today's operative trip for a cadet/driver (ignores stale seed/demo trips from other dates).
+ *
+ * @return array<string, mixed>|null
+ */
+function cadet_fetch_today_trip(PDO $pdo, int $userId, ?string $date = null): ?array
+{
+    $date ??= cadet_today_date();
+    $stmt = $pdo->prepare(
+        "SELECT dt.*, v.registration, v.vehicle_type, r.name AS route_name
+         FROM delivery_trips dt
+         JOIN vehicles v ON v.id = dt.vehicle_id
+         LEFT JOIN routes r ON r.id = dt.route_id
+         WHERE (dt.cadet_id = ? OR dt.driver_id = ?)
+           AND dt.status IN ('dispatched','on_route','returned')
+           AND (DATE(dt.dispatched_at) = ? OR DATE(dt.returned_at) = ?)
+         ORDER BY FIELD(dt.status, 'on_route', 'dispatched', 'returned'), dt.dispatched_at DESC
+         LIMIT 1"
+    );
+    $stmt->execute([$userId, $userId, $date, $date]);
+    $row = $stmt->fetch();
+    return $row ?: null;
+}
+
+/** @param array<string, mixed>|null $trip */
+function cadet_trip_report_submitted(?array $trip): bool
+{
+    if (!$trip || ($trip['status'] ?? '') !== 'returned') {
+        return false;
+    }
+    return cadet_parse_report_note($trip['notes'] ?? null) !== null;
+}
+
+function cadet_report_submitted_today(PDO $pdo, int $userId, ?string $date = null): bool
+{
+    return cadet_trip_report_submitted(cadet_fetch_today_trip($pdo, $userId, $date));
+}
+
+/** Cadets who have a trip today but have not submitted today's report yet. */
+function cadet_pending_report_user_ids(PDO $pdo, string $date): array
+{
+    $stmt = $pdo->prepare(
+        "SELECT DISTINCT u.id
+         FROM users u
+         JOIN delivery_trips dt ON dt.cadet_id = u.id
+         WHERE u.is_active = 1
+           AND u.role IN ('cadet','field_user')
+           AND (DATE(dt.dispatched_at) = ? OR DATE(dt.returned_at) = ?)
+           AND (
+                dt.status IN ('dispatched','on_route')
+                OR (
+                    dt.status IN ('returned','completed')
+                    AND (dt.notes IS NULL OR dt.notes NOT LIKE '%[CADET_REPORT]%')
+                )
+           )"
+    );
+    $stmt->execute([$date, $date]);
+    return array_map('intval', array_column($stmt->fetchAll(), 'id'));
 }

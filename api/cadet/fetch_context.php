@@ -12,17 +12,7 @@ if (!in_array($user['role'], ['cadet', 'field_user'], true)) {
 }
 
 $pdo = db();
-$tStmt = $pdo->prepare(
-    "SELECT dt.*, v.registration, v.vehicle_type, r.name AS route_name
-     FROM delivery_trips dt
-     JOIN vehicles v ON v.id = dt.vehicle_id
-     LEFT JOIN routes r ON r.id = dt.route_id
-     WHERE (dt.cadet_id = ? OR dt.driver_id = ?)
-       AND dt.status IN ('dispatched','on_route','returned')
-     ORDER BY dt.dispatched_at DESC LIMIT 1"
-);
-$tStmt->execute([$user['id'], $user['id']]);
-$trip = $tStmt->fetch() ?: null;
+$trip = cadet_fetch_today_trip($pdo, (int) $user['id']);
 
 $tripId = $trip ? (int) $trip['id'] : 0;
 $productGroups = depot_cadet_product_groups($tripId > 0 ? $tripId : null);
@@ -43,7 +33,7 @@ foreach ($productGroups as $group) {
 
 $reportStatus = 'no_trip';
 if ($trip) {
-    $reportStatus = ($trip['status'] === 'returned' && $submitted) ? 'submitted' : 'pending';
+    $reportStatus = cadet_trip_report_submitted($trip) ? 'submitted' : 'pending';
 }
 
 $hour = (int) date('G');

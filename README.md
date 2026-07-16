@@ -11,6 +11,15 @@ External systems (CCBA, EFRIS, fleet GPS) are manual or deferred in this build.
 
 **Ownership (who does what):** see [`docs/SYSTEMS_BUILDING_GUIDE.md`](docs/SYSTEMS_BUILDING_GUIDE.md) §9. Wrong-role pages bounce home with a toast — that is intentional.
 
+**Team change log:** when you finish edits (or after a code push), update [`docs/TEAM_CHANGELOG.md`](docs/TEAM_CHANGELOG.md) with date, time, who, and what changed. Newest entry at the top.
+
+**Feature tracker / next focus:** [`docs/MODULE_TRACKER.md`](docs/MODULE_TRACKER.md) — **Current build focus** at the top.
+
+### Next shifts (team agreement)
+
+1. **Cadet — receive dispatch** — how cadets see and acknowledge manager dispatch / load before going on route.  
+2. **Accountant (RDC) — primary attack** — deep polish of Home → Today's close → cash → manager pack.
+
 ---
 
 ## Quick start (XAMPP)
@@ -31,7 +40,7 @@ External systems (CCBA, EFRIS, fleet GPS) are manual or deferred in this build.
 | Manager | Yes |
 | Accountant (RDC) | Yes |
 | Cadet | Yes |
-| Executive | No demo login seeded currently |
+| Executive | Yes |
 | Driver | No demo login seeded currently |
 | Field user | No demo login seeded currently |
 
@@ -46,6 +55,7 @@ All demo users share password **`password123`** (see [Demo accounts](#demo-accou
 | Accountant (RDC) | `accountant@lapok.ug` |
 | Manager | `manager@lapok.ug` |
 | Admin | `admin@lapok.ug` |
+| Executive | `executive@lapok.ug` |
 | Cadet | `cadet@lapok.ug` |
 
 ---
@@ -59,6 +69,7 @@ All demo users share password **`password123`** (see [Demo accounts](#demo-accou
 | Dashboard (home) | `cadet-dashboard` | Trip status, load summary, messages from depot |
 | Today's report | `cadet-daily` | All depot products grouped like depot sales book (CSD, ENERGY, JUICE, VAD, WATER, OTHER) |
 | Notifications | Bell icon | Receive messages from manager / RDC / admin |
+| Receive dispatch | `cadet-dashboard` | **Next focus** — acknowledge manager dispatch / load before route (planned) |
 
 On submit, sales, expenses, and cash **auto-sync** into the accountant's **Today's close** sheet on the **vehicle column** for the assigned trip.
 
@@ -69,14 +80,16 @@ On submit, sales, expenses, and cash **auto-sync** into the accountant's **Today
 **Sidebar — Business:** Customers & receivables, Order via MyCCBA, Reports & analytics  
 **Sidebar — Monthly:** Month-end (view checklist + manager fixed costs), Staff welfare  
 
-Stock page is daily only: opening/closing counts + delivery confirmation. CCBA boards (inventory + OCCD) feed the executive brief when submitted. Dashboard shows an ordered **daily checklist** with RDC pending review count.
+Stock page is daily only: opening/closing counts + delivery confirmation. CCBA boards (**Inventory + OCCD only**) feed the executive brief when submitted — **SKU map / warehouse sync are Phase 2** (not on boards). Dashboard shows an ordered **daily checklist** with RDC pending review count.
+
+**Executive brief PDF** (manager → executive) summarises: attention flags, day glance, RDC finance, **styled full stock-book table**, most & least selling products, stock risk. **CCBA Inventory + OCCD** go as a **separate companion PDF** with **navy banners and bordered tables** matching the boards UI. Re-send after code changes to regenerate both. Apply migration **015** for typed `ccba_boards` packets. Sample: `scripts/sample_executive_brief.php`.
 
 ### Accountant (RDC)
 
 | Area | Page | Notes |
 |------|------|-------|
-| Home (default) | `accountant-rdc-hub` | 2-step EOD checklist, cadet intake nudge, depot/welfare/cash nudges |
-| Today's close | `accountant-rdc` | 3-step wizard, products grouped like depot sales book, cadet data by vehicle column, auto-save |
+| Home (default) | `accountant-rdc-hub` | 2-step EOD checklist, cadet intake nudge, depot/welfare/cash nudges — **primary polish target** |
+| Today's close | `accountant-rdc` | 3-step wizard, products grouped like depot sales book, cadet data by vehicle column, auto-save — **primary polish target** |
 | Manager pack | `report-exchange` | One-tap send; gated on submitted balancing |
 | Cash handover | `accountant-cash` | Confirm field trip cash |
 | Month-end | `accountant-improvements` | Checklist + monthly notes — **DB sync** across roles |
@@ -91,10 +104,10 @@ Receivables (`admin-customers`) are **manager-only**. Accountants see a Home nud
 
 ### Executive
 
-Read-only board/MD view. In the current cleaned demo DB, no executive login is seeded.
+Read-only board/MD view. Demo login: `executive@lapok.ug` / `password123`.
 
 **Sidebar — Overview:** Executive dashboard (daily checklist + P&L widget), Director brief (date picker / today / yesterday)  
-**Sidebar — Reports:** PDF reports (acknowledge manager pack), Reports & analytics  
+**Sidebar — Reports:** PDF reports (acknowledge manager brief), Reports & analytics  
 **Sidebar — Monitoring:** Exception center (monitor only), Receivables overview, Staff welfare (view), Month-end (view)
 
 Daily flow: Director brief → acknowledge PDF pack → scan exceptions / receivables / welfare. Admin action center is hidden on this home.
@@ -203,8 +216,9 @@ C:\xampp\php\php.exe scripts\setup_passwords.php
 | **012** | `012_rdc_ops_sync.sql` | Month-end workspace + staff welfare |
 | **013** | `013_delivery_confirmation.sql` | Supplier delivery confirm status |
 | **014** | `014_rdc_review_comments.sql` | RDC review comment threads |
+| **015** | `015_ccba_boards_report_type.sql` | Report type `ccba_boards` (companion PDF to executive brief) |
 
-**Required for this presentation build:** **008–014** (plus **003** / **005** / **011** if those features are empty).
+**Required for this presentation build:** **008–014** (plus **003** / **005** / **011** if those features are empty; **015** for typed CCBA boards packets).
 
 Verify core tables:
 
@@ -249,7 +263,7 @@ Admin owns users, audit, and system health — not day-to-day depot close.
 Still deferred / placeholder (not required for the role walkthrough):
 
 - Fleet map GPS live tracking (tables from **004b** exist; UI deferred)
-- Full CCBA bank/portal automation (boards + MyCCBA order flow are **live manual** in this build)
+- Full CCBA bank/portal automation — boards + MyCCBA order draft are live **manual**; **SKU map UI** and **warehouse snapshot sync** are **not** on daily boards (see `docs/CCBA_INTEGRATION_BLUEPRINT.md` §0)
 - EFRIS / URA fiscal device sync (tables from **004a**; UI deferred)
 
 See `docs/CCBA_INTEGRATION_BLUEPRINT.md` and `docs/EFRIS_FISCAL_INTEGRATION_BLUEPRINT.md`.
@@ -271,7 +285,7 @@ See `docs/CCBA_INTEGRATION_BLUEPRINT.md` and `docs/EFRIS_FISCAL_INTEGRATION_BLUE
 | Manager ops / exceptions | `assets/manager-ops.js` |
 | Manager RDC review | `assets/rdc-review.js`, `api/rdc/bulk_approve.php`, `api/rdc/comments_*.php` |
 | CCBA boards / MyCCBA order | `assets/occd-boards.js`, `assets/ccba.js`, `includes/occd_boards.php` |
-| PDF report chain | `assets/report-exchange.js`, `includes/report_packets.php`, `includes/branded_export.php` |
+| PDF report chain | `assets/report-exchange.js`, `includes/report_packets.php`, `includes/simple_pdf.php` (banner/table layouts), `includes/branded_export.php` |
 | Director brief | `assets/director-brief.js`, `api/reports/director_snapshot.php` |
 | Cash handover | `assets/cash-handover.js` |
 | Month-end | `assets/accountant-improvements.js`, `includes/rdc_month_end.php` |
@@ -285,9 +299,10 @@ See `docs/CCBA_INTEGRATION_BLUEPRINT.md` and `docs/EFRIS_FISCAL_INTEGRATION_BLUE
 
 | Document | Description |
 |----------|-------------|
-| [`docs/MODULE_TRACKER.md`](docs/MODULE_TRACKER.md) | Live, planned, and deferred features by module |
-| [`docs/SYSTEMS_BUILDING_GUIDE.md`](docs/SYSTEMS_BUILDING_GUIDE.md) | Stack, hosting, security vocabulary + ownership table |
-| [`docs/RDC_ROLE.md`](docs/RDC_ROLE.md) | RDC duties mapped to modules |
-| [`docs/LAPOK_PROJECT_PROPOSAL.md`](docs/LAPOK_PROJECT_PROPOSAL.md) | Timeline, costs, and business case |
+| [`docs/TEAM_CHANGELOG.md`](docs/TEAM_CHANGELOG.md) | **Shared edit log** — date, time, who, and changes per push (update when you finish work) |
+| [`docs/MODULE_TRACKER.md`](docs/MODULE_TRACKER.md) | Live / planned / deferred + **Current build focus**; executive brief + styled CCBA boards PDF |
+| [`docs/SYSTEMS_BUILDING_GUIDE.md`](docs/SYSTEMS_BUILDING_GUIDE.md) | Stack, hosting, security vocabulary + ownership + build focus |
+| [`docs/RDC_ROLE.md`](docs/RDC_ROLE.md) | RDC duties mapped to modules (primary polish target) |
+| [`docs/LAPOK_PROJECT_PROPOSAL.md`](docs/LAPOK_PROJECT_PROPOSAL.md) | Timeline, costs, business case + internal build sequence |
 | [`docs/EFRIS_FISCAL_INTEGRATION_BLUEPRINT.md`](docs/EFRIS_FISCAL_INTEGRATION_BLUEPRINT.md) | EFRIS / fiscal device plan |
-| [`docs/CCBA_INTEGRATION_BLUEPRINT.md`](docs/CCBA_INTEGRATION_BLUEPRINT.md) | CCBA MyCCBA replenishment plan |
+| [`docs/CCBA_INTEGRATION_BLUEPRINT.md`](docs/CCBA_INTEGRATION_BLUEPRINT.md) | CCBA MyCCBA plan — §0 live vs Phase 2 (SKU map / sync) |
