@@ -369,7 +369,11 @@ async function saveCcbaProductMapRow(productId, btn) {
 async function runCcbaStockSync() {
   try {
     const dateEl = document.getElementById('occdBoardDate');
+<<<<<<< HEAD
     const snapshot_date = dateEl?.value || LapokAPI.localIsoDate();
+=======
+    const snapshot_date = dateEl?.value || LapokAPI.todayIso();
+>>>>>>> origin/main
     const data = await LapokAPI.post('/api/ccba/stock_sync/snapshot.php', { snapshot_date });
     const msg = data.message || `Snapshot saved (${data.products || 0} products).`;
     if (typeof adminToast === 'function') adminToast(msg);

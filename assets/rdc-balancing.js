@@ -91,13 +91,17 @@ function rdcClearDirty() {
 }
 
 function rdcGoToday() {
+<<<<<<< HEAD
   openRdcSheetDate(LapokAPI.localIsoDate());
+=======
+  openRdcSheetDate(rdcLocalIsoDate());
+>>>>>>> origin/main
 }
 
 function rdcShiftDate(delta) {
   const d = new Date(rdcBalanceDate + 'T12:00:00');
   d.setDate(d.getDate() + delta);
-  openRdcSheetDate(d.toISOString().slice(0, 10));
+  openRdcSheetDate(rdcLocalIsoDate(d));
 }
 
 function rdcAutoExpected() {

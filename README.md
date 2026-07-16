@@ -3,7 +3,7 @@
 **Product:** Outpost DMS (Depot Management System)  
 **Folder:** `lapok-dms-presentation` (legacy folder name; product brand is Outpost)  
 **Stack:** PHP APIs + MySQL + vanilla JS (`index.html`, `assets/*.js`)  
-**Purpose:** Multi-depot stock, sales, cash handover, and leadership reporting. Cadet, accountant (RDC), manager, executive, and admin workflows are live end-to-end — including stock taking, RDC review, CCBA boards, PDF report chain, and role ownership guards.
+**Purpose:** Multi-depot stock, sales, cash handover, and leadership reporting. Cadet, accountant (RDC), manager, and admin workflows are live in this cleaned presentation build — including stock taking, RDC review, CCBA boards, PDF report chain, and role ownership guards.
 
 Demo tenant data may still use LAPOK Ventures sample emails (`*@lapok.ug`) — that is customer demo data, not the product name.
 
@@ -30,10 +30,10 @@ External systems (CCBA, EFRIS, fleet GPS) are manual or deferred in this build.
 | Admin | Yes |
 | Manager | Yes |
 | Accountant (RDC) | Yes |
-| Executive | Yes |
 | Cadet | Yes |
-| Driver | Blocked (`presentation-config.js`) |
-| Field user | Limited subset |
+| Executive | No demo login seeded currently |
+| Driver | No demo login seeded currently |
+| Field user | No demo login seeded currently |
 
 All demo users share password **`password123`** (see [Demo accounts](#demo-accounts)).
 
@@ -45,7 +45,6 @@ All demo users share password **`password123`** (see [Demo accounts](#demo-accou
 |------|-------|
 | Accountant (RDC) | `accountant@lapok.ug` |
 | Manager | `manager@lapok.ug` |
-| Executive | `executive@lapok.ug` |
 | Admin | `admin@lapok.ug` |
 | Cadet | `cadet@lapok.ug` |
 
@@ -92,7 +91,7 @@ Receivables (`admin-customers`) are **manager-only**. Accountants see a Home nud
 
 ### Executive
 
-Read-only board/MD view. Login: `executive@lapok.ug` / `password123`.
+Read-only board/MD view. In the current cleaned demo DB, no executive login is seeded.
 
 **Sidebar — Overview:** Executive dashboard (daily checklist + P&L widget), Director brief (date picker / today / yesterday, **live opening/closing stock snapshot**)  
 **Sidebar — Reports:** PDF reports (acknowledge manager pack), Reports & analytics  
@@ -227,7 +226,7 @@ C:\xampp\mysql\bin\mysql.exe -u root lapok_dms -e "SHOW TABLES LIKE 'rdc_%'; SHO
 | Balancing save/submit 500 | Confirm `rdc_daily_sheets` exists |
 | Cadet report not in RDC sheet | Vehicle must be dispatched; sheet must not be locked (submitted) |
 | Stale UI after edits | Hard refresh **Ctrl+F5** (scripts use `?v=` cache bust) |
-| Login fails | Run `scripts/setup_passwords.php`; check Apache + MySQL |
+| Login fails | Run `scripts/setup_passwords.php`; check Apache + MySQL; confirm the account exists in `users` |
 | API returns HTML instead of JSON | Check PHP errors in XAMPP; confirm `htdocs` path |
 | `php` not found in terminal | Use `C:\xampp\php\php.exe` full path |
 
@@ -278,6 +277,7 @@ See `docs/CCBA_INTEGRATION_BLUEPRINT.md` and `docs/EFRIS_FISCAL_INTEGRATION_BLUE
 | Month-end | `assets/accountant-improvements.js`, `includes/rdc_month_end.php` |
 | Staff welfare | `assets/accountant-welfare.js`, `includes/staff_welfare.php` |
 | Ownership / roles | `docs/SYSTEMS_BUILDING_GUIDE.md` §9 |
+| Entry points (active) | `login.html`, `index.html`, `api/*`, `assets/*` |
 
 ---
 

@@ -19,6 +19,28 @@ const LapokAPI = (() => {
     return (root ? root + '/' : '') + path;
   }
 
+  /** Local calendar date (Africa/Kampala / browser local) — never use toISOString() for "today". */
+  function localIsoDate(d = new Date(), offsetDays = 0) {
+    const x = new Date(d);
+    if (offsetDays) x.setDate(x.getDate() + offsetDays);
+    const y = x.getFullYear();
+    const m = String(x.getMonth() + 1).padStart(2, '0');
+    const day = String(x.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function todayIso() {
+    return localIsoDate(new Date(), 0);
+  }
+
+  function monthIso(d = new Date()) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function monthStartIso(d = new Date()) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  }
+
   async function request(method, path, body) {
     const opts = {
       method,
@@ -74,13 +96,24 @@ const LapokAPI = (() => {
     },
     get: (path) => request('GET', path),
     post: (path, body) => request('POST', path, body),
+    todayIso,
+    monthIso,
+    monthStartIso,
+    localIsoDate,
     formatUgx: (n) => 'UGX ' + Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 }),
     /** Full digits with thousand separators &mdash; supports at least 9-digit amounts (e.g. 999,999,999). */
     formatM: (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 }),
     formatDigits: (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 }),
     formatDate: (s) => {
+<<<<<<< HEAD
       if (!s) return '&mdash;';
       return new Date(s).toLocaleDateString('en-UG', { day: '2-digit', month: 'short', year: 'numeric' });
+=======
+      if (!s) return '—';
+      const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
+      return d.toLocaleDateString('en-UG', { day: '2-digit', month: 'short', year: 'numeric' });
+>>>>>>> origin/main
     },
     formatTime: (s) => {
       if (!s) return '&mdash;';
@@ -92,7 +125,11 @@ const LapokAPI = (() => {
       window.open(resolvePath('/api/reports/export_csv.php?type=' + encodeURIComponent(type) + params), '_blank');
     },
     exportRdcSheet: (date) => {
+<<<<<<< HEAD
       const d = date || LapokAPI.localIsoDate();
+=======
+      const d = date || todayIso();
+>>>>>>> origin/main
       window.open(resolvePath('/api/reports/export_csv.php?type=rdc_sheet&date=' + encodeURIComponent(d)), '_blank');
     },
     /**
@@ -105,8 +142,13 @@ const LapokAPI = (() => {
       const headers = opts.headers || [];
       const rows = opts.rows || [];
       const meta = opts.meta || {};
+<<<<<<< HEAD
       let filename = opts.filename || (`Outpost-DMS-${title.replace(/[^a-zA-Z0-9]+/g, '-')}-${LapokAPI.localIsoDate()}.xls`);
       // Client-side HTML Excel cannot embed logos (Excel blocks them) &mdash; use OD mark.
+=======
+      let filename = opts.filename || (`Outpost-DMS-${title.replace(/[^a-zA-Z0-9]+/g, '-')}-${todayIso()}.xls`);
+      // Client-side HTML Excel cannot embed logos (Excel blocks them) — use OD mark.
+>>>>>>> origin/main
       filename = filename.replace(/\.xlsx$/i, '.xls');
       const esc = (v) => String(v ?? '')
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

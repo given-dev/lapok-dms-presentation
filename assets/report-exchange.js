@@ -27,7 +27,11 @@ function reportCanAcknowledge() {
 }
 
 function reportTodayIso() {
+<<<<<<< HEAD
   return LapokAPI.localIsoDate();
+=======
+  return LapokAPI.todayIso();
+>>>>>>> origin/main
 }
 
 function reportPdfUrl(id) {

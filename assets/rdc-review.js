@@ -68,7 +68,7 @@ async function loadRdcReviewPage() {
     const d = new Date();
     monthEl.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
-  const month = monthEl?.value || new Date().toISOString().slice(0, 7);
+  const month = monthEl?.value || LapokAPI.monthIso();
   const pendingChip = document.getElementById('rdcReviewPendingChip');
   table.innerHTML = '<tr><th></th><th>Date</th><th>Status</th><th>Grand total</th><th>Variance</th><th>Submitted</th><th>Review</th><th>Action</th></tr><tr><td colspan="8" style="color:var(--gray-mid)">Loading…</td></tr>';
   try {

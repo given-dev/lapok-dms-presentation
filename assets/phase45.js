@@ -487,8 +487,13 @@ function showAuditDetail(index) {
 function initAuditFilters() {
   const from = document.getElementById('auditFrom');
   const to = document.getElementById('auditTo');
+<<<<<<< HEAD
   if (from && !from.value) from.value = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
   if (to && !to.value) to.value = LapokAPI.localIsoDate();
+=======
+  if (from && !from.value) from.value = LapokAPI.monthStartIso();
+  if (to && !to.value) to.value = LapokAPI.todayIso();
+>>>>>>> origin/main
 }
 
 async function loadUsersTable() {
@@ -635,7 +640,11 @@ async function exportUsersCsv() {
     headers,
     rows,
     meta: { Users: String(rows.length), 'As of': new Date().toLocaleDateString('en-UG') },
+<<<<<<< HEAD
     filename: 'Outpost-DMS-Users-' + LapokAPI.localIsoDate() + '.xls',
+=======
+    filename: 'Outpost-DMS-Users-' + LapokAPI.todayIso() + '.xls',
+>>>>>>> origin/main
   });
   adminToast('Users Excel exported');
 }
@@ -735,8 +744,13 @@ async function initAdminReportFilters() {
   if (adminReportFiltersInitialized) return;
   const fromEl = document.getElementById('reportFrom');
   const toEl = document.getElementById('reportTo');
+<<<<<<< HEAD
   if (fromEl && !fromEl.value) fromEl.value = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
   if (toEl && !toEl.value) toEl.value = LapokAPI.localIsoDate();
+=======
+  if (fromEl && !fromEl.value) fromEl.value = LapokAPI.monthStartIso();
+  if (toEl && !toEl.value) toEl.value = LapokAPI.todayIso();
+>>>>>>> origin/main
   try {
     const [routes, vehicles, users] = await Promise.all([
       LapokAPI.get('/api/routes/fetch_routes.php'),

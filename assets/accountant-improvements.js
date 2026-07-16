@@ -9,7 +9,7 @@
   let currentMonth = '';
 
   function currentMonthIso() {
-    return new Date().toISOString().slice(0, 7);
+    return LapokAPI.monthIso();
   }
 
   function toast(msg, err) {

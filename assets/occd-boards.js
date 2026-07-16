@@ -1,7 +1,11 @@
 /**
  * Lapok DMS &mdash; Manager daily OCCD / Inventory boards (whiteboard digitization)
  */
+<<<<<<< HEAD
 let occdBoardDate = LapokAPI.localIsoDate();
+=======
+let occdBoardDate = '';
+>>>>>>> origin/main
 let occdInventoryData = null;
 let occdDashboardData = null;
 let occdRenderContext = 'inv';
@@ -73,7 +77,14 @@ async function loadManagerOccdBoards() {
   if (!currentUser || !['admin', 'manager'].includes(currentUser.role)) return;
 
   const dateInp = document.getElementById('occdBoardDate');
-  if (dateInp) dateInp.value = occdBoardDate;
+  if (dateInp && !dateInp.value) {
+    occdBoardDate = LapokAPI.todayIso();
+    dateInp.value = occdBoardDate;
+  } else if (dateInp) {
+    occdBoardDate = dateInp.value;
+  } else if (!occdBoardDate) {
+    occdBoardDate = LapokAPI.todayIso();
+  }
 
   root.innerHTML = '<p style="color:var(--gray-mid);padding:1rem">Loading daily boards…</p>';
   try {
