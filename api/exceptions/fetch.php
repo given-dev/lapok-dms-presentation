@@ -16,7 +16,7 @@ $low = $pdo->query(
 foreach ($low as $r) {
     $items[] = [
         'type' => 'stock',
-        'reference' => $r['sku'] . ' — ' . $r['name'],
+        'reference' => $r['sku'] . '  -  ' . $r['ref'],
         'severity' => (int) $r['qty'] < (int) $r['min_stock'] / 2 ? 'high' : 'medium',
         'owner' => 'Manager',
         'status' => 'open',
@@ -33,7 +33,7 @@ $cash = $pdo->query(
 foreach ($cash as $r) {
     $items[] = [
         'type' => 'cash',
-        'reference' => 'Trip #' . $r['id'] . ' · ' . $r['registration'],
+        'reference' => 'Trip #' . $r['id'] . '  -  ' . $r['registration'],
         'severity' => 'medium',
         'owner' => 'Accountant',
         'status' => 'investigating',
@@ -55,7 +55,7 @@ foreach ($edits as $r) {
         'severity' => $r['request_type'] === 'cancel' ? 'high' : 'medium',
         'owner' => 'Manager',
         'status' => 'open',
-        'detail' => $r['full_name'] . ' — ' . $r['reason'],
+        'detail' => $r['full_name'] . '  -  ' . $r['reason'],
     ];
 }
 
@@ -71,7 +71,7 @@ foreach ($pending as $r) {
         'severity' => 'medium',
         'owner' => 'Manager',
         'status' => 'open',
-        'detail' => $r['full_name'] . ' · UGX ' . number_format((float) $r['amount_total']),
+        'detail' => $r['full_name'] . '  -  UGX ' . number_format((float) $r['amount_total']),
     ];
 }
 
@@ -92,14 +92,14 @@ foreach ($cadetTrips as $r) {
         continue;
     }
     $note = trim((string) ($report['note'] ?? ''));
-    $detail = cadet_flag_labels($flags) . ' · ' . cadet_sales_summary($report['sales_lines'] ?? [])
-        . ' · UGX ' . number_format((float) $r['cash_reported']);
+    $detail = cadet_flag_labels($flags) . '  -  ' . cadet_sales_summary($report['sales_lines'] ?? [])
+        . '  -  UGX ' . number_format((float) $r['cash_reported']);
     if ($note !== '') {
-        $detail .= ' · Note: ' . $note;
+        $detail .= '  -  Note: ' . $note;
     }
     $items[] = [
         'type' => 'cadet_report',
-        'reference' => ($r['cadet_name'] ?: 'Cadet') . ' · ' . $r['registration'],
+        'reference' => ($r['cadet_name'] ?: 'Cadet') . '  -  ' . $r['registration'],
         'severity' => in_array('cash_variance', $flags, true) ? 'high' : 'medium',
         'owner' => 'Accountant',
         'status' => 'open',
@@ -113,11 +113,11 @@ try {
     foreach (welfare_list_entries('open', 10) as $w) {
         $items[] = [
             'type' => 'welfare',
-            'reference' => $w['staff'] . ' — ' . ucfirst(str_replace('_', ' ', (string) $w['type'])),
+            'reference' => $w['staff'] . '  -  ' . ucfirst(str_replace('_', ' ', (string) $w['type'])),
             'severity' => (float) ($w['amount'] ?? 0) >= 500000 ? 'high' : 'medium',
             'owner' => 'Accountant',
             'status' => 'open',
-            'detail' => ($w['notes'] ?: 'No notes') . ' · UGX ' . number_format((float) ($w['amount'] ?? 0)),
+            'detail' => ($w['notes'] ?: 'No notes') . '  -  UGX ' . number_format((float) ($w['amount'] ?? 0)),
             'welfare_id' => (int) $w['id'],
         ];
     }

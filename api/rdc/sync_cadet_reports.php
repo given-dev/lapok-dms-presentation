@@ -14,7 +14,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 $body = read_json_body();
 $date = trim($body['balance_date'] ?? $_GET['date'] ?? date('Y-m-d'));
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-    json_error('Invalid date — use YYYY-MM-DD');
+    json_error('Invalid date  -  use YYYY-MM-DD');
 }
 
 try {

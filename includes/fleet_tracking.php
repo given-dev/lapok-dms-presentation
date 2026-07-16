@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-/** Lapok depot — Gulu (Northern region demo). */
+/** Lapok depot  -  Gulu (Northern region demo). */
 function fleet_depot_coords(): array
 {
     return ['lat' => 2.7726, 'lng' => 32.2988];

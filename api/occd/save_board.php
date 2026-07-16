@@ -75,5 +75,5 @@ try {
 
     json_ok(occd_board_for_date($pdo, $date, $type));
 } catch (Throwable $e) {
-    json_error('Could not save board — run migration 003_occd_daily_boards.sql if tables are missing.', 500);
+    json_error('Could not save board  -  run migration 003_occd_daily_boards.sql if tables are missing.', 500);
 }

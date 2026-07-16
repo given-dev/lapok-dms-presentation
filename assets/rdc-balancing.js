@@ -56,7 +56,7 @@ function rdcOpenSubmittedView() {
   rdcViewingSubmitted = true;
   rdcShowFinishToday(true);
   rdcSetWizardStep(1);
-  rdcNotify('Submitted sheet — read only.');
+  rdcNotify('Submitted sheet &mdash; read only.');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -91,7 +91,7 @@ function rdcClearDirty() {
 }
 
 function rdcGoToday() {
-  openRdcSheetDate(rdcLocalIsoDate());
+  openRdcSheetDate(LapokAPI.localIsoDate());
 }
 
 function rdcShiftDate(delta) {
@@ -251,7 +251,7 @@ function rdcRenderWizardChrome() {
   if (importBtn) importBtn.style.display = step === 1 && canEdit && !isMgr ? 'inline-flex' : 'none';
   if (nextBtn) {
     nextBtn.style.display = step < 3 ? 'inline-flex' : 'none';
-    nextBtn.textContent = step === 1 ? 'Next — expenses & cash →' : 'Next — review →';
+    nextBtn.textContent = step === 1 ? 'Next &mdash; expenses & cash →' : 'Next &mdash; review →';
     nextBtn.className = 'btn btn-sm btn-red';
   }
   if (submitBtn) submitBtn.style.display = step === 3 && canEdit && !isMgr ? 'inline-flex' : 'none';
@@ -268,26 +268,26 @@ function rdcRenderWizardChrome() {
   });
 
   const titles = isMgr ? {
-    1: ['Manager review — Sales', 'Correct cadet/RDC quantities if needed, then continue.'],
-    2: ['Manager review — Expenses & cash', 'Adjust expenses or cash received before approve.'],
-    3: ['Manager review — Totals', 'Save corrections, then Approve or go back to the review queue.'],
+    1: ['Manager review &mdash; Sales', 'Correct cadet/RDC quantities if needed, then continue.'],
+    2: ['Manager review &mdash; Expenses & cash', 'Adjust expenses or cash received before approve.'],
+    3: ['Manager review &mdash; Totals', 'Save corrections, then Approve or go back to the review queue.'],
   } : rdcViewingSubmitted ? {
-    1: ['Submitted report — Sales (read only)', 'This is what you sent to the manager.'],
-    2: ['Submitted report — Expenses & cash (read only)', 'Figures locked after submit.'],
-    3: ['Submitted report — Totals (read only)', 'Use Back to closeout if you need to send the pack.'],
+    1: ['Submitted report &mdash; Sales (read only)', 'This is what you sent to the manager.'],
+    2: ['Submitted report &mdash; Expenses & cash (read only)', 'Figures locked after submit.'],
+    3: ['Submitted report &mdash; Totals (read only)', 'Use Back to closeout if you need to send the pack.'],
   } : {
-    1: ['Step 1 of 3 — Sales', 'Enter quantities, or use Sample data / Import sales.'],
-    2: ['Step 2 of 3 — Expenses & cash', 'Record expenses, then enter cash actually on hand.'],
-    3: ['Step 3 of 3 — Review & submit', 'Check totals, add a note if needed, then submit.'],
+    1: ['Step 1 of 3 &mdash; Sales', 'Enter quantities, or use Sample data / Import sales.'],
+    2: ['Step 2 of 3 &mdash; Expenses & cash', 'Record expenses, then enter cash actually on hand.'],
+    3: ['Step 3 of 3 &mdash; Review & submit', 'Check totals, add a note if needed, then submit.'],
   };
   if (title) title.textContent = titles[step][0];
   if (sub) sub.textContent = titles[step][1];
 
   if (hint && rdcSheet) {
     const v = Number(rdcSheet.variance || 0);
-    if (isMgr) hint.textContent = v === 0 ? 'Manager can edit, then Approve' : 'Variance ' + rdcFmt(v) + ' — correct or note before approve';
-    else if (rdcViewingSubmitted) hint.textContent = 'Read-only — submitted to manager';
-    else if (step === 3 && v !== 0) hint.textContent = 'Variance ' + rdcFmt(v) + ' — explain in notes before submit';
+    if (isMgr) hint.textContent = v === 0 ? 'Manager can edit, then Approve' : 'Variance ' + rdcFmt(v) + ' &mdash; correct or note before approve';
+    else if (rdcViewingSubmitted) hint.textContent = 'Read-only &mdash; submitted to manager';
+    else if (step === 3 && v !== 0) hint.textContent = 'Variance ' + rdcFmt(v) + ' &mdash; explain in notes before submit';
     else if (step === 1) hint.textContent = 'Tip: Sample data fills all steps for training';
     else if (step === 2) hint.textContent = 'Expected cash updates when you save';
     else hint.textContent = 'Submit sends the sheet to your manager';
@@ -378,7 +378,7 @@ function rdcPriceCellHtml(line, li) {
   if (rdcCanEditUnitPrice()) {
     return `<td><input class="qty-inp rdc-price-inp" type="number" min="0" step="100" value="${price}" data-section="sales-price" data-li="${li}"></td>`;
   }
-  return `<td><span class="rdc-price-locked" title="Unit price — admin only">${rdcFmt(price)}</span></td>`;
+  return `<td><span class="rdc-price-locked" title="Unit price &mdash; admin only">${rdcFmt(price)}</span></td>`;
 }
 
 function rdcSalesRowHtml(line, li, cols) {
@@ -547,7 +547,7 @@ function rdcRenderMeta() {
   if (rdcSheet.reviewed_at) {
     parts.push('reviewed ' + LapokAPI.formatDate(rdcSheet.reviewed_at));
   }
-  el.textContent = parts.join(' · ');
+  el.textContent = parts.join(' &middot; ');
 }
 
 function rdcRenderReadOnly() {
@@ -557,7 +557,7 @@ function rdcRenderReadOnly() {
   if (rdcEditorMode === 'manager' && !rdcReadOnly) {
     banner.style.display = 'flex';
     banner.className = 'alert a-warning';
-    text.textContent = 'Manager edit mode — correct mistakes on this received sheet, Save, then Approve.';
+    text.textContent = 'Manager edit mode &mdash; correct mistakes on this received sheet, Save, then Approve.';
     return;
   }
   if (!rdcReadOnly) {
@@ -568,11 +568,11 @@ function rdcRenderReadOnly() {
   banner.style.display = 'flex';
   banner.className = 'alert a-info';
   if (s === 'approved') {
-    text.textContent = 'Approved — view only. Ask admin or manager to reopen if a correction is needed.';
+    text.textContent = 'Approved &mdash; view only. Ask admin or manager to reopen if a correction is needed.';
   } else if (s === 'submitted' || s === 'under_review') {
-    text.textContent = 'Submitted report — read only. Manager reviews (and may correct) this sheet.';
+    text.textContent = 'Submitted report &mdash; read only. Manager reviews (and may correct) this sheet.';
   } else if (s === 'rejected') {
-    text.textContent = 'Rejected — manager will reopen for edits, or contact admin.';
+    text.textContent = 'Rejected &mdash; manager will reopen for edits, or contact admin.';
   } else {
     text.textContent = 'This sheet is read-only.';
   }
@@ -587,7 +587,7 @@ function rdcRenderAddRowButtons() {
 }
 
 function rdcBindInputs() {
-  /* delegated on page — see DOMContentLoaded */
+  /* delegated on page &mdash; see DOMContentLoaded */
 }
 
 function rdcOnInput(e) {
@@ -667,7 +667,7 @@ function rdcAddRowBodyId(section) {
 
 function rdcAddRow(section) {
   if (!rdcSheet) {
-    rdcNotify('Sheet not loaded yet — wait a moment and try again.', true);
+    rdcNotify('Sheet not loaded yet &mdash; wait a moment and try again.', true);
     return;
   }
   if (rdcReadOnly) {
@@ -740,10 +740,10 @@ function rdcRenderCadetConsolidationBanner(meta) {
   }
 
   const lines = reports.map((r) =>
-    `<strong>${rdcEsc(r.registration || 'Vehicle')}</strong> · ${rdcEsc(r.cadet_name || 'Cadet')} — sales UGX ${Number(r.sales_total || 0).toLocaleString()}, cash UGX ${Number(r.cash_handed || 0).toLocaleString()}${(r.flags || []).length ? ' · flagged' : ''}${r.corrected_at ? ' · corrected' : ''}`
+    `<strong>${rdcEsc(r.registration || 'Vehicle')}</strong> &middot; ${rdcEsc(r.cadet_name || 'Cadet')} &mdash; sales UGX ${Number(r.sales_total || 0).toLocaleString()}, cash UGX ${Number(r.cash_handed || 0).toLocaleString()}${(r.flags || []).length ? ' &middot; flagged' : ''}${r.corrected_at ? ' &middot; corrected' : ''}`
   ).join('<br>');
   el.style.display = 'flex';
-  el.innerHTML = `<span>ℹ</span><div><strong>${count} cadet report${count === 1 ? '' : 's'} received</strong> — click <em>Edit</em> below to fix mistakes before you balance.<div style="font-size:13px;margin-top:6px">${lines}</div>${!rdcReadOnly ? '<button class="btn btn-sm" type="button" style="margin-top:8px" onclick="rdcSyncCadetReports()">Refresh from cadets</button>' : ''}</div>`;
+  el.innerHTML = `<span>ℹ</span><div><strong>${count} cadet report${count === 1 ? '' : 's'} received</strong> &mdash; click <em>Edit</em> below to fix mistakes before you balance.<div style="font-size:13px;margin-top:6px">${lines}</div>${!rdcReadOnly ? '<button class="btn btn-sm" type="button" style="margin-top:8px" onclick="rdcSyncCadetReports()">Refresh from cadets</button>' : ''}</div>`;
 
   if (card) card.style.display = 'block';
   if (table) {
@@ -756,8 +756,8 @@ function rdcRenderCadetConsolidationBanner(meta) {
           ? '<span style="color:var(--gray-mid);font-size:12px">Locked</span>'
           : `<button type="button" class="btn btn-sm btn-red" onclick="rdcOpenCadetReportEdit(${Number(r.trip_id)})">Edit</button>`;
         return `<tr>
-          <td>${rdcEsc(r.registration || '—')}</td>
-          <td>${rdcEsc(r.cadet_name || '—')}</td>
+          <td>${rdcEsc(r.registration || '&mdash;')}</td>
+          <td>${rdcEsc(r.cadet_name || '&mdash;')}</td>
           <td>${Number(r.sales_total || 0).toLocaleString()}</td>
           <td>${Number(r.cash_handed || 0).toLocaleString()}</td>
           <td>${status}</td>
@@ -769,7 +769,7 @@ function rdcRenderCadetConsolidationBanner(meta) {
 
 function rdcOpenCadetReportEdit(tripId) {
   if (rdcReadOnly) {
-    rdcNotify('Sheet is locked — reopen before correcting cadet reports.', true);
+    rdcNotify('Sheet is locked &mdash; reopen before correcting cadet reports.', true);
     return;
   }
   const entry = rdcCadetReportsCache.find((r) => Number(r.trip_id) === Number(tripId));
@@ -781,10 +781,10 @@ function rdcOpenCadetReportEdit(tripId) {
   const report = entry.report || entry;
   const title = document.getElementById('rdcEditCadetTitle');
   const meta = document.getElementById('rdcEditCadetMeta');
-  if (title) title.textContent = `Correct report — ${entry.registration || 'Vehicle'}`;
+  if (title) title.textContent = `Correct report &mdash; ${entry.registration || 'Vehicle'}`;
   if (meta) {
-    meta.textContent = `${entry.cadet_name || 'Cadet'} · trip #${tripId}` +
-      (entry.corrected_at ? ` · last corrected by ${entry.corrected_by_name || 'RDC'}` : '');
+    meta.textContent = `${entry.cadet_name || 'Cadet'} &middot; trip #${tripId}` +
+      (entry.corrected_at ? ` &middot; last corrected by ${entry.corrected_by_name || 'RDC'}` : '');
   }
 
   const body = document.getElementById('rdcEditCadetSalesBody');
@@ -872,6 +872,7 @@ function rdcUpdateCadetEditTotals() {
   if (el) {
     const expenses = fuel + lunch + discount + shortage + repairs;
     el.textContent = `Sales ${sales.toLocaleString()} · Auxiliary ${expenses.toLocaleString()} · Banking ${cash.toLocaleString()} · Gap ${(sales - cash).toLocaleString()}`;
+
   }
 }
 
@@ -1166,12 +1167,12 @@ function rdcFillSampleData() {
   }
 
   const notes = document.getElementById('rdcNotes');
-  if (notes) notes.value = 'Sample demo entry — depot training walkthrough.';
+  if (notes) notes.value = 'Sample demo entry &mdash; depot training walkthrough.';
   rdcSheet.notes = notes?.value || '';
 
   rdcMarkDirty();
   rdcRenderAll();
-  rdcNotify('Sample data loaded — review each step, then Save.');
+  rdcNotify('Sample data loaded &mdash; review each step, then Save.');
   rdcSetWizardStep(3);
 }
 

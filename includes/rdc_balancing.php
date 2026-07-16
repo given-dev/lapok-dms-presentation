@@ -73,7 +73,7 @@ function rdc_build_columns(): array
         $label = strtoupper((string) $v['registration']);
         if (!empty($v['cadet_name'])) {
             $parts = preg_split('/\s+/', trim((string) $v['cadet_name']));
-            $label .= ' · ' . strtoupper($parts[0] ?? 'CADET');
+            $label .= '  -  ' . strtoupper($parts[0] ?? 'CADET');
         }
         $cols[] = [
             'key' => 'vehicle_' . $v['id'],
@@ -487,6 +487,8 @@ function rdc_apply_cadet_report_to_sheet(array &$sheet, int $vehicleId, array $r
     if (!isset($sheet['expenses']) || !is_array($sheet['expenses'])) {
         $sheet['expenses'] = [];
     }
+    // Must foreach the real $sheet['expenses'] array — `?? []` creates a temporary copy
+    // so fuel/other never persist when assigned by reference.
     foreach ($sheet['expenses'] as &$expLine) {
         $label = strtoupper((string) ($expLine['label'] ?? ''));
         if (!isset($auxMap[$label]) || $auxMap[$label] <= 0) {
@@ -619,7 +621,7 @@ function rdc_sync_cadet_reports_into_sheet(PDO $pdo, string $date, bool $persist
     }
 
     $notes = trim($sheet['notes'] ?? '');
-    $syncStamp = '[CADET_VEHICLE_SYNC] ' . date('Y-m-d H:i') . ' · ' . count($vehiclesApplied) . ' vehicle(s)';
+    $syncStamp = '[CADET_VEHICLE_SYNC] ' . date('Y-m-d H:i') . '  -  ' . count($vehiclesApplied) . ' vehicle(s)';
     if (!str_contains($notes, '[CADET_VEHICLE_SYNC]')) {
         $notes = trim($notes . "\n" . $syncStamp);
     } else {
@@ -768,7 +770,7 @@ function rdc_update_cadet_report(PDO $pdo, int $tripId, array $body, int $editor
     $lock->execute([$balanceDate]);
     $sheetStatus = $lock->fetchColumn();
     if ($sheetStatus && in_array($sheetStatus, ['submitted', 'under_review', 'approved', 'rejected'], true)) {
-        throw new RuntimeException('Today\'s RDC sheet is locked — reopen it before correcting cadet reports');
+        throw new RuntimeException('Today\'s RDC sheet is locked  -  reopen it before correcting cadet reports');
     }
 
     $catalogByKey = [];

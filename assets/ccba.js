@@ -1,5 +1,5 @@
 /**
- * Lapok DMS — Manager CCBA replenishment (assisted portal integration)
+ * Lapok DMS &mdash; Manager CCBA replenishment (assisted portal integration)
  */
 let ccbaPortalUrl = 'https://uganda.myccba.africa/';
 let ccbaActiveOrderId = null;
@@ -122,8 +122,8 @@ async function ccbaOpenOrder(id) {
       product_id: i.product_id,
       name: i.product_name,
       sku: i.sku,
-      warehouse_qty: '—',
-      min_stock: '—',
+      warehouse_qty: '&mdash;',
+      min_stock: '&mdash;',
       qty_requested: i.qty_requested,
       unit_cost_estimate: i.unit_cost_estimate,
       ccba_sku_code: i.ccba_sku_code,
@@ -147,8 +147,8 @@ function renderCcbaEditor() {
   tbody.innerHTML = ccbaEditorLines.map((line, i) => {
     const sub = (line.qty_requested || 0) * (line.unit_cost_estimate || 0);
     total += sub;
-    const low = line.warehouse_qty !== '—' && line.warehouse_qty < line.min_stock;
-    const wh = line.warehouse_qty === '—' ? '—' : (low ? `<span class="badge bd">${line.warehouse_qty}</span>` : line.warehouse_qty);
+    const low = line.warehouse_qty !== '&mdash;' && line.warehouse_qty < line.min_stock;
+    const wh = line.warehouse_qty === '&mdash;' ? '&mdash;' : (low ? `<span class="badge bd">${line.warehouse_qty}</span>` : line.warehouse_qty);
     return `<tr>
       <td>${escHtml(line.name)}<div style="font-size:10px;color:var(--gray-mid)">${escHtml(line.sku)}</div></td>
       <td>${wh}</td>
@@ -252,7 +252,7 @@ function ccbaOpenPortal() {
 async function ccbaExportCsv() {
   const lines = ccbaCollectPayload(false).items;
   if (!lines.length) {
-    alert('Nothing to export — add quantities first.');
+    alert('Nothing to export &mdash; add quantities first.');
     return;
   }
   const rows = ccbaEditorLines
@@ -315,7 +315,7 @@ function renderCcbaTimeline(events) {
   el.innerHTML = events.map((e) => {
     const when = LapokAPI.formatTime(e.recorded_at);
     const label = e.ccba_status_label || CCBA_STATUS_LABEL[e.status] || e.status;
-    return `<div class="tl-item"><div class="tl-dot"></div><div class="tl-time">${when}</div><div class="tl-text"><strong>${escHtml(label)}</strong> · ${escHtml(e.source)}</div></div>`;
+    return `<div class="tl-item"><div class="tl-dot"></div><div class="tl-time">${when}</div><div class="tl-text"><strong>${escHtml(label)}</strong> &middot; ${escHtml(e.source)}</div></div>`;
   }).join('');
 }
 
@@ -369,7 +369,7 @@ async function saveCcbaProductMapRow(productId, btn) {
 async function runCcbaStockSync() {
   try {
     const dateEl = document.getElementById('occdBoardDate');
-    const snapshot_date = dateEl?.value || LapokAPI.todayIso();
+    const snapshot_date = dateEl?.value || LapokAPI.localIsoDate();
     const data = await LapokAPI.post('/api/ccba/stock_sync/snapshot.php', { snapshot_date });
     const msg = data.message || `Snapshot saved (${data.products || 0} products).`;
     if (typeof adminToast === 'function') adminToast(msg);

@@ -16,7 +16,7 @@ $user = current_user();
 $adminTest = $user && in_array($user['role'], ['admin', 'manager'], true);
 
 if (!$deviceAuth && !$adminTest) {
-    json_error('Unauthorized — device API key or admin session required', 401);
+    json_error('Unauthorized  -  device API key or admin session required', 401);
 }
 
 try {

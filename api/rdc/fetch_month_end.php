@@ -11,13 +11,13 @@ if (!rdc_month_end_can_view($user['role'])) {
 
 $month = trim($_GET['month'] ?? date('Y-m'));
 if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
-    json_error('Invalid month — use YYYY-MM');
+    json_error('Invalid month  -  use YYYY-MM');
 }
 
 try {
     $record = rdc_month_end_fetch($month);
 } catch (Throwable $e) {
-    json_error('Month-end tables not ready — run migration 012_rdc_ops_sync.sql', 500);
+    json_error('Month-end tables not ready  -  run migration 012_rdc_ops_sync.sql', 500);
 }
 
 json_ok([

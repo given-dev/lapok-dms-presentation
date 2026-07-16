@@ -293,7 +293,7 @@ function report_insert_packet(
 }
 
 /**
- * Organized accountant pack for the manager — what RDC closes today and what needs attention.
+ * Organized accountant pack for the manager  -  what RDC closes today and what needs attention.
  *
  * @return array{doc_title: string, meta: array<string, string>, sections: list<array{heading: string, lines: list<string>}>}
  */
@@ -1662,8 +1662,8 @@ function report_build_field_eod_layout(array $trip, string $userRole, float $cas
         'meta' => [
             'Report date' => $date,
             'Agent' => (string) ($trip['full_name'] ?? 'Cadet') . ' (' . $userRole . ')',
-            'Vehicle' => (string) ($trip['registration'] ?? '—'),
-            'Route' => (string) ($trip['route_area'] ?: '—'),
+            'Vehicle' => (string) ($trip['registration'] ?? ' - '),
+            'Route' => (string) ($trip['route_area'] ?: ' - '),
             'Recipient' => 'Accountant (RDC)',
         ],
         'sections' => [
@@ -1882,7 +1882,7 @@ function report_generate_pack(string $role, int $userId, string $date, ?string $
             $role,
             $toRole,
             'ccba-boards',
-            'Full Inventory + OCCD boards (companion). Apply migration 015 for typed ccba_boards packets.',
+            'Full Inventory + OCCD boards (companion). Apply migration 016 for typed ccba_boards packets.',
             null,
             false
         );

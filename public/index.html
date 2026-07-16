@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Lapok IMS &mdash; Sign in</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="mark">CC</div>
+      <div>
+        <h1>Lapok IMS</h1>
+        <p class="sub">CC Outlet &mdash; Kampala Branch</p>
+      </div>
+    </div>
+    <div class="err" id="err"></div>
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" required autocomplete="username" placeholder="name@company.com"/>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="Enter your password"/>
+      <button type="submit" id="btn">Sign in</button>
+    </form>
+    <p class="hint">Use your assigned account. Contact your administrator if access is required.</p>
+  </div>
+  <script src="js/lapok.js"></script>
+  <script>
+    const form = document.getElementById('loginForm');
+    const err = document.getElementById('err');
+    const btn = document.getElementById('btn');
+
+    LapokAPI.me().then((data) => {
+      if (data.authenticated) window.location.href = 'app.html';
+    }).catch(() => {});
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      err.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+
+      try {
+        await LapokAPI.login(
+          document.getElementById('email').value,
+          document.getElementById('password').value
+        );
+        window.location.href = 'app.html';
+      } catch (ex) {
+        err.textContent = ex.message;
+        err.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Sign in';
+      }
+    });
+  </script>
+</body>
+</html>

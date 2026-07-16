@@ -113,7 +113,7 @@ try {
             require_once dirname(__DIR__, 2) . '/includes/notifications.php';
             $loadLabel = $totalLoad > 0 ? "{$totalLoad} cartons loaded" : 'Stock loaded';
             notify_user($cadetId, 'Vehicle dispatched', sprintf(
-                '%s assigned on %s. %s — open your dashboard and submit today\'s report when you return.',
+                '%s assigned on %s. %s  -  open your dashboard and submit today\'s report when you return.',
                 $vehicle['registration'],
                 $routeArea ?: ($vehicle['current_route'] ?: 'route'),
                 $loadLabel

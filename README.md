@@ -71,7 +71,7 @@ All demo users share password **`password123`** (see [Demo accounts](#demo-accou
 | Notifications | Bell icon | Receive messages from manager / RDC / admin |
 | Receive dispatch | `cadet-dashboard` | **Next focus** — acknowledge manager dispatch / load before route (planned) |
 
-On submit, sales, expenses, and cash **auto-sync** into the accountant's **Today's close** sheet on the **vehicle column** for the assigned trip.
+On submit, sales, expenses, and cash **auto-sync** into the accountant's **Today's close** sheet on the **vehicle column** for the assigned trip. The Cadet Daily returns and stock tables are fully dynamic, reading live stock quantities directly from the database.
 
 ### Manager
 
@@ -82,7 +82,7 @@ On submit, sales, expenses, and cash **auto-sync** into the accountant's **Today
 
 Stock page is daily only: opening/closing counts + delivery confirmation. CCBA boards (**Inventory + OCCD only**) feed the executive brief when submitted — **SKU map / warehouse sync are Phase 2** (not on boards). Dashboard shows an ordered **daily checklist** with RDC pending review count.
 
-**Executive brief PDF** (manager → executive) summarises: attention flags, day glance, RDC finance, **styled full stock-book table**, most & least selling products, stock risk. **CCBA Inventory + OCCD** go as a **separate companion PDF** with **navy banners and bordered tables** matching the boards UI. Re-send after code changes to regenerate both. Apply migration **015** for typed `ccba_boards` packets. Sample: `scripts/sample_executive_brief.php`.
+**Executive brief PDF** (manager → executive) summarises: attention flags, day glance, RDC finance, **styled full stock-book table**, most & least selling products, stock risk. **CCBA Inventory + OCCD** go as a **separate companion PDF** with **navy banners and bordered tables** matching the boards UI. Re-send after code changes to regenerate both. Apply migration **016** for typed `ccba_boards` packets. Sample: `scripts/sample_executive_brief.php`.
 
 ### Accountant (RDC)
 
@@ -106,8 +106,9 @@ Receivables (`admin-customers`) are **manager-only**. Accountants see a Home nud
 
 Read-only board/MD view. Demo login: `executive@lapok.ug` / `password123`.
 
-**Sidebar — Overview:** Executive dashboard (daily checklist + P&L widget), Director brief (date picker / today / yesterday)  
+**Sidebar — Overview:** Executive dashboard (daily checklist + P&L widget), Director brief (date picker / today / yesterday, **live opening/closing stock snapshot**)  
 **Sidebar — Reports:** PDF reports (acknowledge manager brief), Reports & analytics  
+
 **Sidebar — Monitoring:** Exception center (monitor only), Receivables overview, Staff welfare (view), Month-end (view)
 
 Daily flow: Director brief → acknowledge PDF pack → scan exceptions / receivables / welfare. Admin action center is hidden on this home.
@@ -216,9 +217,10 @@ C:\xampp\php\php.exe scripts\setup_passwords.php
 | **012** | `012_rdc_ops_sync.sql` | Month-end workspace + staff welfare |
 | **013** | `013_delivery_confirmation.sql` | Supplier delivery confirm status |
 | **014** | `014_rdc_review_comments.sql` | RDC review comment threads |
-| **015** | `015_ccba_boards_report_type.sql` | Report type `ccba_boards` (companion PDF to executive brief) |
+| **015** | `015_depot_warehouse_catalog.sql` | Depot sales-book product seed / warehouse batches |
+| **016** | `016_ccba_boards_report_type.sql` | Report type `ccba_boards` (companion PDF to executive brief) |
 
-**Required for this presentation build:** **008–014** (plus **003** / **005** / **011** if those features are empty; **015** for typed CCBA boards packets).
+**Required for this presentation build:** **008–014** (plus **003** / **005** / **011** if those features are empty; **015**–**016** for catalog seed + typed CCBA boards packets).
 
 Verify core tables:
 

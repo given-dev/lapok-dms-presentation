@@ -19,7 +19,7 @@ try {
 } catch (Throwable $e) {
     $msg = $e->getMessage();
     if (str_contains($msg, "doesn't exist") || str_contains($msg, 'staff_welfare_entries')) {
-        json_error('Welfare tables not ready — run migration 012_rdc_ops_sync.sql', 500);
+        json_error('Welfare tables not ready  -  run migration 012_rdc_ops_sync.sql', 500);
     }
     throw $e;
 }

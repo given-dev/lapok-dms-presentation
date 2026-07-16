@@ -42,21 +42,21 @@ INSERT INTO report_packets (
 ) VALUES
 (
     'RPT-EOD-20260507-001', 'field_eod',
-    'EOD — David Ssemuju · TUK-001 · Owino / Katwe',
+    'EOD - David Ssemuju - TUK-001 - Owino / Katwe',
     'Stock, cash UGX 480,000, returns noted. Awaiting accountant consolidation.',
     '2026-05-07', 'storage/reports/demo-eod-001.pdf', 'EOD_TUK001_20260507.pdf', 0,
     5, 'cadet', 'accountant', 'sent', 1, '2026-05-07 17:05:00'
 ),
 (
     'RPT-ACC-20260507-001', 'accountant_pack',
-    'Daily finance consolidation — 07 May 2026',
+    'Daily finance consolidation - 07 May 2026',
     'Cash handover, receivables aging, trip variances. Forwarded to Manager.',
     '2026-05-07', 'storage/reports/demo-acc-001.pdf', 'Finance_Pack_20260507.pdf', 0,
     4, 'accountant', 'manager', 'sent', NULL, '2026-05-07 17:45:00'
 ),
 (
     'RPT-MGR-20260507-001', 'manager_brief',
-    'Executive operations brief — 07 May 2026',
+    'Executive operations brief - 07 May 2026',
     'Sales, stock exceptions, fleet status, upward summary for Board.',
     '2026-05-07', 'storage/reports/demo-mgr-001.pdf', 'Executive_Brief_20260507.pdf', 0,
     3, 'manager', 'executive', 'sent', NULL, '2026-05-07 18:30:00'

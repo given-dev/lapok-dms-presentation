@@ -1,5 +1,5 @@
 -- Outpost DMS — add CCBA boards companion PDF report type
--- Run: mysql -u root lapok_dms < database/migrations/015_ccba_boards_report_type.sql
+-- Run: mysql -u root lapok_dms < database/migrations/016_ccba_boards_report_type.sql
 
 USE lapok_dms;
 

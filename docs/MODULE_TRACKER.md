@@ -21,7 +21,7 @@
 
 | Priority | Focus | Goal |
 |----------|--------|------|
-| **Done (this shift)** | Manager CCBA boards + executive brief | Boards = Inventory + OCCD only; SKU map / sync = Phase 2. Executive brief = finance + **styled full stock-book table** + sellers. **Companion CCBA boards PDF** = navy banners + bordered tables matching on-screen boards (migration **015**). |
+| **Done (this shift)** | Manager CCBA boards + executive brief | Boards = Inventory + OCCD only; SKU map / sync = Phase 2. Executive brief = finance + **styled full stock-book table** + sellers. **Companion CCBA boards PDF** = navy banners + bordered tables matching on-screen boards (migration **016**). |
 | **Next (1)** | **Cadet — receive dispatch** | How the cadet sees and accepts manager dispatch / load before going on route. Primary UX gap after manager dispatch. |
 | **Next (2) — primary attack** | **Accountant (RDC) account** | Deep polish of the accountant daily close: Home → Today's close → cash → manager pack. This is the main quality target after cadet dispatch receive. |
 
@@ -106,8 +106,9 @@ Do **not** reopen CCBA SKU map / Sync warehouse on daily boards until Phase 2 My
 | Feature | Page / area | Status | Notes |
 |---------|-------------|--------|-------|
 | Executive dashboard | `admin-dashboard` | **Live** | Daily checklist + director P&L widget; hides admin action center |
-| Director brief | `director-brief` | **Live** | Today / yesterday / date picker P&L |
+| Director brief | `director-brief` | **Live** | Today / yesterday / date picker P&L. Now includes opening/closing stock breakdown. |
 | PDF inbox | `report-exchange` | **Live** | Acknowledge manager brief — full day summary PDF |
+
 | Pack-arrival bell | Notifications | **Live** | Unread when manager sends/replaces executive brief |
 | Reports & analytics | `admin-reports` | **Live** | |
 | Exception center | `admin-exceptions` | **Live** | Monitor only (no ops deep-links) |
@@ -131,7 +132,7 @@ Built by `report_build_manager_layout()` / `report_stock_snapshot_section()` in 
 
 | | |
 |--|--|
-| **Type** | `report_type = ccba_boards` (migration **015**) |
+| **Type** | `report_type = ccba_boards` (migration **016**) |
 | **Builder** | `report_build_ccba_boards_layout()` → `report_ccba_inventory_sections()` / `report_ccba_occd_sections()` |
 | **Look** | Matches on-screen boards: **navy banner** (OCCD name / region / date / status), **panel titles**, **bordered tables** with header / category / total / grand-total fills |
 | **Contents** | Inventory SKU table; Outlet data; Sales performance (MTD + YTD); Service / execution metrics; Unforgivable packs |
@@ -183,7 +184,7 @@ Month-end (last 3 days): banner on Home → accountant-improvements
 | **CCBA SKU map UI** (`ccba_product_map`) | **Deferred** | **Phase 2 integration** — do **not** put on daily boards. Backend/API may exist; UI returns with MyCCBA sync. See `CCBA_INTEGRATION_BLUEPRINT.md` §0 |
 | **CCBA warehouse snapshot / Sync stock** | **Deferred** | **Phase 2 integration** — removed from manager boards toolbar until CCBA stock sync ships. See blueprint §7.3 |
 | EFRIS fiscal | **Deferred** | Phase 2 — see `EFRIS_FISCAL_INTEGRATION_BLUEPRINT.md` |
-| PDF report chain | **Live** | Accountant → Manager → Executive. Brief = styled stock book + sellers + finance. **CCBA boards = separate styled companion PDF** (`ccba_boards`, migration **015**) |
+| PDF report chain | **Live** | Accountant → Manager → Executive. Brief = styled stock book + sellers + finance. **CCBA boards = separate styled companion PDF** (`ccba_boards`, migration **016**) |
 
 ---
 
@@ -201,4 +202,4 @@ Month-end (last 3 days): banner on Home → accountant-improvements
 
 ## Migrations (local DB)
 
-Catalog and apply-all PowerShell live in [`README.md`](../README.md) § Database setup (**001–015**). Required for this build: **008–014** (plus **003**, **005**, **011** for boards / PDF / bell; **015** for CCBA boards companion PDF type).
+Catalog and apply-all PowerShell live in [`README.md`](../README.md) § Database setup (**001–016**). Required for this build: **008–014** (plus **003**, **005**, **011** for boards / PDF / bell; **015** catalog seed; **016** for CCBA boards companion PDF type).

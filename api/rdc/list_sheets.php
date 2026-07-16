@@ -13,7 +13,7 @@ if (!role_can($user['role'], 'rdc_balancing') && !role_can($user['role'], 'rdc_v
 
 $month = trim($_GET['month'] ?? date('Y-m'));
 if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
-    json_error('Invalid month — use YYYY-MM');
+    json_error('Invalid month  -  use YYYY-MM');
 }
 
 try {
@@ -29,7 +29,7 @@ try {
     $stmt->execute([$month]);
     $sheets = $stmt->fetchAll();
 } catch (Throwable $e) {
-    json_error('RDC tables not ready — run migrations 008 and 009.', 500);
+    json_error('RDC tables not ready  -  run migrations 008 and 009.', 500);
 }
 
 $pdo = db();

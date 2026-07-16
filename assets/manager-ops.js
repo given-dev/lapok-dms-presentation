@@ -1,5 +1,5 @@
 /**
- * Lapok DMS — Manager operations polish (dashboard, stock, dispatch, exceptions)
+ * Lapok DMS &mdash; Manager operations polish (dashboard, stock, dispatch, exceptions)
  */
 let mgrDispatchData = { vehicles: [], routes: [], users: [], products: [] };
 const mgrDispatchCache = { loadedAt: 0, ttlMs: 120000 };
@@ -76,19 +76,19 @@ async function loadManagerDashboardExtras() {
     const closeEl = document.getElementById('mgrDashClosingStatus');
     if (openEl) {
       openEl.textContent = d.opening_stock_done
-        ? ('Done' + (d.opening_stock_at ? ' · ' + LapokAPI.formatTime(d.opening_stock_at) : ''))
-        : 'Not done — enter opening stock first';
+        ? ('Done' + (d.opening_stock_at ? ' &middot; ' + LapokAPI.formatTime(d.opening_stock_at) : ''))
+        : 'Not done &mdash; enter opening stock first';
       openEl.style.color = d.opening_stock_done ? 'var(--green, #166534)' : 'var(--red, #B91C1C)';
     }
     if (closeEl) {
       if (d.closing_stock_done) {
-        closeEl.textContent = 'Done' + (d.closing_stock_at ? ' · ' + LapokAPI.formatTime(d.closing_stock_at) : '');
+        closeEl.textContent = 'Done' + (d.closing_stock_at ? ' &middot; ' + LapokAPI.formatTime(d.closing_stock_at) : '');
         closeEl.style.color = 'var(--green, #166534)';
       } else if (typeof isClosingStockWindowOpen === 'function' && !isClosingStockWindowOpen()) {
         closeEl.textContent = 'Locked until 6:30 PM';
         closeEl.style.color = 'var(--gray-mid)';
       } else {
-        closeEl.textContent = 'Open now — save by 7:00 PM';
+        closeEl.textContent = 'Open now &mdash; save by 7:00 PM';
         closeEl.style.color = 'var(--red, #B91C1C)';
       }
     }
@@ -169,7 +169,7 @@ async function loadManagerDashboardExtras() {
             <td><button class="btn btn-sm btn-red" onclick="${brief ? 'showPage(\'report-exchange\')' : 'mgrSendExecutiveBrief()'}">${brief ? 'View' : 'Send brief'}</button></td>
           </tr>
           <tr>
-            <td>—</td><td>Cash trips (RDC-owned)</td>
+            <td>&mdash;</td><td>Cash trips (RDC-owned)</td>
             <td><span class="badge ${d.cash_pending_confirmation ? 'bd' : 'bs'}">${d.cash_pending_confirmation} pending</span></td>
             <td><span style="font-size:11px;color:var(--gray-mid)">Accountant confirms</span></td>
           </tr>
@@ -219,8 +219,8 @@ async function loadExceptionsPage() {
   const role = (typeof currentUser !== 'undefined' && currentUser?.role) || '';
   if (pageAlert) {
     pageAlert.innerHTML = role === 'executive'
-      ? '<span>ℹ</span>Monitor-only radar — open items are owned by Manager / RDC. Use this page to see what is outstanding, not to resolve it.'
-      : '<span>ℹ</span>Live exception queue — aggregated from stock, cash, cadet flags, welfare, edit requests, and pending sales. Resolve each item in its linked screen.';
+      ? '<span>ℹ</span>Monitor-only radar &mdash; open items are owned by Manager / RDC. Use this page to see what is outstanding, not to resolve it.'
+      : '<span>ℹ</span>Live exception queue &mdash; aggregated from stock, cash, cadet flags, welfare, edit requests, and pending sales. Resolve each item in its linked screen.';
   }
   try {
     const d = await LapokAPI.get('/api/exceptions/fetch.php');
@@ -248,7 +248,7 @@ async function loadExceptionsPage() {
         const isMgr = role === 'manager';
         const isExec = role === 'executive';
         const isAcc = role === 'accountant';
-        // Executive = board/MD monitor only — no deep-links into manager/RDC ops.
+        // Executive = board/MD monitor only &mdash; no deep-links into manager/RDC ops.
         if (isExec) {
           if (i.type === 'welfare') return '<button class="btn btn-sm" onclick="showPage(\'accountant-welfare\')">View</button>';
           return '<span style="font-size:11px;color:var(--gray-mid)">Monitor only</span>';
@@ -266,7 +266,7 @@ async function loadExceptionsPage() {
           return '<button class="btn btn-sm" onclick="showPage(\'manager-stock\')">Stock</button>';
         }
         if (i.type === 'cash') {
-          // Cash confirmation is accountant-owned — managers only monitor.
+          // Cash confirmation is accountant-owned &mdash; managers only monitor.
           if (isMgr) return '<span style="font-size:11px;color:var(--gray-mid)">RDC confirms</span>';
           return '<button class="btn btn-sm" onclick="showPage(\'accountant-cash\')">Confirm cash</button>';
         }
@@ -317,7 +317,7 @@ async function confirmSupplierDelivery(deliveryId, action) {
   }
   const verb = action === 'reject' ? 'reject' : 'confirm';
   if (!window.confirm(action === 'reject'
-    ? 'Reject this delivery confirmation? Stock already received stays — note the variance with RDC.'
+    ? 'Reject this delivery confirmation? Stock already received stays &mdash; note the variance with RDC.'
     : 'Confirm this Coca-Cola delivery matches the waybill?')) {
     return;
   }
@@ -389,7 +389,7 @@ function paintMgrDeliveryConfirmPanel(list, pending) {
       <div class="delivery-header">
         <div>
           <strong>Waybill ${escMgr(del.waybill || '#' + del.id)}</strong>
-          <div style="font-size:12px;color:var(--gray-mid)">${escMgr(del.truck_plate || '—')} · ${escMgr(del.received_by_name || '—')}</div>
+          <div style="font-size:12px;color:var(--gray-mid)">${escMgr(del.truck_plate || '&mdash;')} &middot; ${escMgr(del.received_by_name || '&mdash;')}</div>
           <div style="font-size:12px;color:var(--gray-mid);margin-top:4px">${lines || 'No lines'}</div>
         </div>
         <span class="badge bw">Awaiting confirm</span>
@@ -420,15 +420,15 @@ async function loadDeliveryList() {
       }).join('');
       const meta = mgrDeliveryStatusMeta(del.confirm_status);
       const confirmedLine = del.confirmed_by_name
-        ? `<div style="font-size:12px;color:var(--gray-mid)">Confirmed by: ${escMgr(del.confirmed_by_name)}${del.confirmed_at ? ' · ' + escMgr(LapokAPI.formatTime(del.confirmed_at)) : ''}</div>`
+        ? `<div style="font-size:12px;color:var(--gray-mid)">Confirmed by: ${escMgr(del.confirmed_by_name)}${del.confirmed_at ? ' &middot; ' + escMgr(LapokAPI.formatTime(del.confirmed_at)) : ''}</div>`
         : '';
-      const ccba = del.ccba_lapok_ref ? `<div style="font-size:11px;color:var(--gray-mid)">CCBA order: ${escMgr(del.ccba_lapok_ref)} ${del.ccba_order_no ? '· ' + escMgr(del.ccba_order_no) : ''}</div>` : '';
+      const ccba = del.ccba_lapok_ref ? `<div style="font-size:11px;color:var(--gray-mid)">CCBA order: ${escMgr(del.ccba_lapok_ref)} ${del.ccba_order_no ? '&middot; ' + escMgr(del.ccba_order_no) : ''}</div>` : '';
       return `<div class="delivery-card">
         <div class="delivery-header">
-          <div><strong>Delivery — ${LapokAPI.formatDate(del.delivery_date)}</strong>
-            <div style="font-size:12px;color:var(--gray-mid)">Waybill: ${escMgr(del.waybill || '—')} · ${escMgr(del.truck_plate || '')}</div>
+          <div><strong>Delivery &mdash; ${LapokAPI.formatDate(del.delivery_date)}</strong>
+            <div style="font-size:12px;color:var(--gray-mid)">Waybill: ${escMgr(del.waybill || '&mdash;')} &middot; ${escMgr(del.truck_plate || '')}</div>
             ${ccba}
-            <div style="font-size:12px;color:var(--gray-mid)">Received by: ${escMgr(del.received_by_name || '—')}</div>
+            <div style="font-size:12px;color:var(--gray-mid)">Received by: ${escMgr(del.received_by_name || '&mdash;')}</div>
             ${confirmedLine}
             ${del.confirm_note ? `<div style="font-size:12px;color:var(--gray-mid)">Note: ${escMgr(del.confirm_note)}</div>` : ''}
           </div>
@@ -454,13 +454,13 @@ async function loadDispatchLog() {
     const trips = d.trips || [];
     table.innerHTML = '<tr><th>Vehicle</th><th>Type</th><th>Crew</th><th>Departed</th><th>Load</th><th>Route</th><th>Returned</th><th>Status</th></tr>' +
       trips.map((t) => {
-        const crew = [t.driver_name, t.cadet_name].filter(Boolean).join(' / ') || '—';
+        const crew = [t.driver_name, t.cadet_name].filter(Boolean).join(' / ') || '&mdash;';
         const badge = t.vehicle_type === 'truck' ? 'b-truck' : 'b-tuk';
         const st = t.status === 'on_route' || t.status === 'dispatched' ? 'bs' : 'bg';
         return `<tr><td>${escMgr(t.registration)}</td><td><span class="badge ${badge}">${t.vehicle_type}</span></td>
-          <td>${escMgr(crew)}</td><td>${t.dispatched_at ? LapokAPI.formatTime(t.dispatched_at) : '—'}</td>
-          <td>${t.load_qty || 0}</td><td>${escMgr(t.route_area || '—')}</td>
-          <td>${t.returned_at ? LapokAPI.formatTime(t.returned_at) : '—'}</td>
+          <td>${escMgr(crew)}</td><td>${t.dispatched_at ? LapokAPI.formatTime(t.dispatched_at) : '&mdash;'}</td>
+          <td>${t.load_qty || 0}</td><td>${escMgr(t.route_area || '&mdash;')}</td>
+          <td>${t.returned_at ? LapokAPI.formatTime(t.returned_at) : '&mdash;'}</td>
           <td><span class="badge ${st}">${t.status}</span></td></tr>`;
       }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--gray-mid)">No dispatches today</td></tr>';
   } catch (e) {
@@ -508,6 +508,7 @@ async function prepareDispatchModal() {
       cSel.innerHTML = '<option value="">— Select cadet —</option>' +
         fieldUsers.map((u) => `<option value="${u.id}">${escMgr(u.full_name)}</option>`).join('');
     }
+
 
     const tbody = document.getElementById('dispatchLoadBody');
     if (tbody) {
