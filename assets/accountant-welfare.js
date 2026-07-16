@@ -118,7 +118,7 @@
     }
     for (const e of legacy) {
       await LapokAPI.post('/api/welfare/save.php', {
-        date: e.date || new Date().toISOString().slice(0, 10),
+        date: e.date || LapokAPI.todayIso(),
         staff: e.staff || 'Unknown',
         type: e.type || 'request',
         amount: Number(e.amount || 0),
@@ -161,7 +161,7 @@
     setOpsHomeButton();
     const dateInp = document.getElementById('welfareDate');
     if (dateInp && !dateInp.value) {
-      dateInp.value = new Date().toISOString().slice(0, 10);
+      dateInp.value = LapokAPI.todayIso();
     }
     try {
       await fetchEntries();
@@ -179,7 +179,7 @@
     }
     const payload = {
       id: Number(document.getElementById('welfareEditId')?.value || 0) || undefined,
-      date: document.getElementById('welfareDate')?.value || new Date().toISOString().slice(0, 10),
+      date: document.getElementById('welfareDate')?.value || LapokAPI.todayIso(),
       staff,
       type: document.getElementById('welfareType')?.value || 'request',
       amount: parseFloat(document.getElementById('welfareAmount')?.value) || 0,

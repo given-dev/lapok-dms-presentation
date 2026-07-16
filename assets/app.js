@@ -291,7 +291,7 @@ async function saveDelivery() {
       qty_ordered: parseInt(inputs[0]?.value) || qtyDelivered,
       qty_delivered: qtyDelivered,
       batch_number: inputs[2]?.value || `BATCH-${product.sku}-${Date.now()}`,
-      expiry_date: inputs[3]?.value || new Date(Date.now() + 180 * 86400000).toISOString().slice(0, 10),
+      expiry_date: inputs[3]?.value || LapokAPI.localIsoDate(new Date(), 180),
       unit_cost: parseFloat(inputs[4]?.value) || product.unit_price * 0.6,
     });
   });
@@ -301,7 +301,7 @@ async function saveDelivery() {
   }
   try {
     await LapokAPI.post('/api/stock/receive_delivery.php', {
-      delivery_date: dateInp?.value || new Date().toISOString().slice(0, 10),
+      delivery_date: dateInp?.value || LapokAPI.todayIso(),
       waybill: modal.querySelector('input[placeholder*="Waybill"]')?.value || '',
       items,
     });

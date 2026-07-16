@@ -27,7 +27,7 @@ function reportCanAcknowledge() {
 }
 
 function reportTodayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return LapokAPI.todayIso();
 }
 
 function reportPdfUrl(id) {
