@@ -2,7 +2,7 @@
  * In-app notifications — cadets receive from manager / RDC / admin.
  */
 (function () {
-  let notifState = { items: [], unread: 0, canSend: false, cadets: null };
+  let notifState = { items: [], history: [], unread: 0, canSend: false, cadets: null };
 
   const SEVERITY_CLASS = { info: 'a-info', warning: 'a-warning', danger: 'a-danger' };
   const SEVERITY_ICON = { info: 'ℹ', warning: '⚠', danger: '⚠' };
@@ -31,9 +31,7 @@
     const cls = SEVERITY_CLASS[n.severity] || 'a-info';
     const icon = SEVERITY_ICON[n.severity] || 'ℹ';
     const unread = !n.is_read ? ' style="border-left:3px solid var(--red)"' : '';
-    const link = n.link_page
-      ? `<button class="btn btn-sm" type="button" style="margin-top:6px" onclick="notifOpenPage('${esc(n.link_page)}', ${n.id})">Open →</button>`
-      : '';
+    const link = `<button class="btn btn-sm" type="button" style="margin-top:6px" onclick="openNotificationMessage(${n.id})">Open →</button>`;
     return `<div class="alert ${cls}"${unread} data-notif-id="${n.id}">
       <span>${icon}</span>
       <div><strong>${esc(n.from)}</strong> · <span style="font-size:11px;color:var(--gray-mid)">${formatWhen(n.created_at)}</span>
@@ -52,6 +50,7 @@
     try {
       const data = await LapokAPI.get('/api/notifications/fetch.php');
       notifState.items = data.items || [];
+      notifState.history = data.history || [];
       notifState.unread = data.unread_count || 0;
       notifState.canSend = !!data.can_send;
       updateNotifDot();
@@ -61,7 +60,7 @@
       }
       const dash = document.getElementById('cadetDashNotifList');
       if (dash) {
-        dash.innerHTML = renderNotifListHtml(notifState.items.slice(0, 5), 'No messages from manager or RDC yet.');
+        dash.innerHTML = renderNotifListHtml(notifState.history.slice(0, 5), 'No messages from manager or RDC yet.');
       }
       const dashCard = document.getElementById('cadetDashNotifCard');
       if (dashCard) dashCard.style.display = 'block';
@@ -116,27 +115,59 @@
     if (typeof openModal === 'function') openModal('notifModal');
   }
 
+  async function openMessagesModal() {
+    await refreshNotifications();
+    const list = document.getElementById('messagesList');
+    if (list) list.innerHTML = renderNotifListHtml(notifState.history, 'No messages yet.');
+    if (typeof openModal === 'function') openModal('messagesModal');
+  }
+
   async function dismissAllNotifs() {
     try {
       await LapokAPI.post('/api/notifications/mark_read.php', { all: true });
       notifState.unread = 0;
-      notifState.items = notifState.items.map((n) => ({ ...n, is_read: true }));
+      notifState.items = [];
+      notifState.history = notifState.history.map((n) => ({ ...n, is_read: true }));
       updateNotifDot();
       const list = document.getElementById('notifList');
-      if (list) list.innerHTML = renderNotifListHtml(notifState.items);
+      if (list) list.innerHTML = renderNotifListHtml([], 'No unread notifications.');
+      const dash = document.getElementById('cadetDashNotifList');
+      if (dash) dash.innerHTML = renderNotifListHtml(notifState.history.slice(0, 5), 'No messages from manager or RDC yet.');
     } catch (e) {
       if (typeof adminToast === 'function') adminToast(e.message, true);
     }
     if (typeof closeModal === 'function') closeModal('notifModal');
   }
 
-  async function notifOpenPage(pageId, notifId) {
-    try {
-      await LapokAPI.post('/api/notifications/mark_read.php', { ids: [notifId] });
-      await refreshNotifications();
-    } catch (_) {}
-    if (typeof closeModal === 'function') closeModal('notifModal');
-    if (typeof showPage === 'function') showPage(pageId);
+  async function openNotificationMessage(notifId) {
+    const notification = notifState.history.find((n) => Number(n.id) === Number(notifId))
+      || notifState.items.find((n) => Number(n.id) === Number(notifId));
+    if (!notification) return;
+
+    if (!notification.is_read) {
+      try {
+        await LapokAPI.post('/api/notifications/mark_read.php', { ids: [notifId] });
+        notifState.items = notifState.items.filter((n) => Number(n.id) !== Number(notifId));
+        notifState.history = notifState.history.map((n) => Number(n.id) === Number(notifId) ? { ...n, is_read: true } : n);
+        notifState.unread = Math.max(0, notifState.unread - 1);
+        updateNotifDot();
+      } catch (_) {}
+    }
+
+    const title = document.getElementById('notificationDetailTitle');
+    const from = document.getElementById('notificationDetailFrom');
+    const when = document.getElementById('notificationDetailWhen');
+    const body = document.getElementById('notificationDetailBody');
+    if (title) title.textContent = notification.title || 'Message';
+    if (from) from.textContent = notification.from || 'System';
+    if (when) when.textContent = formatWhen(notification.created_at) || 'Not recorded';
+    if (body) body.textContent = notification.body || 'No message content.';
+
+    if (typeof closeModal === 'function') {
+      closeModal('notifModal');
+      closeModal('messagesModal');
+    }
+    if (typeof openModal === 'function') openModal('notificationDetailModal');
   }
 
   async function sendStaffNotification() {
@@ -228,8 +259,9 @@
   }
 
   window.openNotifModal = openNotifModal;
+  window.openMessagesModal = openMessagesModal;
   window.dismissAllNotifs = dismissAllNotifs;
-  window.notifOpenPage = notifOpenPage;
+  window.openNotificationMessage = openNotificationMessage;
   window.sendStaffNotification = sendStaffNotification;
   window.refreshNotifications = refreshNotifications;
   window.runDeadlineReminders = runDeadlineReminders;

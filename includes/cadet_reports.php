@@ -227,7 +227,7 @@ function cadet_today_date(?DateTimeInterface $when = null): string
 }
 
 /**
- * Today's operative trip for a cadet/driver (ignores stale seed/demo trips from other dates).
+ * Today's operative trip for a cadet/driver (ignores stale trips from other dates).
  *
  * @return array<string, mixed>|null
  */

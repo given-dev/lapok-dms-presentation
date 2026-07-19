@@ -1,7 +1,7 @@
 /**
  * Outpost DMS — Depot Management System (multi-depot product)
  * This presentation build wires Admin · Executive · Manager · Accountant · Cadet.
- * Demo tenant emails may still use @lapok.ug as sample customer data.
+ * Tenant accounts use the @lapok.ug domain in this installation.
  */
 window.OUTPOST_PRODUCT_NAME = 'Outpost DMS';
 window.OUTPOST_PRODUCT_TAGLINE = 'Depot Management System';

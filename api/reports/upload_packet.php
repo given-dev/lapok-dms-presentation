@@ -36,6 +36,11 @@ if (!$toRole) {
 }
 
 try {
+    if ($role === 'manager') {
+        report_require_manager_ready($reportDate);
+    } elseif ($role === 'accountant') {
+        report_require_accountant_ready($reportDate);
+    }
     $packet = report_forward_upload(
         (int) $user['id'],
         $role,

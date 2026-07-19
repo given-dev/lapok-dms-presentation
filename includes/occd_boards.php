@@ -484,7 +484,7 @@ function occd_prefill_from_stock(array $payload, string $type): array
             }
             unset($v);
         }
-        // Match by SKU substring in product catalog for demo prefill
+        // Match by SKU substring in the live product catalog.
         foreach ($stockRows as $s) {
             $sku = strtolower((string) $s['sku']);
             foreach ($payload['values'] as $key => &$vals) {

@@ -1,4 +1,8 @@
 config/.env
+.env
+storage/reports/*.pdf
+storage/reports/*.txt
+!storage/reports/.gitkeep
 *.log
 .DS_Store
 Thumbs.db

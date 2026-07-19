@@ -5,6 +5,12 @@ let currentUser = null;
 let productCatalog = [];
 const PRIMARY_SYSTEM_ROLES = ['admin', 'executive', 'manager', 'accountant'];
 
+function appEscapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
+  })[char]);
+}
+
 function isExecutiveUser() {
   return currentUser?.role === 'executive';
 }
@@ -29,7 +35,7 @@ async function initApp() {
     const data = await LapokAPI.get('/api/auth/me.php');
     currentUser = data.user;
   } catch {
-    location.href = 'login.html';
+    location.replace('login.html');
     return;
   }
   if (!PRIMARY_SYSTEM_ROLES.includes(currentUser.role)) {
@@ -40,10 +46,11 @@ async function initApp() {
   if ((Array.isArray(allowed) && allowed.length && !allowed.includes(currentUser.role))
     || disabled.includes(currentUser.role)) {
     try { await LapokAPI.post('/api/auth/logout.php', {}); } catch (_) {}
-    location.href = 'login.html?role=disabled';
+    location.replace('login.html?role=disabled');
     return;
   }
   applyUserSession(currentUser);
+  document.documentElement.classList.remove('auth-pending');
   await refreshDashboardData();
 }
 
@@ -171,18 +178,23 @@ async function loadLowStockAlerts() {
   try {
     const data = await LapokAPI.get('/api/stock/fetch_stock.php?low_only=1');
     const alerts = data.alerts || [];
-    const targets = document.querySelectorAll('#admLowStockAlert, .alert.a-danger');
-    targets.forEach((el) => {
-      const div = el.querySelector('div');
-      if (!div) return;
-      if (alerts.length) {
-        const names = alerts.map((a) => `${a.name} (${a.warehouse_qty} cartons)`).join(' and ');
-        div.innerHTML = `<strong>Low stock:</strong> ${names} below minimum. <a href="#" onclick="showPage('admin-exceptions');return false" style="color:var(--red);font-weight:600">Open exception center →</a>`;
-        el.style.display = '';
-      } else if (el.id === 'admLowStockAlert') {
-        el.style.display = 'none';
-      }
-    });
+    const el = document.getElementById('admLowStockAlert');
+    if (!el) return;
+    const div = el.querySelector('div');
+    if (!div) return;
+    if (alerts.length) {
+      const preview = alerts.slice(0, 3)
+        .map((a) => `${appEscapeHtml(a.name)} (${Number(a.warehouse_qty).toLocaleString()} cartons)`)
+        .join(', ');
+      const remaining = Math.max(0, alerts.length - 3);
+      const previewText = preview
+        ? ` Examples: ${preview}${remaining ? ` and ${remaining} more` : ''}.`
+        : '';
+      div.innerHTML = `<strong>Low stock:</strong> ${alerts.length} product${alerts.length === 1 ? '' : 's'} below minimum.${previewText} <a href="#" onclick="showPage('admin-exceptions');return false" style="color:var(--red);font-weight:600">View all in Exception Center →</a>`;
+      el.style.display = '';
+    } else {
+      el.style.display = 'none';
+    }
   } catch (_) {}
 }
 

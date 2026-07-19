@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/stock.php';
+require_once dirname(__DIR__, 2) . '/includes/vehicle_assignments.php';
 
 $user = require_roles(['admin', 'manager']);
 
@@ -13,9 +14,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 $body = read_json_body();
 $vehicleId = (int) ($body['vehicle_id'] ?? 0);
 $driverId = isset($body['driver_id']) ? (int) $body['driver_id'] : null;
-$cadetId = isset($body['cadet_id']) ? (int) $body['cadet_id'] : null;
-$routeId = isset($body['route_id']) ? (int) $body['route_id'] : null;
-$routeArea = trim($body['route_area'] ?? '');
+$cadetId = null;
+$routeId = null;
+$routeArea = '';
 $odometerStart = isset($body['odometer_start']) ? (int) $body['odometer_start'] : null;
 $notes = trim($body['notes'] ?? '');
 $loadItems = $body['load_items'] ?? [];
@@ -48,6 +49,17 @@ try {
     if (in_array((string) $vehicle['status'], ['on_route', 'maintenance'], true)) {
         throw new RuntimeException('Vehicle is not available for dispatch');
     }
+
+    $dayNumber = assignment_day_number();
+    if ($dayNumber > 6) {
+        throw new RuntimeException('No Sunday route is configured. Ask the main Admin to update the weekly assignment.');
+    }
+    $assignment = vehicle_assignment_for_day($pdo, $vehicleId, $dayNumber);
+    if (!$assignment || empty($assignment['cadet_id']) || trim((string) $assignment['route_area']) === '') {
+        throw new RuntimeException('This vehicle has no complete Admin-approved cadet and route assignment for today.');
+    }
+    $cadetId = (int) $assignment['cadet_id'];
+    $routeArea = trim((string) $assignment['route_area']);
 
     $tripStmt = $pdo->prepare(
         'INSERT INTO delivery_trips (vehicle_id, driver_id, cadet_id, route_id, route_area, status, odometer_start, notes)

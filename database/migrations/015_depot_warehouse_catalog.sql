@@ -27,26 +27,7 @@ ON DUPLICATE KEY UPDATE
   min_stock = VALUES(min_stock),
   is_active = 1;
 
--- Starter warehouse batches for any catalog SKU that has no batch yet
-INSERT INTO batches (product_id, batch_number, expiry_date, qty_warehouse, qty_on_vehicles, unit_cost)
-SELECT p.id, CONCAT('INIT-', p.sku), DATE_ADD(CURDATE(), INTERVAL 180 DAY),
-       CASE
-         WHEN p.sku IN ('JUMBO-20', 'JUMBO-10') THEN 30
-         WHEN p.sku = 'BOTTLES' THEN 200
-         WHEN p.sku LIKE 'EN-%' THEN 60
-         ELSE 100
-       END,
-       0,
-       ROUND(p.unit_price * 0.6, 2)
-FROM products p
-WHERE p.sku IN (
-  'RGB-300','PET-300','PET-500','CK-1L','PET-2000',
-  'EN-GOLD','EN-MANGO','EN-PLAY',
-  'MM-400','MM-1L','RF-250',
-  'RW-500-BOX','RW-500-SHR','RW-1500',
-  'JUMBO-20','JUMBO-10','BOTTLES','SHELLS'
-)
-AND NOT EXISTS (SELECT 1 FROM batches b WHERE b.product_id = p.id);
+-- Stock quantities are entered only through deliveries and stock-taking workflows.
 
--- Hide legacy demo SKUs that are not on the depot sales book
+-- Hide legacy SKUs that are not on the depot sales book
 UPDATE products SET is_active = 0 WHERE sku IN ('CK-500', 'FT-OR', 'SP-500', 'SP-1L', 'NV-OR');

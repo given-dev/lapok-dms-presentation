@@ -158,13 +158,14 @@ function notifications_sync_executive_packs(int $userId): void
 }
 
 /** @return list<array<string, mixed>> */
-function notifications_fetch_for_user(int $userId, int $limit = 30): array
+function notifications_fetch_for_user(int $userId, int $limit = 30, bool $unreadOnly = true): array
 {
+    $readFilter = $unreadOnly ? ' AND n.is_read = 0' : '';
     $stmt = db()->prepare(
         "SELECT n.*, u.full_name AS sender_name
          FROM user_notifications n
          LEFT JOIN users u ON u.id = n.sender_id
-         WHERE n.recipient_id = ?
+         WHERE n.recipient_id = ?{$readFilter}
          ORDER BY n.created_at DESC
          LIMIT ?"
     );
