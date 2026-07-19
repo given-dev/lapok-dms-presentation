@@ -11,7 +11,6 @@ function rdcLocalIsoDate(d = new Date()) {
 }
 let rdcBalanceDate = rdcLocalIsoDate();
 let rdcWizardStep = 1;
-let rdcDemoMode = false;
 let rdcAutoSaveTimer = null;
 
 function rdcScheduleAutoSave() {
@@ -20,11 +19,6 @@ function rdcScheduleAutoSave() {
   rdcAutoSaveTimer = setTimeout(() => {
     if (rdcDirty && rdcSheet && !rdcReadOnly) rdcSaveSheet(true);
   }, 30000);
-}
-
-function rdcRenderDemoBanner() {
-  const el = document.getElementById('rdcDemoBanner');
-  if (el) el.style.display = rdcDemoMode && !rdcReadOnly ? 'flex' : 'none';
 }
 
 function rdcShowFinishToday(show) {
@@ -103,7 +97,7 @@ function rdcShiftDate(delta) {
 function rdcAutoExpected() {
   if (!rdcSheet || rdcReadOnly) return;
   rdcRecalcClientTotals();
-  const expected = (rdcSheet.grand_total || 0) - (rdcSheet.expenses_total || 0);
+  const expected = (rdcSheet.grand_total || 0) - rdcCashReducingExpensesTotal();
   const exp = document.getElementById('rdcExpected');
   if (exp) exp.value = Math.round(expected);
   rdcRecalcClientTotals();
@@ -127,13 +121,26 @@ function rdcRowAmountSum(row) {
   return Object.values(row.amounts || {}).reduce((s, v) => s + (parseFloat(v) || 0), 0);
 }
 
+function rdcIsShortageRow(row) {
+  const label = String(row?.label || '').trim().toUpperCase();
+  return label.includes('SHORTAGE') || label.includes('EXCESS');
+}
+
+function rdcCashReducingExpensesTotal(columnKey = null) {
+  return (rdcSheet?.expenses || []).reduce((sum, row) => {
+    if (rdcIsShortageRow(row)) return sum;
+    if (columnKey) return sum + (parseFloat(row.amounts?.[columnKey]) || 0);
+    return sum + rdcRowAmountSum(row);
+  }, 0);
+}
+
 function rdcRecalcClientTotals() {
   if (!rdcSheet) return;
   const salesTotal = (rdcSheet.sales || []).reduce((s, l) => s + rdcLineAmount(l), 0);
   const recoveryTotal = (rdcSheet.recoveries || []).reduce((s, r) => s + rdcRowAmountSum(r), 0);
   const expensesTotal = (rdcSheet.expenses || []).reduce((s, r) => s + rdcRowAmountSum(r), 0);
   const grandTotal = salesTotal + recoveryTotal;
-  const expected = parseFloat(document.getElementById('rdcExpected')?.value) || (grandTotal - expensesTotal);
+  const expected = parseFloat(document.getElementById('rdcExpected')?.value) || (grandTotal - rdcCashReducingExpensesTotal());
   const actual = Object.values(rdcSheet.cash_actual || {}).reduce((s, v) => s + (parseFloat(v) || 0), 0);
   const variance = expected - actual;
 
@@ -153,8 +160,8 @@ function rdcRecalcClientTotals() {
   set('rdcTotActual', actual);
   const varEl = document.getElementById('rdcTotVariance');
   if (varEl) {
-    varEl.textContent = (variance === 0 ? '' : variance > 0 ? '+' : '') + rdcFmt(variance);
-    varEl.className = variance === 0 ? 'metric-value surplus' : variance > 0 ? 'metric-value surplus' : 'metric-value deficit';
+    varEl.textContent = variance === 0 ? 'Balanced' : variance > 0 ? `Missing ${rdcFmt(variance)}` : `Excess ${rdcFmt(Math.abs(variance))}`;
+    varEl.className = variance === 0 ? 'metric-value surplus' : variance > 0 ? 'metric-value deficit' : 'metric-value surplus';
   }
   const varCard = document.getElementById('rdcVarianceCard');
   if (varCard) {
@@ -162,6 +169,7 @@ function rdcRecalcClientTotals() {
     if (variance === 0) varCard.classList.add('rdc-variance-ok');
     else varCard.classList.add('rdc-variance-warn');
   }
+  rdcRenderCashReconciliation();
 }
 
 function rdcHasSalesData() {
@@ -207,7 +215,7 @@ function rdcWizardNext() {
   }
   if (rdcWizardStep === 1) {
     if (!rdcHasSalesData() && rdcEditorMode !== 'manager') {
-      rdcNotify('Enter sales quantities, or tap Sample data / Import sales.', true);
+      rdcNotify('Enter verified sales quantities or import sales from depot orders.', true);
       return;
     }
     if (rdcEditorMode !== 'manager') rdcAutoExpected();
@@ -230,7 +238,6 @@ function rdcRenderWizardChrome() {
   const actions = document.getElementById('rdcActions');
   const hint = document.getElementById('rdcStickyHint');
   const backBtn = document.getElementById('rdcWizardBackBtn');
-  const sampleBtn = document.getElementById('rdcSampleStickyBtn');
   const importBtn = document.getElementById('rdcImportStickyBtn');
   const nextBtn = document.getElementById('rdcWizardNextBtn');
   const submitBtn = document.getElementById('rdcSubmitBtn');
@@ -247,7 +254,6 @@ function rdcRenderWizardChrome() {
   if (actions) actions.style.display = (canEdit || isMgr || rdcViewingSubmitted) ? 'flex' : 'none';
   if (backBtn) backBtn.style.display = step > 1 ? 'inline-flex' : 'none';
 
-  if (sampleBtn) sampleBtn.style.display = step === 1 && canEdit && !isMgr ? 'inline-flex' : 'none';
   if (importBtn) importBtn.style.display = step === 1 && canEdit && !isMgr ? 'inline-flex' : 'none';
   if (nextBtn) {
     nextBtn.style.display = step < 3 ? 'inline-flex' : 'none';
@@ -276,7 +282,7 @@ function rdcRenderWizardChrome() {
     2: ['Submitted report &mdash; Expenses & cash (read only)', 'Figures locked after submit.'],
     3: ['Submitted report &mdash; Totals (read only)', 'Use Back to closeout if you need to send the pack.'],
   } : {
-    1: ['Step 1 of 3 &mdash; Sales', 'Enter quantities, or use Sample data / Import sales.'],
+    1: ['Step 1 of 3 &mdash; Sales', 'Enter verified quantities or import sales from depot orders.'],
     2: ['Step 2 of 3 &mdash; Expenses & cash', 'Record expenses, then enter cash actually on hand.'],
     3: ['Step 3 of 3 &mdash; Review & submit', 'Check totals, add a note if needed, then submit.'],
   };
@@ -288,7 +294,7 @@ function rdcRenderWizardChrome() {
     if (isMgr) hint.textContent = v === 0 ? 'Manager can edit, then Approve' : 'Variance ' + rdcFmt(v) + ' &mdash; correct or note before approve';
     else if (rdcViewingSubmitted) hint.textContent = 'Read-only &mdash; submitted to manager';
     else if (step === 3 && v !== 0) hint.textContent = 'Variance ' + rdcFmt(v) + ' &mdash; explain in notes before submit';
-    else if (step === 1) hint.textContent = 'Tip: Sample data fills all steps for training';
+    else if (step === 1) hint.textContent = 'Use Import sales to load recorded depot orders';
     else if (step === 2) hint.textContent = 'Expected cash updates when you save';
     else hint.textContent = 'Submit sends the sheet to your manager';
   }
@@ -462,6 +468,30 @@ function rdcRenderCashActual() {
   }).join('');
 }
 
+function rdcRenderCashReconciliation() {
+  const body = document.getElementById('rdcCadetCashReconBody');
+  if (!body || !rdcSheet) return;
+  const cols = rdcCashColumns().filter((c) => String(c.key || '').startsWith('vehicle_'));
+  const rows = cols.map((c) => {
+    const sales = (rdcSheet.sales || []).reduce((sum, line) => {
+      return sum + (parseFloat(line.qty?.[c.key]) || 0) * (parseFloat(line.price) || 0);
+    }, 0);
+    const recoveries = (rdcSheet.recoveries || []).reduce((sum, row) => sum + (parseFloat(row.amounts?.[c.key]) || 0), 0);
+    const expenses = rdcCashReducingExpensesTotal(c.key);
+    const expected = Math.max(0, sales + recoveries - expenses);
+    const handed = parseFloat(rdcSheet.cash_actual?.[c.key]) || 0;
+    const difference = expected - handed;
+    if (sales === 0 && expenses === 0 && handed === 0) return '';
+    const result = difference === 0
+      ? '<span class="badge bs">Balanced</span>'
+      : difference > 0
+        ? `<span class="badge bd">Missing ${rdcFmt(difference)}</span>`
+        : `<span class="badge bs">Excess ${rdcFmt(Math.abs(difference))}</span>`;
+    return `<tr><td><strong>${c.label}</strong></td><td>${rdcFmt(sales)}</td><td>${rdcFmt(expenses)}</td><td>${rdcFmt(expected)}</td><td>${rdcFmt(handed)}</td><td>${result}</td></tr>`;
+  }).filter(Boolean).join('');
+  body.innerHTML = rows || '<tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">No cadet cash reports received yet.</td></tr>';
+}
+
 function rdcRenderAll() {
   const headSales = document.getElementById('rdcSalesHead');
   if (headSales) {
@@ -486,6 +516,7 @@ function rdcRenderAll() {
   rdcRenderAmountSection('rdcExpenseBody', rdcSheet.expenses, rdcExpenseColumns, 'expense');
   rdcRenderAmountSection('rdcCashOutBody', rdcSheet.cash_out, rdcRecoveryColumns, 'cash_out');
   rdcRenderCashActual();
+  rdcRenderCashReconciliation();
 
   const exp = document.getElementById('rdcExpected');
   if (exp) {
@@ -531,7 +562,6 @@ function rdcRenderAll() {
   rdcRenderBalSteps();
   rdcRenderStickyBar();
   rdcBindInputs();
-  rdcRenderDemoBanner();
   rdcMaybeFinishPanel();
 }
 
@@ -1099,13 +1129,10 @@ async function rdcSuggestSales() {
   try {
     const data = await LapokAPI.get('/api/rdc/suggest_sales.php?date=' + encodeURIComponent(rdcBalanceDate));
     if (data.order_count === 0) {
-      if (confirm('No depot orders for this date. Load sample demo data instead?')) {
-        rdcFillSampleData();
-      }
+      rdcNotify('No depot orders were recorded for this date.', true);
       return;
     }
     rdcSheet.sales = data.sales;
-    rdcDemoMode = false;
     rdcMarkDirty();
     rdcRenderAll();
     rdcNotify('Sales updated from depot orders (' + data.order_count + ' groups).');
@@ -1113,67 +1140,6 @@ async function rdcSuggestSales() {
   } catch (e) {
     rdcNotify(e.message, true);
   }
-}
-
-function rdcFillSampleData() {
-  if (!rdcSheet || rdcReadOnly) return;
-  rdcDemoMode = true;
-  rdcNormalizeSheet();
-
-  const vehicles = rdcSalesColumns().filter((c) => String(c.key).startsWith('vehicle_'));
-  const v1 = vehicles[0]?.key || 'depot';
-  const v2 = vehicles[1]?.key || v1;
-  const qtySets = [
-    { depot: 3, a: 15, b: 6 },
-    { depot: 0, a: 10, b: 4 },
-    { depot: 2, a: 8, b: 3 },
-    { depot: 0, a: 5, b: 2 },
-  ];
-
-  (rdcSheet.sales || []).forEach((line, i) => {
-    const set = qtySets[i] || { depot: 0, a: 0, b: 0 };
-    if (!line.qty) line.qty = {};
-    line.qty.depot = set.depot;
-    line.qty[v1] = set.a;
-    if (v2 !== v1) line.qty[v2] = set.b;
-  });
-
-  const fuel = (rdcSheet.expenses || []).find((e) => e.label === 'FUEL');
-  if (fuel) {
-    if (!fuel.amounts) fuel.amounts = {};
-    fuel.amounts.depot = 20000;
-    fuel.amounts[v1] = 95000;
-  }
-  const lunch = (rdcSheet.expenses || []).find((e) => e.label === 'LUNCH');
-  if (lunch) {
-    if (!lunch.amounts) lunch.amounts = {};
-    lunch.amounts.depot = 15000;
-  }
-
-  if (rdcSheet.recoveries?.[0]) {
-    rdcSheet.recoveries[0].label = 'Route collection';
-    if (!rdcSheet.recoveries[0].amounts) rdcSheet.recoveries[0].amounts = {};
-    const cadetKey = rdcRecoveryColumns().find((c) => String(c.key).startsWith('cadet_'))?.key;
-    if (cadetKey) rdcSheet.recoveries[0].amounts[cadetKey] = 45000;
-  }
-
-  rdcRecalcClientTotals();
-  rdcAutoExpected();
-  const expected = Math.round(rdcSheet.expected_amount || rdcSheet.grand_total - rdcSheet.expenses_total || 0);
-  if (!rdcSheet.cash_actual) rdcSheet.cash_actual = {};
-  rdcSheet.cash_actual.cash_at_hand = Math.round(expected * 0.88);
-  if ('momo' in rdcSheet.cash_actual || rdcCashColumns().some((c) => c.key === 'momo')) {
-    rdcSheet.cash_actual.momo = Math.round(expected * 0.12);
-  }
-
-  const notes = document.getElementById('rdcNotes');
-  if (notes) notes.value = 'Sample demo entry &mdash; depot training walkthrough.';
-  rdcSheet.notes = notes?.value || '';
-
-  rdcMarkDirty();
-  rdcRenderAll();
-  rdcNotify('Sample data loaded &mdash; review each step, then Save.');
-  rdcSetWizardStep(3);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1207,7 +1173,6 @@ window.rdcAddRow = rdcAddRow;
 window.rdcGoToday = rdcGoToday;
 window.rdcShiftDate = rdcShiftDate;
 window.rdcAutoExpected = rdcAutoExpected;
-window.rdcFillSampleData = rdcFillSampleData;
 window.rdcBalNextStep = rdcBalNextStep;
 window.rdcWizardNext = rdcWizardNext;
 window.rdcWizardBack = rdcWizardBack;

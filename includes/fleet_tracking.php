@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-/** Lapok depot  -  Gulu (Northern region demo). */
+/** Configured Lapok depot coordinates for the Gulu branch. */
 function fleet_depot_coords(): array
 {
     return ['lat' => 2.7726, 'lng' => 32.2988];
@@ -23,11 +23,6 @@ function fleet_route_stops(int $routeId): array
     foreach ($stops as $i => $stop) {
         $lat = $stop['latitude'] !== null ? (float) $stop['latitude'] : null;
         $lng = $stop['longitude'] !== null ? (float) $stop['longitude'] : null;
-        if ($lat === null || $lng === null) {
-            $fallback = fleet_geocode_fallback((string) $stop['location'], $i);
-            $lat = $fallback['lat'];
-            $lng = $fallback['lng'];
-        }
         $out[] = [
             'stop_order' => (int) $stop['stop_order'],
             'customer_id' => (int) $stop['customer_id'],
@@ -38,18 +33,6 @@ function fleet_route_stops(int $routeId): array
         ];
     }
     return $out;
-}
-
-/** Spread unknown addresses around depot for map demo. */
-function fleet_geocode_fallback(string $location, int $index): array
-{
-    $depot = fleet_depot_coords();
-    $angle = ($index * 72) * (M_PI / 180);
-    $radius = 0.008 + ($index * 0.002);
-    return [
-        'lat' => round($depot['lat'] + sin($angle) * $radius, 6),
-        'lng' => round($depot['lng'] + cos($angle) * $radius, 6),
-    ];
 }
 
 function fleet_latest_ping(int $vehicleId): ?array
@@ -153,22 +136,17 @@ function fleet_active_tracking_payload(): array
 
         $ping = fleet_latest_ping($vid);
         $position = null;
-        $positionSource = 'depot';
+        $positionSource = 'unavailable';
 
         if ($ping && strtotime((string) $ping['recorded_at']) > time() - 86400) {
             $position = ['lat' => $ping['lat'], 'lng' => $ping['lng']];
             $positionSource = $ping['source'];
-        } elseif ($row['trip_id'] && $routeId && count($stops) > 0) {
-            $position = fleet_estimate_position((int) $row['trip_id'], $routeId, $stops);
-            $positionSource = 'estimated';
-        } elseif ($row['route_lat'] !== null && $row['route_lng'] !== null) {
-            $position = ['lat' => (float) $row['route_lat'], 'lng' => (float) $row['route_lng']];
-            $positionSource = 'route_centroid';
-        } else {
-            $position = fleet_depot_coords();
         }
 
-        $routePath = array_map(fn($s) => [$s['lat'], $s['lng']], $stops);
+        $routePath = array_values(array_map(
+            fn($s) => [$s['lat'], $s['lng']],
+            array_filter($stops, fn($s) => $s['lat'] !== null && $s['lng'] !== null)
+        ));
         if (count($routePath) > 0) {
             $depot = fleet_depot_coords();
             array_unshift($routePath, [$depot['lat'], $depot['lng']]);

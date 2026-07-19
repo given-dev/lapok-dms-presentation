@@ -2,6 +2,7 @@
  * Lapok DMS &mdash; PDF report exchange (Accountant ↔ Manager ↔ Executive)
  */
 let reportExchangeData = null;
+let reportSelectedDate = null;
 const REPORT_FOLLOW_UP_KEY = 'lapok_report_follow_up';
 
 const REPORT_ROLE_LABELS = {
@@ -70,7 +71,7 @@ function reportToast(msg, err) {
   else alert(msg);
 }
 
-async function loadReportExchangePage() {
+async function loadReportExchangePage(date = null) {
   const root = document.getElementById('reportExchangeRoot');
   if (!root || !currentUser) return;
   if (!['accountant', 'manager', 'executive', 'admin'].includes(currentUser.role)) {
@@ -80,25 +81,15 @@ async function loadReportExchangePage() {
 
   root.innerHTML = '<p style="color:var(--gray-mid);padding:1rem">Loading…</p>';
   try {
-    reportExchangeData = await LapokAPI.get('/api/reports/exchange_list.php');
-    if (reportExchangeRole() === 'accountant') {
-      try {
-        const sheetRes = await LapokAPI.get('/api/rdc/fetch_sheet.php?date=' + encodeURIComponent(reportTodayIso()));
-        const st = String(sheetRes.sheet?.status || 'draft');
-        reportExchangeData.balancingSubmitted = ['submitted', 'under_review', 'approved'].includes(st);
-        reportExchangeData.balancingStatus = st;
-      } catch (_) {
-        reportExchangeData.balancingSubmitted = false;
-        reportExchangeData.balancingStatus = 'draft';
-      }
-    }
+    reportSelectedDate = date || reportSelectedDate || reportTodayIso();
+    reportExchangeData = await LapokAPI.get('/api/reports/exchange_list.php?report_date=' + encodeURIComponent(reportSelectedDate));
     renderReportExchange();
   } catch (e) {
     root.innerHTML = `<div class="alert a-danger"><span>⚠</span>${escReport(e.message)}</div>`;
   }
 }
 
-function renderAccountantPackPage() {
+function renderAccountantPackPageLegacy() {
   const root = document.getElementById('reportExchangeRoot');
   if (!root || !reportExchangeData) return;
 
@@ -160,12 +151,59 @@ function renderAccountantPackPage() {
     </div>`;
 }
 
+// Synchronized Accountant view: every upstream daily-close source must be ready.
+function renderAccountantPackPage() {
+  const root = document.getElementById('reportExchangeRoot');
+  if (!root || !reportExchangeData) return;
+  const readiness = reportExchangeData.accountant_readiness || { ready: false, completed: 0, total: 4, items: [] };
+  const reportDate = readiness.report_date || reportSelectedDate || reportTodayIso();
+  const sentPack = (reportExchangeData.outbox || []).find((p) => String(p.report_date || '').slice(0, 10) === reportDate);
+  const missing = (readiness.items || []).filter((item) => !item.ready).length;
+  const checklist = (readiness.items || []).map((item, index) => `
+    <div class="rdc-hub-check-item ${item.ready ? 'done' : 'active'}">
+      <div class="rdc-hub-check-num">${item.ready ? '&#10003;' : index + 1}</div>
+      <div style="min-width:0;flex:1"><div style="font-weight:700;font-size:13px">${escReport(item.label)}</div><div style="font-size:11px;color:var(--gray-mid);margin-top:2px">${escReport(item.status)}</div></div>
+      ${item.ready ? '<span class="badge bs">Done</span>' : `<button class="btn btn-sm" type="button" onclick="reportOpenRequirement('${escReport(item.page)}')">Complete</button>`}
+    </div>`).join('');
+
+  root.innerHTML = `
+    <div class="rdc-bal-toolbar">
+      <button class="btn btn-sm" type="button" onclick="showPage('accountant-rdc-hub')">&larr; Home</button>
+      <span class="chip">Manager finance pack</span>
+      <div class="form-group" style="margin:0 0 0 auto;min-width:170px"><label>Reporting date</label><input class="input" type="date" value="${escReport(reportDate)}" onchange="loadReportExchangePage(this.value)"></div>
+      <button class="btn btn-sm" type="button" onclick="loadReportExchangePage('${escReport(reportDate)}')">Refresh</button>
+    </div>
+    ${!sentPack && !readiness.ready ? `<div class="alert a-warning" style="margin-bottom:1rem"><span>&#9888;</span><div><strong>${missing} daily-close requirement${missing === 1 ? '' : 's'} remaining.</strong> Complete the checklist before sending the manager pack.</div></div>` : ''}
+    ${renderReportChainOverview()}
+    <div class="two-col" style="align-items:start">
+      <div class="card"><div class="card-header"><span class="card-title">Daily close readiness</span><span class="chip">${readiness.completed || 0}/${readiness.total || 4}</span></div><div class="rdc-hub-checklist">${checklist}</div></div>
+      <div>
+        ${sentPack ? `<div class="rdc-hub-primary done" style="display:flex"><div class="rdc-hub-primary-text"><div class="rdc-hub-primary-title">Pack sent for this date</div><div class="rdc-hub-primary-sub">${escReport(sentPack.title || 'Daily pack')} &middot; ${LapokAPI.formatDate(sentPack.sent_at)} ${LapokAPI.formatTime(sentPack.sent_at)}</div></div><button class="btn btn-red" type="button" onclick="reportOpenPdf(${sentPack.id})">View PDF</button></div>` : `<div class="rdc-hub-primary" style="display:flex"><div class="rdc-hub-primary-text"><div class="rdc-hub-primary-title">Send finance pack to manager</div><div class="rdc-hub-primary-sub">Outpost consolidates the verified field, cash, route, and RDC records.</div></div><button class="btn btn-red" type="button" id="acctPackSendBtn" onclick="reportAccountantSendPack()" ${readiness.ready ? '' : 'disabled'}>Send pack now</button></div>`}
+        <div class="card" style="margin-top:1rem"><div class="form-group" style="margin:0"><label>Cover note for manager (optional)</label><textarea class="textarea-inp" id="acctPackNotes" rows="2" placeholder="Explain any variance or decision required"></textarea></div></div>
+        <input type="hidden" id="reportSendDate" value="${escReport(reportDate)}">
+        <details class="rdc-section" style="margin-top:1rem"><summary>Upload your own PDF instead</summary><div class="rdc-section-body"><form id="reportUploadForm" onsubmit="reportUploadAndSend(event)"><input type="hidden" name="report_date" id="reportUploadDate" value="${escReport(reportDate)}"><div class="form-group"><label>Title</label><input class="input" name="title" required></div><div class="form-group"><label>PDF file</label><input class="input" type="file" name="pdf" accept="application/pdf,.pdf" required></div><button type="submit" class="btn btn-sm" ${readiness.ready ? '' : 'disabled'}>Upload &amp; send</button></form></div></details>
+      </div>
+    </div>`;
+}
+
+function renderReportChainOverview() {
+  const status = reportExchangeData?.chain_status;
+  const stages = status?.stages || [];
+  if (!stages.length) return '';
+  return `<div class="card" style="margin-bottom:1rem"><div class="card-header"><span class="card-title">Reporting chain status</span><span class="chip">${LapokAPI.formatDate(status.report_date)}</span></div><div class="rx-chain">${stages.map((stage, index) => `<div class="rx-step ${stage.complete ? 'active' : ''}"><div class="rx-step-label">${stage.complete ? '&#10003; ' : ''}${escReport(stage.label)}</div><div class="rx-step-to">${escReport(stage.status)}</div></div>${index < stages.length - 1 ? '<span class="rx-arrow">&rarr;</span>' : ''}`).join('')}</div></div>`;
+}
+
 function renderReportExchange() {
   const root = document.getElementById('reportExchangeRoot');
   if (!root || !reportExchangeData) return;
 
   if (reportExchangeRole() === 'accountant') {
     renderAccountantPackPage();
+    return;
+  }
+
+  if (reportExchangeRole() === 'manager') {
+    renderManagerReportingDesk();
     return;
   }
 
@@ -218,6 +256,7 @@ function renderReportExchange() {
 
   root.innerHTML = `
     <div class="rx-chain">${chainHtml}</div>
+    ${renderReportChainOverview()}
     ${sendPanel}
     <div class="two-col">
       <div class="card">
@@ -239,6 +278,104 @@ function renderReportExchange() {
   if (sendDate) sendDate.addEventListener('change', () => {
     if (uploadDate) uploadDate.value = sendDate.value;
   });
+}
+
+function renderManagerReportingDesk() {
+  const root = document.getElementById('reportExchangeRoot');
+  if (!root || !reportExchangeData) return;
+  const readiness = reportExchangeData.manager_readiness || { ready: false, completed: 0, total: 6, items: [] };
+  const selectedDate = readiness.report_date || reportSelectedDate || reportTodayIso();
+  reportSelectedDate = selectedDate;
+  const inbox = (reportExchangeData.inbox || []).filter((p) => String(p.report_date || '').slice(0, 10) === selectedDate);
+  const outbox = (reportExchangeData.outbox || []).filter((p) => String(p.report_date || '').slice(0, 10) === selectedDate);
+  const missing = (readiness.items || []).filter((item) => !item.ready).length;
+
+  const checklist = (readiness.items || []).map((item, index) => `
+    <div class="rdc-hub-check-item ${item.ready ? 'done' : 'active'}">
+      <div class="rdc-hub-check-num">${item.ready ? '✓' : index + 1}</div>
+      <div style="min-width:0;flex:1">
+        <div style="font-weight:700;font-size:13px">${escReport(item.label)}</div>
+        <div style="font-size:11px;color:var(--gray-mid);margin-top:2px">${escReport(item.status)}</div>
+      </div>
+      ${item.ready ? '<span class="badge bs">Done</span>' : `<button class="btn btn-sm" type="button" onclick="reportOpenRequirement('${escReport(item.page)}')">Complete</button>`}
+    </div>`).join('');
+
+  root.innerHTML = `
+    <div class="rdc-bal-toolbar">
+      <button class="btn btn-sm" type="button" onclick="showPage('manager-dashboard')">← Dashboard</button>
+      <span class="chip">Manager reporting desk</span>
+      <div class="form-group" style="margin:0 0 0 auto;min-width:170px">
+        <label>Reporting date</label>
+        <input class="input" type="date" id="reportManagerDate" value="${escReport(selectedDate)}" onchange="loadReportExchangePage(this.value)">
+      </div>
+      <button class="btn btn-sm" type="button" onclick="loadReportExchangePage('${escReport(selectedDate)}')">Refresh</button>
+    </div>
+
+    <div class="alert ${readiness.ready ? 'a-success' : 'a-warning'}" style="margin-bottom:1rem">
+      <span>${readiness.ready ? '✓' : '⚠'}</span>
+      <div><strong>${readiness.ready ? 'Executive pack is ready' : `${missing} requirement${missing === 1 ? '' : 's'} remaining`}</strong>
+      <div style="font-size:12px;margin-top:3px">${readiness.completed || 0} of ${readiness.total || 6} reporting checks complete for ${LapokAPI.formatDate(selectedDate)}.</div></div>
+    </div>
+
+    ${renderReportChainOverview()}
+
+    <div class="card" id="managerInboxCard">
+      <div class="card-header"><span class="card-title">1. Review Accountant pack</span>${inbox.some((p) => p.status === 'sent') ? '<span class="badge bd">New</span>' : '<span class="badge bg">Inbox</span>'}</div>
+      <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">Open the finance consolidation first, then approve the RDC daily sheet from the review queue.</p>
+      <div class="tbl-wrap">${renderReportTable(inbox, 'inbox')}</div>
+    </div>
+
+    <div class="two-col" style="align-items:start">
+      <div class="card">
+        <div class="card-header"><span class="card-title">2. Daily readiness</span><span class="chip">${readiness.completed || 0}/${readiness.total || 6}</span></div>
+        <div class="rdc-hub-checklist">${checklist}</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">3. Executive PDF pack</span><span class="chip">Two documents</span></div>
+        <div class="audit-detail-field" style="margin-bottom:8px"><span class="audit-detail-label">Document 1</span><span class="audit-detail-value">Executive operations brief</span><span style="display:block;font-size:11px;color:var(--gray-mid);margin-top:3px">Finance, stock book, sellers, risks, and attention items.</span></div>
+        <div class="audit-detail-field" style="margin-bottom:12px"><span class="audit-detail-label">Document 2</span><span class="audit-detail-value">CCBA boards companion</span><span style="display:block;font-size:11px;color:var(--gray-mid);margin-top:3px">Submitted Inventory and OCCD boards in the executive format.</span></div>
+        <input type="hidden" id="reportSendDate" value="${escReport(selectedDate)}">
+        <div class="form-group"><label>Executive cover note (optional)</label><textarea class="textarea-inp" id="reportSendNotes" rows="2" placeholder="Key issue or decision required…"></textarea></div>
+        <button class="btn btn-red btn-full" type="button" onclick="reportManagerConfirmSend()" ${readiness.ready ? '' : 'disabled'}>Review and send executive pack</button>
+        ${readiness.ready ? '' : '<p style="font-size:11px;color:var(--red);margin-top:7px">Complete every readiness item before sending.</p>'}
+        <details class="rdc-section" style="margin-top:1rem">
+          <summary>Upload a replacement PDF</summary>
+          <div class="rdc-section-body">
+            <form id="reportUploadForm" onsubmit="reportUploadAndSend(event)">
+              <div class="form-group"><label>Title</label><input class="input" name="title" required></div>
+              <div class="form-group"><label>PDF file</label><input class="input" type="file" name="pdf" accept="application/pdf,.pdf" required></div>
+              <input type="hidden" name="report_date" id="reportUploadDate" value="${escReport(selectedDate)}">
+              <button type="submit" class="btn btn-black" ${readiness.ready ? '' : 'disabled'}>Upload and send</button>
+            </form>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">4. Delivery and acknowledgement</span><span class="chip">Executive outbox</span></div>
+      <div class="tbl-wrap">${renderReportTable(outbox, 'outbox')}</div>
+    </div>`;
+}
+
+function reportOpenRequirement(page) {
+  if (page === 'report-exchange') {
+    document.getElementById('managerInboxCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  if (typeof showPage === 'function') showPage(page);
+}
+
+function reportManagerConfirmSend() {
+  const readiness = reportExchangeData?.manager_readiness;
+  if (!readiness?.ready) {
+    reportToast('Complete every reporting requirement before sending.', true);
+    return;
+  }
+  const date = readiness.report_date || reportSelectedDate || reportTodayIso();
+  const dateEl = document.getElementById('managerReportConfirmDate');
+  if (dateEl) dateEl.textContent = LapokAPI.formatDate(date);
+  if (typeof openModal === 'function') openModal('managerReportConfirmModal');
 }
 
 function renderReportTable(packets, mode) {
@@ -281,14 +418,14 @@ function reportOpenPdf(id) {
 }
 
 async function reportAccountantSendPack() {
-  if (!reportExchangeData?.balancingSubmitted) {
-    reportToast('Submit today\'s balancing sheet before sending the pack.', true);
+  if (!reportExchangeData?.accountant_readiness?.ready) {
+    reportToast('Complete every daily-close requirement before sending the pack.', true);
     return;
   }
   const btn = document.getElementById('acctPackSendBtn');
   if (btn) btn.disabled = true;
   const notes = document.getElementById('acctPackNotes')?.value.trim() || '';
-  const reportDate = reportTodayIso();
+  const reportDate = reportExchangeData.accountant_readiness.report_date || reportSelectedDate || reportTodayIso();
   try {
     await LapokAPI.post('/api/reports/generate_pack.php', {
       report_date: reportDate,
@@ -302,12 +439,17 @@ async function reportAccountantSendPack() {
   }
 }
 
-async function reportGenerateAndSend() {
+async function reportGenerateAndSend(confirmed = false) {
   if (!reportCanSend()) return;
+  if (reportExchangeRole() === 'manager' && !confirmed) {
+    reportManagerConfirmSend();
+    return;
+  }
   const reportDate = document.getElementById('reportSendDate')?.value || reportTodayIso();
   const title = document.getElementById('reportSendTitle')?.value.trim() || '';
   const notes = document.getElementById('reportSendNotes')?.value.trim() || '';
   try {
+    if (typeof closeModal === 'function') closeModal('managerReportConfirmModal');
     await LapokAPI.post('/api/reports/generate_pack.php', {
       report_date: reportDate,
       title: title || undefined,
@@ -323,8 +465,8 @@ async function reportGenerateAndSend() {
 async function reportUploadAndSend(event) {
   event.preventDefault();
   if (!reportCanSend()) return;
-  if (reportExchangeRole() === 'accountant' && !reportExchangeData?.balancingSubmitted) {
-    reportToast('Submit today\'s balancing sheet before uploading a pack.', true);
+  if (reportExchangeRole() === 'accountant' && !reportExchangeData?.accountant_readiness?.ready) {
+    reportToast('Complete every daily-close requirement before uploading a pack.', true);
     return;
   }
   const form = event.target;
@@ -368,6 +510,8 @@ window.reportAccountantSendPack = reportAccountantSendPack;
 window.loadReportExchangePage = loadReportExchangePage;
 window.reportOpenPdf = reportOpenPdf;
 window.reportGenerateAndSend = reportGenerateAndSend;
+window.reportManagerConfirmSend = reportManagerConfirmSend;
+window.reportOpenRequirement = reportOpenRequirement;
 window.reportUploadAndSend = reportUploadAndSend;
 window.reportAcknowledge = reportAcknowledge;
 

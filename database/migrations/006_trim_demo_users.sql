@@ -1,4 +1,4 @@
--- Keep only 6 demo users (admin, executive, manager, accountant, cadet, driver)
+-- Keep the six baseline operational accounts.
 USE lapok_dms;
 
 UPDATE vehicles SET driver_id = NULL WHERE driver_id IN (SELECT id FROM users WHERE email IN ('joseph@lapok.ug', 'moses@lapok.ug'));

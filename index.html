@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<script>document.documentElement.classList.add('auth-pending');</script>
 <title>Outpost DMS — Depot Management</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -20,10 +21,12 @@
   --transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
 }
 html,body{height:100%;font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#FFFFFF 0%,#F9FAFB 100%);color:var(--black);font-size:13.5px;letter-spacing:-0.3px}
+.auth-pending .app{visibility:hidden}
 .app{display:flex;min-height:100vh}
 
 /* ── SIDEBAR ── */
-.sidebar{width:var(--sb);background:var(--gradient-dark);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow-y:auto;transition:transform .3s;box-shadow:4px 0 20px rgba(15,23,42,.1)}
+.sidebar{width:var(--sb);background:var(--gradient-dark);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow-y:auto;transform:translateX(-100%);transition:transform .3s;box-shadow:4px 0 20px rgba(15,23,42,.1)}
+.sidebar.open{transform:translateX(0)}
 .sidebar::before{content:'';position:absolute;top:-60px;left:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(229,62,62,.1) 0%,transparent 70%);pointer-events:none}
 .sidebar-logo{padding:1.2rem 1rem 1rem;border-bottom:1px solid rgba(255,255,255,.06)}
 .logo-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
@@ -63,10 +66,11 @@ html,body{height:100%;font-family:'Inter',system-ui,-apple-system,sans-serif;bac
 .role-btn.active{background:linear-gradient(90deg,rgba(229,62,62,.2) 0%,transparent 100%);color:#fff;border-color:rgba(229,62,62,.4);font-weight:600}
 
 /* ── MAIN ── */
-.main{flex:1;margin-left:var(--sb);display:flex;flex-direction:column;min-height:100vh}
+.main{flex:1;margin-left:0;display:flex;flex-direction:column;min-height:100vh;min-width:0}
 .topbar{background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(226,232,240,.5);padding:.9rem 1.8rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;gap:10px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(15,23,42,.04)}
 .topbar-left{display:flex;align-items:center;gap:10px;min-width:0}
-.menu-btn{display:none;background:none;border:1px solid var(--gray-light);border-radius:7px;padding:8px 10px;cursor:pointer;flex-shrink:0;min-height:44px;min-width:44px;align-items:center;justify-content:center}
+.menu-btn{display:flex;background:none;border:1px solid var(--gray-light);border-radius:7px;padding:8px 10px;cursor:pointer;flex-shrink:0;min-height:44px;min-width:44px;align-items:center;justify-content:center;transition:var(--transition)}
+.menu-btn:hover,.menu-btn[aria-expanded="true"]{background:var(--gray-dark);border-color:var(--gray-dark);color:#fff}
 .topbar-title{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .topbar-right{display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
 .tb-chip{display:inline-flex;align-items:center;padding:5px 10px;border-radius:20px;font-size:11.5px;background:var(--surface);border:1px solid var(--gray-light);color:var(--gray);font-weight:500;white-space:nowrap}
@@ -164,7 +168,6 @@ html,body{height:100%;font-family:'Inter',system-ui,-apple-system,sans-serif;bac
 .rdc-hub-pack-view{margin:0 0 1rem;padding:0;list-style:none}
 .rdc-hub-pack-view .btn{width:100%}
 .rdc-finish-today{margin-bottom:1rem;padding:16px;border-radius:var(--rl);border:1px solid #86efac;background:#f0fdf4}
-.rdc-demo-banner{margin-bottom:1rem}
 .rdc-hub-cash-nudge-text{flex:1;min-width:180px;font-size:13px}
 .rdc-hub-cash-nudge-text strong{display:block;font-size:14px;margin-bottom:2px}
 .metric-card.rdc-variance-ok{border-color:#86efac;background:#f0fdf4}
@@ -350,6 +353,20 @@ tr:hover td{background:rgba(0,0,0,.012)}
 .modal-handle{width:44px;height:4px;background:linear-gradient(90deg,transparent 0%,var(--gray-light) 50%,transparent 100%);border-radius:2px;margin:0 auto 1.3rem}
 .modal-title{font-size:16px;font-weight:700;margin-bottom:1.2rem;letter-spacing:-0.3px;color:var(--black)}
 .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:1.4rem;border-top:1px solid rgba(226,232,240,.5);padding-top:1.2rem}
+.audit-detail{display:grid;gap:14px}
+.audit-detail-hero{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--gray-light);border-radius:12px;background:var(--surface)}
+.audit-detail-icon{width:42px;height:42px;display:flex;align-items:center;justify-content:center;flex:0 0 42px;border-radius:11px;background:var(--black);color:#fff;font-size:18px;font-weight:700;text-transform:uppercase}
+.audit-detail-action{font-size:15px;font-weight:700;color:var(--black);text-transform:capitalize}
+.audit-detail-sub{margin-top:3px;color:var(--gray);font-size:12px}
+.audit-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.audit-detail-field{padding:11px 12px;border:1px solid var(--gray-light);border-radius:10px;background:#fff;min-width:0}
+.audit-detail-label{display:block;margin-bottom:4px;color:var(--gray-mid);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.audit-detail-value{display:block;color:var(--black);font-size:12px;font-weight:600;overflow-wrap:anywhere}
+.audit-change-title{font-size:12px;font-weight:700;color:var(--black);margin-bottom:7px}
+.audit-change-table{width:100%;min-width:0}
+.audit-change-table th,.audit-change-table td{padding:8px 9px;vertical-align:top;overflow-wrap:anywhere}
+.audit-change-table td{font-size:11px}
+.audit-change-empty{padding:14px;border:1px dashed var(--gray-light);border-radius:10px;background:var(--surface);color:var(--gray);font-size:12px;line-height:1.5}
 
 /* ── MISC ── */
 .receipt-box{font-family:'Courier New',monospace;font-size:11.5px;background:#fafafa;border:1px solid var(--gray-light);padding:1rem;border-radius:8px;line-height:1.9;white-space:pre-wrap;color:#1a1a1a}
@@ -445,7 +462,7 @@ canvas{display:block;width:100%!important}
 @media(max-width:1023px){:root{--sb:240px}.metric-grid{grid-template-columns:repeat(3,1fr);gap:10px}.two-col{grid-template-columns:1fr 1fr;gap:1rem}.three-col{grid-template-columns:1fr 1fr;gap:1rem}.topbar{padding:0.65rem 1.2rem;font-size:13px}.content{padding:1.2rem}.card{padding:1rem 1.2rem}table{min-width:380px;font-size:12px}th,td{padding:7px 8px}.metric-value{font-size:20px}.metric-label{font-size:9px}.metric-sub{font-size:10px}}
 
 /* 768px: Tablet Portrait */
-@media(max-width:768px){:root{--sb:0px}.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-btn{display:flex}.topbar{padding:0.6rem 1rem;font-size:13px}.topbar-left{flex:1}.topbar-right{order:3;width:100%;margin-top:0.5rem;justify-content:flex-end}.content{padding:1rem}.card{padding:1rem}.card-header{gap:6px}.card-title{font-size:12.5px}.two-col,.three-col{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.metric-grid{grid-template-columns:repeat(3,1fr);gap:9px}.metric-card{padding:0.9rem}.metric-value{font-size:18px}.metric-label{font-size:9px}.metric-sub{font-size:10px}table{min-width:350px;font-size:12px}th,td{padding:6px 8px}.tb-chip.hide-sm{display:none}.btn{padding:7px 12px;font-size:12px;min-height:40px}.btn-sm{padding:5px 10px;min-height:36px}.input,.select-inp,.textarea-inp{font-size:12px;min-height:40px;padding:7px 10px}.qty-inp{min-height:36px;font-size:12px;width:60px}.topbar-title{font-size:14px}html,body{font-size:13px}}
+@media(max-width:768px){:root{--sb:240px}.main{margin-left:0}.topbar{padding:0.6rem 1rem;font-size:13px}.topbar-left{flex:1}.topbar-right{order:3;width:100%;margin-top:0.5rem;justify-content:flex-end}.content{padding:1rem}.card{padding:1rem}.card-header{gap:6px}.card-title{font-size:12.5px}.two-col,.three-col{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.metric-grid{grid-template-columns:repeat(3,1fr);gap:9px}.metric-card{padding:0.9rem}.metric-value{font-size:18px}.metric-label{font-size:9px}.metric-sub{font-size:10px}table{min-width:350px;font-size:12px}th,td{padding:6px 8px}.tb-chip.hide-sm{display:none}.btn{padding:7px 12px;font-size:12px;min-height:40px}.btn-sm{padding:5px 10px;min-height:36px}.input,.select-inp,.textarea-inp{font-size:12px;min-height:40px;padding:7px 10px}.qty-inp{min-height:36px;font-size:12px;width:60px}.topbar-title{font-size:14px}html,body{font-size:13px}}
 
 /* 640px: Tablet Portrait — Optimized */
 @media(max-width:640px){.metric-grid{grid-template-columns:repeat(2,1fr);gap:8px}.metric-card{padding:0.85rem}.metric-value{font-size:17px}.content{padding:0.9rem}.card{padding:0.95rem 1rem}table{min-width:300px;font-size:11.5px}th,td{padding:6px 7px}.topbar{padding:0.55rem 0.9rem}.btn-group{gap:6px}.btn{padding:6px 11px;font-size:11.5px}.form-row{gap:8px;margin-bottom:8px}.vehicle-card{padding:12px}.vehicle-icon{width:40px;height:40px;font-size:20px}.modal{padding:1.2rem;border-radius:14px 14px 0 0}.modal-title{font-size:14px}}
@@ -465,16 +482,16 @@ canvas{display:block;width:100%!important}
 <div class="app">
 
 <!-- SIDEBAR -->
-<div class="sidebar" id="sidebar">
+<div class="sidebar" id="sidebar" onmouseleave="closeSidebarOnLeave()">
   <div class="sidebar-logo">
     <div class="logo-top">
       <div class="logo-mark"><img src="assets/img/outpost-dms-logo.png" alt="Outpost DMS"></div>
       <div><div class="logo-text">Outpost DMS</div><div class="logo-sub">Depot Management</div></div>
     </div>
     <div class="user-card" style="cursor:pointer" onclick="openModal('profileModal')" title="Profile & password">
-      <div class="user-name" id="sidebarName">John Okello</div>
-      <div class="user-email" id="sidebarEmail">admin@ccoutlet.ug</div>
-      <span class="role-pill rp-admin" id="roleBadge">Admin</span>
+      <div class="user-name" id="sidebarName">Loading account&hellip;</div>
+      <div class="user-email" id="sidebarEmail">&mdash;</div>
+      <span class="role-pill rp-admin" id="roleBadge">&mdash;</span>
     </div>
   </div>
   <div id="navMenu"></div>
@@ -487,7 +504,7 @@ canvas{display:block;width:100%!important}
 <div class="main">
 <div class="topbar">
   <div class="topbar-left">
-    <button class="menu-btn" onclick="openSidebar()">
+    <button class="menu-btn" id="sidebarMenuButton" type="button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false" onclick="toggleSidebar()" onmouseenter="scheduleSidebarPreview()" onmouseleave="cancelSidebarPreview()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
     <span class="topbar-title" id="topbarTitle">Dashboard</span>
@@ -610,6 +627,13 @@ canvas{display:block;width:100%!important}
     <tr><th>Name</th><th>Role</th><th>National ID</th><th>Phone</th><th>Vehicle assigned</th><th>Active</th><th>Actions</th></tr>
     <tr><td colspan="7" style="text-align:center;color:var(--gray-mid)">Loading users…</td></tr>
   </table></div></div>
+  <div class="card" id="adminVehicleAssignmentCard" style="margin-top:1rem">
+    <div class="card-header">
+      <div><span class="card-title">Weekly cadet, vehicle &amp; route assignments</span><div style="font-size:12px;color:var(--gray-mid);margin-top:4px">Only the main Admin can change these recurring Monday&ndash;Saturday assignments. Managers use them during dispatch.</div></div>
+      <button class="btn btn-sm" type="button" onclick="loadVehicleAssignments()">Refresh</button>
+    </div>
+    <div class="tbl-wrap"><table id="vehicleAssignmentTable"><tr><td style="color:var(--gray-mid)">Loading assignments&hellip;</td></tr></table></div>
+  </div>
 </div>
 
 <!-- ADMIN EDIT REQUESTS -->
@@ -839,7 +863,7 @@ canvas{display:block;width:100%!important}
           <div id="rdcHubDeliveryConfirmMsg" style="font-size:12px;margin-top:2px">Loading…</div>
         </div>
       </div>
-      <div id="directorBriefWidget" style="margin-top:1rem;font-size:13px"></div>
+      <div id="accountantDirectorBriefWidget" style="margin-top:1rem;font-size:13px"></div>
     </div>
   </details>
 
@@ -868,8 +892,6 @@ canvas{display:block;width:100%!important}
     <span class="chip" id="rdcMetaLine">Loading…</span>
     <span class="badge bw" id="rdcStatusBadge" style="margin-left:auto">draft</span>
   </div>
-
-  <div class="alert a-info rdc-demo-banner" id="rdcDemoBanner" style="display:none"><span>ℹ</span><div><strong>Training data</strong> — sample/demo entry. Replace with real figures before submit.</div></div>
 
   <div id="rdcFinishToday" class="rdc-finish-today" style="display:none">
     <div class="alert a-success" style="margin:0"><span>✓</span><div><strong>Balancing submitted</strong><div style="font-size:13px;margin-top:4px">Manager will review your sheet. You can still open it read-only, or send today's pack.</div></div></div>
@@ -902,7 +924,7 @@ canvas{display:block;width:100%!important}
 
   <div class="rdc-wizard-head" id="rdcWizardHead">
     <div class="rdc-wizard-title" id="rdcWizardTitle">Step 1 of 3 — Sales</div>
-    <div class="rdc-wizard-sub" id="rdcWizardSub">Use sample data to practice, or import from depot orders.</div>
+    <div class="rdc-wizard-sub" id="rdcWizardSub">Enter verified figures or import sales from depot orders.</div>
   </div>
 
   <div class="alert a-info" id="rdcReadOnlyBanner" style="display:none"><span>ℹ</span><div id="rdcReadOnlyText">This sheet is read-only.</div></div>
@@ -925,6 +947,9 @@ canvas{display:block;width:100%!important}
       <div class="card-header"><span class="card-title">Cash balance</span></div>
       <div class="form-group"><label>Expected cash (UGX)</label><input class="input" type="number" id="rdcExpected" min="0" step="1" placeholder="Auto-filled on save"></div>
       <div class="tbl-wrap"><table><thead id="rdcCashActualHead"></thead><tbody><tr id="rdcCashActualRow"></tr></tbody></table></div>
+      <div style="font-size:12px;font-weight:700;margin:1rem 0 .5rem">Cadet cash reconciliation</div>
+      <p style="font-size:11px;color:var(--gray-mid);margin:0 0 .7rem">Expected cash is calculated from vehicle sales and recoveries, less operational expenses. Shortage/excess is shown as a result and cannot hide missing cash.</p>
+      <div class="tbl-wrap"><table><thead><tr><th>Vehicle</th><th>Sales</th><th>Expenses</th><th>Expected</th><th>Handed over</th><th>Result</th></tr></thead><tbody id="rdcCadetCashReconBody"></tbody></table></div>
     </div>
     <details class="rdc-section">
       <summary>Optional — recovery &amp; cash out</summary>
@@ -948,7 +973,7 @@ canvas{display:block;width:100%!important}
         <div class="metric-card hi"><div class="metric-label">Grand total</div><div class="metric-value" id="rdcTotGrand">0</div></div>
         <div class="metric-card"><div class="metric-label">Expenses</div><div class="metric-value" id="rdcTotExpenses">0</div></div>
         <div class="metric-card"><div class="metric-label">Actual cash</div><div class="metric-value" id="rdcTotActual">0</div></div>
-        <div class="metric-card" id="rdcVarianceCard"><div class="metric-label">Variance</div><div class="metric-value" id="rdcTotVariance">0</div></div>
+        <div class="metric-card" id="rdcVarianceCard"><div class="metric-label">Cash missing / excess</div><div class="metric-value" id="rdcTotVariance">0</div></div>
       </div>
       <div style="display:none"><span id="rdcTotSales">0</span><span id="rdcTotRecovery">0</span></div>
     </div>
@@ -964,7 +989,6 @@ canvas{display:block;width:100%!important}
     <span style="font-size:12px;color:var(--gray-mid);margin-right:auto" id="rdcStickyHint">—</span>
     <span style="font-size:11px;color:var(--gray-mid)" id="rdcAutoSaveHint"></span>
     <div id="rdcActions" style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-sm" type="button" id="rdcSampleStickyBtn" onclick="rdcFillSampleData()">Sample data</button>
       <button class="btn btn-sm" type="button" id="rdcImportStickyBtn" onclick="rdcSuggestSales()">Import sales</button>
       <button class="btn btn-sm" type="button" onclick="rdcSaveSheet()">Save</button>
       <button class="btn btn-sm" type="button" id="rdcMgrSaveBtn" onclick="rdcSaveSheet()" style="display:none">Save corrections</button>
@@ -1561,17 +1585,7 @@ canvas{display:block;width:100%!important}
 <div class="page" id="page-user-customers">
   <div class="btn-group"><button class="btn btn-red" onclick="openModal('addCustModal')">+ Add customer</button></div>
   <div style="margin-bottom:.8rem"><input class="input" type="text" placeholder="Search customers…" oninput="searchCustomers(this.value)"></div>
-  <div id="customerList">
-    <div class="cust-card" onclick="selectCustomer(this,'Nandos Supermarket','+256 772 555 001','Kampala Road, Shop 14')">
-      <div style="display:flex;justify-content:space-between;gap:8px"><div><div class="cust-name">Nandos Supermarket</div><div class="cust-detail">+256 772 555 001 · Kampala Road, Shop 14</div><div class="cust-detail" style="margin-top:3px">Last: 07 May — 200,000 · Total: UGX 3,400,000</div></div><span class="badge bs">Regular</span></div>
-    </div>
-    <div class="cust-card" onclick="selectCustomer(this,'Owino Market','—','Owino Market, Stall 22')">
-      <div style="display:flex;justify-content:space-between;gap:8px"><div><div class="cust-name">Owino Market</div><div class="cust-detail">— · Owino Market, Stall 22</div><div class="cust-detail" style="margin-top:3px">Last: 06 May — 160,000 · Total: UGX 1,200,000</div></div><span class="badge bg">Occasional</span></div>
-    </div>
-    <div class="cust-card" onclick="selectCustomer(this,'Katwe Shop','+256 701 334 455','Katwe Main St')">
-      <div style="display:flex;justify-content:space-between;gap:8px"><div><div class="cust-name">Katwe Shop</div><div class="cust-detail">+256 701 334 455 · Katwe Main St</div><div class="cust-detail" style="margin-top:3px">Last: 07 May — 120,000 · Total: UGX 800,000</div></div><span class="badge bg">Occasional</span></div>
-    </div>
-  </div>
+  <div id="customerList"><p style="color:var(--gray-mid)">Loading customers&hellip;</p></div>
 </div>
 
 <div class="page" id="page-user-route">
@@ -1625,7 +1639,7 @@ canvas{display:block;width:100%!important}
     <div class="metric-card"><div class="metric-label">Sales / cash</div><div class="metric-value" id="cadetDashSalesCash">—</div><div class="metric-sub" id="cadetDashSalesSub">After submit</div></div>
   </div>
   <div class="card" id="cadetDashNotifCard" style="margin-top:1rem;display:none">
-    <div class="card-header"><span class="card-title">Messages from depot</span><button class="btn btn-sm" type="button" onclick="openNotifModal()">View all</button></div>
+    <div class="card-header"><span class="card-title">Messages from depot</span><button class="btn btn-sm" type="button" onclick="openMessagesModal()">View all</button></div>
     <div id="cadetDashNotifList"><p style="color:var(--gray-mid);font-size:13px">Loading…</p></div>
   </div>
   <div class="card" style="margin-top:1rem">
@@ -1764,16 +1778,7 @@ canvas{display:block;width:100%!important}
 </div>
 
 <div class="page" id="page-user-returns">
-  <div class="card"><div class="card-header"><span class="card-title">Return unsold stock — TUK-001</span></div>
-    <div class="tbl-wrap"><table style="margin-bottom:1rem">
-      <tr><th>Product</th><th>Loaded</th><th>Sold</th><th>Returning</th></tr>
-      <tr><td>Coke 500ml</td><td>15</td><td>12</td><td><input class="qty-inp" type="number" value="3"></td></tr>
-      <tr><td>Fanta Orange</td><td>10</td><td>8</td><td><input class="qty-inp" type="number" value="2"></td></tr>
-      <tr><td>Novida</td><td>10</td><td>6</td><td><input class="qty-inp" type="number" value="4"></td></tr>
-      <tr><td>Sprite 500ml</td><td>5</td><td>2</td><td><input class="qty-inp" type="number" value="3"></td></tr>
-    </table></div>
-    <button class="btn btn-red" onclick="alert('Returns logged. Warehouse updated. Manager notified.')">Submit returns</button>
-  </div>
+  <div class="alert a-info"><span>ℹ</span><div>Unsold stock is recorded from the live end-of-day report for the assigned trip.</div></div>
 </div>
 
 </div></div></div>
@@ -1811,15 +1816,16 @@ canvas{display:block;width:100%!important}
 <div class="modal-overlay" id="auditDetailModal"><div class="modal">
   <div class="modal-handle"></div>
   <div class="modal-title">Audit entry details</div>
-  <pre id="auditDetailBody" style="max-height:360px;overflow:auto;background:#0F172A;color:#E2E8F0;padding:.8rem;border-radius:10px;font-size:11px;line-height:1.5"></pre>
+  <div id="auditDetailBody" class="audit-detail"></div>
   <div class="modal-actions"><button class="btn" onclick="closeModal('auditDetailModal')">Close</button></div>
 </div></div>
 
 <div class="modal-overlay" id="dispatchModal"><div class="modal">
   <div class="modal-handle"></div>
   <div class="modal-title">Dispatch vehicle</div>
-  <div class="form-row"><div class="form-group"><label>Vehicle</label><select class="select-inp" id="dispatchVehicle"><option value="">Loading…</option></select></div><div class="form-group" id="dispatchCadetGroup"><label>Cadet / rider</label><select class="select-inp" id="dispatchCadet"><option value="">—</option></select></div></div>
-  <div class="form-group"><label>Area / market (optional)</label><input class="input" id="dispatchRouteArea" placeholder="e.g. Owino / Katwe"></div>
+  <div class="alert a-info"><span>ℹ</span><div>Cadet and route are taken from the main Admin's assignment for today and cannot be changed during dispatch.</div></div>
+  <div class="form-row"><div class="form-group"><label>Vehicle</label><select class="select-inp" id="dispatchVehicle"><option value="">Loading…</option></select></div><div class="form-group" id="dispatchCadetGroup"><label>Assigned cadet / rider</label><input class="input" id="dispatchCadetName" readonly value="Select a vehicle"></div></div>
+  <input type="hidden" id="dispatchCadet"><div class="form-group"><label>Today's assigned route</label><textarea class="textarea-inp" id="dispatchRouteArea" rows="2" readonly placeholder="Select a vehicle"></textarea></div>
   <div class="tbl-wrap"><table style="margin-bottom:.8rem;min-width:280px"><tr><th>Product</th><th>In warehouse</th><th>Crates to load</th></tr>
     <tbody id="dispatchLoadBody"><tr><td colspan="3" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr></tbody>
   </table></div>
@@ -1889,6 +1895,37 @@ canvas{display:block;width:100%!important}
   <div id="notifList"><p style="color:var(--gray-mid);font-size:13px">Loading…</p></div>
   <div id="notifSendForm" style="display:none"></div>
   <div class="modal-actions"><button class="btn" type="button" onclick="closeModal('notifModal')">Close</button><button class="btn btn-red" type="button" onclick="dismissAllNotifs()">Mark all read</button></div>
+</div></div>
+
+<div class="modal-overlay" id="messagesModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Messages</div>
+  <div id="messagesList"><p style="color:var(--gray-mid);font-size:13px">Loading…</p></div>
+  <div class="modal-actions"><button class="btn" type="button" onclick="closeModal('messagesModal')">Close</button></div>
+</div></div>
+
+<div class="modal-overlay" id="notificationDetailModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title" id="notificationDetailTitle">Message</div>
+  <div class="audit-detail-field" style="margin-bottom:10px"><span class="audit-detail-label">From</span><span class="audit-detail-value" id="notificationDetailFrom">—</span></div>
+  <div class="audit-detail-field" style="margin-bottom:10px"><span class="audit-detail-label">Received</span><span class="audit-detail-value" id="notificationDetailWhen">—</span></div>
+  <div class="audit-change-empty" id="notificationDetailBody" style="white-space:pre-wrap;color:var(--black);border-style:solid"></div>
+  <div class="modal-actions"><button class="btn" type="button" onclick="closeModal('notificationDetailModal')">Close</button></div>
+</div></div>
+
+<div class="modal-overlay" id="managerReportConfirmModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Send executive PDF pack?</div>
+  <div class="alert a-warning"><span>⚠</span><div><strong>Final reporting action</strong><div style="font-size:12px;margin-top:3px">This will generate and send two documents to the Executive / Board inbox.</div></div></div>
+  <div class="audit-detail-grid" style="margin-top:12px">
+    <div class="audit-detail-field"><span class="audit-detail-label">Reporting date</span><span class="audit-detail-value" id="managerReportConfirmDate">—</span></div>
+    <div class="audit-detail-field"><span class="audit-detail-label">Recipient</span><span class="audit-detail-value">Executive / Board</span></div>
+  </div>
+  <div style="margin-top:12px">
+    <div class="audit-detail-field" style="margin-bottom:8px"><span class="audit-detail-label">Document 1</span><span class="audit-detail-value">Executive operations brief</span></div>
+    <div class="audit-detail-field"><span class="audit-detail-label">Document 2</span><span class="audit-detail-value">CCBA boards companion</span></div>
+  </div>
+  <div class="modal-actions"><button class="btn" type="button" onclick="closeModal('managerReportConfirmModal')">Cancel</button><button class="btn btn-red" type="button" onclick="reportGenerateAndSend(true)">Generate and send both</button></div>
 </div></div>
 
 <div class="modal-overlay" id="rdcEditCadetReportModal"><div class="modal" style="max-width:720px">
@@ -2009,15 +2046,36 @@ function showPage(id){
   window.scrollTo(0,0);
 }
 
-function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebarOverlay').classList.add('show')}
-function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('show')}
+let sidebarPinned=false;
+let sidebarPreviewTimer=null;
+function setSidebarState(open){
+  document.getElementById('sidebar').classList.toggle('open',open);
+  document.getElementById('sidebarOverlay').classList.toggle('show',open);
+  const button=document.getElementById('sidebarMenuButton');
+  if(button)button.setAttribute('aria-expanded',open?'true':'false');
+}
+function openSidebar(pin=true){if(pin)sidebarPinned=true;setSidebarState(true)}
+function scheduleSidebarPreview(){
+  cancelSidebarPreview();
+  sidebarPreviewTimer=setTimeout(()=>openSidebar(false),180);
+}
+function cancelSidebarPreview(){if(sidebarPreviewTimer){clearTimeout(sidebarPreviewTimer);sidebarPreviewTimer=null}}
+function toggleSidebar(){
+  cancelSidebarPreview();
+  const isOpen=document.getElementById('sidebar').classList.contains('open');
+  if(isOpen&&sidebarPinned){closeSidebar();return}
+  sidebarPinned=true;setSidebarState(true);
+}
+function closeSidebar(){sidebarPinned=false;setSidebarState(false)}
+function closeSidebarOnLeave(){if(!sidebarPinned)setSidebarState(false)}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSidebar()});
 function openModal(id){document.getElementById(id).classList.add('open')}
 function closeModal(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}));
 
 function confirmSale(btn){btn.textContent='✓ Done';btn.className='btn btn-sm';btn.disabled=true;btn.closest('tr').style.opacity='.5'}
 function approveReq(btn,action){
-  // Demo fallback — live app.js overrides this with the API-backed version.
+  // Static fallback; live app.js replaces this with the API-backed action.
   const row=btn.closest('tr');row.style.opacity='.5';
   row.querySelectorAll('button').forEach(b=>b.disabled=true);
   const last=row.cells[row.cells.length-1];
@@ -2232,23 +2290,22 @@ setInterval(refreshTopbarClock,1000);
 window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementById('page-admin-dashboard').classList.contains('active'))setTimeout(drawCharts,150)});
 
 </script>
-<script src="assets/app.js?v=20260716r"></script>
-<script src="assets/phase45.js?v=20260716q"></script>
-<script src="assets/integration-placeholders.js?v=20260713e"></script>
-<script src="assets/report-exchange.js?v=20260716a"></script>
+<script src="assets/app.js?v=20260719a"></script>
+<script src="assets/phase45.js?v=20260719a"></script>
+<script src="assets/report-exchange.js?v=20260719c"></script>
 <script src="assets/manager-ops.js?v=20260716r"></script>
 <script src="assets/occd-boards.js?v=20260716g"></script>
 <script src="assets/ccba.js?v=20260716a"></script>
-<script src="assets/rdc-balancing.js?v=20260716m"></script>
+<script src="assets/rdc-balancing.js?v=20260719d"></script>
 <script src="assets/cash-handover.js?v=20260713b"></script>
 <script src="assets/rdc-hub.js?v=20260713d"></script>
 <script src="assets/rdc-review.js?v=20260716a"></script>
 <script src="assets/accountant-improvements.js?v=20260716a"></script>
 <script src="assets/accountant-welfare.js?v=20260716a"></script>
-<script src="assets/notifications.js?v=20260713k"></script>
+<script src="assets/notifications.js?v=20260719b"></script>
 <script src="assets/cadet-dashboard.js?v=20260708j"></script>
 <script src="assets/cadet-daily.js?v=20260716m"></script>
 <script src="assets/depot-snapshots.js?v=20260716t"></script>
-<script src="assets/director-brief.js?v=20260713i"></script>
+<script src="assets/director-brief.js?v=20260719d"></script>
 </body>
 </html>

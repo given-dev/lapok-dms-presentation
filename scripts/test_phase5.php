@@ -30,7 +30,11 @@ try {
         "SELECT p.name, SUM(oi.qty) cartons FROM order_items oi
          JOIN products p ON p.id = oi.product_id GROUP BY p.id ORDER BY cartons DESC LIMIT 1"
     )->fetch();
-    echo "[OK] Top product: {$topProduct['name']} ({$topProduct['cartons']} cartons)\n";
+    if ($topProduct) {
+        echo "[OK] Top product: {$topProduct['name']} ({$topProduct['cartons']} cartons)\n";
+    } else {
+        echo "[OK] Top product: no recorded sales yet\n";
+    }
 
     $vehiclePerf = (int) $pdo->query(
         'SELECT COUNT(DISTINCT vehicle_id) FROM orders WHERE vehicle_id IS NOT NULL'

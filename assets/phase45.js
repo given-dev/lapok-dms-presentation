@@ -480,8 +480,104 @@ function showAuditDetail(index) {
   if (!item) return;
   const el = document.getElementById('auditDetailBody');
   if (!el) return;
-  el.textContent = JSON.stringify(item, null, 2);
+
+  const action = String(item.action || 'activity').replace(/_/g, ' ');
+  const record = `${item.table_name || 'System'}${item.record_id ? ` #${item.record_id}` : ''}`;
+  const when = `${LapokAPI.formatDate(item.created_at)} at ${LapokAPI.formatTime(item.created_at)}`;
+
+  el.replaceChildren();
+
+  const hero = document.createElement('div');
+  hero.className = 'audit-detail-hero';
+  const icon = document.createElement('div');
+  icon.className = 'audit-detail-icon';
+  icon.textContent = action.charAt(0) || 'A';
+  const heroCopy = document.createElement('div');
+  const actionEl = document.createElement('div');
+  actionEl.className = 'audit-detail-action';
+  actionEl.textContent = action;
+  const sub = document.createElement('div');
+  sub.className = 'audit-detail-sub';
+  sub.textContent = `${item.user_name || 'System'} performed this action on ${record}.`;
+  heroCopy.append(actionEl, sub);
+  hero.append(icon, heroCopy);
+  el.appendChild(hero);
+
+  const grid = document.createElement('div');
+  grid.className = 'audit-detail-grid';
+  [
+    ['User', item.user_name || 'System'],
+    ['Date and time', when],
+    ['Record', record],
+    ['Audit entry', `#${item.id}`],
+  ].forEach(([label, value]) => {
+    const field = document.createElement('div');
+    field.className = 'audit-detail-field';
+    const labelEl = document.createElement('span');
+    labelEl.className = 'audit-detail-label';
+    labelEl.textContent = label;
+    const valueEl = document.createElement('span');
+    valueEl.className = 'audit-detail-value';
+    valueEl.textContent = value;
+    field.append(labelEl, valueEl);
+    grid.appendChild(field);
+  });
+  el.appendChild(grid);
+
+  const oldValues = item.old_values && typeof item.old_values === 'object' ? item.old_values : {};
+  const newValues = item.new_values && typeof item.new_values === 'object' ? item.new_values : {};
+  const keys = Array.from(new Set([...Object.keys(oldValues), ...Object.keys(newValues)]));
+  const changes = document.createElement('div');
+  const title = document.createElement('div');
+  title.className = 'audit-change-title';
+  title.textContent = 'Recorded changes';
+  changes.appendChild(title);
+
+  if (!keys.length) {
+    const empty = document.createElement('div');
+    empty.className = 'audit-change-empty';
+    empty.textContent = ['login', 'logout'].includes(item.action)
+      ? 'No record fields were changed. This entry confirms account activity only.'
+      : 'No before-and-after field values were stored for this event.';
+    changes.appendChild(empty);
+  } else {
+    const wrap = document.createElement('div');
+    wrap.className = 'tbl-wrap';
+    const table = document.createElement('table');
+    table.className = 'audit-change-table';
+    const head = document.createElement('tr');
+    ['Field', 'Before', 'After'].forEach((text) => {
+      const th = document.createElement('th');
+      th.textContent = text;
+      head.appendChild(th);
+    });
+    table.appendChild(head);
+    keys.forEach((key) => {
+      const row = document.createElement('tr');
+      const values = [
+        key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+        auditDisplayValue(oldValues[key]),
+        auditDisplayValue(newValues[key]),
+      ];
+      values.forEach((value) => {
+        const td = document.createElement('td');
+        td.textContent = value;
+        row.appendChild(td);
+      });
+      table.appendChild(row);
+    });
+    wrap.appendChild(table);
+    changes.appendChild(wrap);
+  }
+  el.appendChild(changes);
   openModal('auditDetailModal');
+}
+
+function auditDisplayValue(value) {
+  if (value === null || value === undefined || value === '') return 'Not recorded';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
 }
 
 function initAuditFilters() {
@@ -504,8 +600,54 @@ async function loadUsersTable() {
     const d = await LapokAPI.get('/api/users/fetch_users.php');
     adminUsersCache = d.users || [];
     applyUsersFilter();
-    if (!isExec) hydrateUserVehicleOptions();
+    if (!isExec) {
+      hydrateUserVehicleOptions();
+      loadVehicleAssignments();
+    }
   } catch (e) { console.warn('Users:', e.message); }
+}
+
+const assignmentDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+async function loadVehicleAssignments() {
+  const table = document.getElementById('vehicleAssignmentTable');
+  if (!table || currentUser?.role !== 'admin') return;
+  try {
+    const data = await LapokAPI.get('/api/assignments/fetch.php');
+    const grouped = {};
+    (data.assignments || []).forEach((row) => {
+      const id = Number(row.vehicle_id);
+      if (!grouped[id]) grouped[id] = { vehicle_id: id, registration: row.registration, vehicle_type: row.vehicle_type, cadet_id: row.cadet_id || '', routes: {} };
+      if (row.day_of_week) grouped[id].routes[Number(row.day_of_week)] = row.route_area || '';
+      if (row.cadet_id) grouped[id].cadet_id = row.cadet_id;
+    });
+    const cadetOptions = (selected) => '<option value="">Unassigned</option>' + (data.cadets || []).map((c) =>
+      `<option value="${c.id}" ${Number(selected) === Number(c.id) ? 'selected' : ''}>${escMgr(c.full_name)}</option>`
+    ).join('');
+    const rows = Object.values(grouped).map((v) => `<tr>
+      <td><strong>${escMgr(v.registration)}</strong><div style="font-size:11px;color:var(--gray-mid)">${escMgr(v.vehicle_type)}</div></td>
+      <td><select class="select-inp" id="assignCadet${v.vehicle_id}">${cadetOptions(v.cadet_id)}</select></td>
+      ${assignmentDays.map((day, i) => `<td><textarea class="textarea-inp" aria-label="${day} route" id="assignRoute${v.vehicle_id}_${i + 1}" rows="4" style="min-width:170px">${escMgr(v.routes[i + 1] || '')}</textarea></td>`).join('')}
+      <td><button class="btn btn-sm btn-red" type="button" onclick="saveVehicleAssignment(${v.vehicle_id}, this)">Save</button></td>
+    </tr>`).join('');
+    table.innerHTML = `<tr><th>Vehicle</th><th>Cadet</th>${assignmentDays.map((d, i) => `<th>${d}${Number(data.today_day_number) === i + 1 ? ' (today)' : ''}</th>`).join('')}<th>Action</th></tr>${rows || '<tr><td colspan="9">No active vehicles found.</td></tr>'}`;
+  } catch (e) {
+    table.innerHTML = `<tr><td style="color:var(--red)">${escMgr(e.message || 'Could not load assignments')}</td></tr>`;
+  }
+}
+
+async function saveVehicleAssignment(vehicleId, button) {
+  const routes = {};
+  assignmentDays.forEach((_, i) => { routes[String(i + 1)] = document.getElementById(`assignRoute${vehicleId}_${i + 1}`)?.value.trim() || ''; });
+  const cadetId = document.getElementById(`assignCadet${vehicleId}`)?.value || null;
+  const restore = typeof mgrSetBusy === 'function' ? mgrSetBusy(button, 'Saving...') : () => {};
+  try {
+    await LapokAPI.post('/api/assignments/save.php', { vehicle_id: vehicleId, cadet_id: cadetId, routes });
+    adminToast('Vehicle, cadet and routes assigned');
+    await loadUsersTable();
+  } catch (e) {
+    adminToast(e.message || 'Could not save assignment', true);
+  } finally { restore(); }
 }
 
 function applyUsersFilter() {

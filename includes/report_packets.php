@@ -33,6 +33,164 @@ function report_next_recipient(string $role): ?string
     };
 }
 
+/** Manager prerequisites for sending the selected day's executive PDF pack. */
+function report_manager_readiness(string $date): array
+{
+    $pdo = db();
+    $packStmt = $pdo->prepare(
+        "SELECT id, status, sent_at, read_at FROM report_packets
+         WHERE report_date = ? AND report_type = 'accountant_pack' AND to_role = 'manager'
+         ORDER BY sent_at DESC LIMIT 1"
+    );
+    $packStmt->execute([$date]);
+    $pack = $packStmt->fetch() ?: null;
+    $packReviewed = $pack && in_array((string) $pack['status'], ['read', 'acknowledged'], true);
+
+    $rdcStmt = $pdo->prepare('SELECT id, status, variance FROM rdc_daily_sheets WHERE balance_date = ? LIMIT 1');
+    $rdcStmt->execute([$date]);
+    $rdc = $rdcStmt->fetch() ?: null;
+
+    $snapshotStmt = $pdo->prepare('SELECT snapshot_type FROM depot_stock_snapshots WHERE snapshot_date = ?');
+    $snapshotStmt->execute([$date]);
+    $snapshots = array_fill_keys(array_column($snapshotStmt->fetchAll() ?: [], 'snapshot_type'), true);
+
+    $boardStmt = $pdo->prepare('SELECT board_type, status FROM manager_daily_boards WHERE board_date = ?');
+    $boardStmt->execute([$date]);
+    $boards = [];
+    foreach ($boardStmt->fetchAll() ?: [] as $row) {
+        $boards[$row['board_type']] = $row['status'];
+    }
+
+    $items = [
+        ['key' => 'accountant_pack', 'label' => 'Accountant pack reviewed', 'ready' => (bool) $packReviewed, 'status' => $pack ? ($packReviewed ? 'Read' : 'Waiting for review') : 'Not received', 'page' => 'report-exchange'],
+        ['key' => 'rdc_approved', 'label' => 'RDC daily sheet approved', 'ready' => ($rdc['status'] ?? '') === 'approved', 'status' => $rdc ? ucfirst(str_replace('_', ' ', (string) $rdc['status'])) : 'No sheet', 'page' => 'manager-rdc-review'],
+        ['key' => 'opening_stock', 'label' => 'Opening stock completed', 'ready' => !empty($snapshots['opening']), 'status' => !empty($snapshots['opening']) ? 'Completed' : 'Missing', 'page' => 'manager-stock'],
+        ['key' => 'closing_stock', 'label' => 'Closing stock completed', 'ready' => !empty($snapshots['closing']), 'status' => !empty($snapshots['closing']) ? 'Completed' : 'Missing', 'page' => 'manager-stock'],
+        ['key' => 'inventory_board', 'label' => 'Inventory board submitted', 'ready' => ($boards['inventory_board'] ?? '') === 'submitted', 'status' => isset($boards['inventory_board']) ? ucfirst((string) $boards['inventory_board']) : 'Missing', 'page' => 'manager-ccba-boards'],
+        ['key' => 'occd_board', 'label' => 'OCCD board submitted', 'ready' => ($boards['occd_dashboard'] ?? '') === 'submitted', 'status' => isset($boards['occd_dashboard']) ? ucfirst((string) $boards['occd_dashboard']) : 'Missing', 'page' => 'manager-ccba-boards'],
+    ];
+
+    return [
+        'report_date' => $date,
+        'ready' => count(array_filter($items, static fn(array $item): bool => !$item['ready'])) === 0,
+        'completed' => count(array_filter($items, static fn(array $item): bool => $item['ready'])),
+        'total' => count($items),
+        'items' => $items,
+    ];
+}
+
+function report_require_manager_ready(string $date): void
+{
+    $readiness = report_manager_readiness($date);
+    if ($readiness['ready']) return;
+    $missing = array_map(
+        static fn(array $item): string => $item['label'],
+        array_values(array_filter($readiness['items'], static fn(array $item): bool => !$item['ready']))
+    );
+    throw new RuntimeException('Executive pack is not ready: ' . implode('; ', $missing));
+}
+
+/** Accountant prerequisites for creating the manager finance pack. */
+function report_accountant_readiness(string $date): array
+{
+    $pdo = db();
+    $reportTripsStmt = $pdo->prepare(
+        "SELECT id, cash_collected FROM delivery_trips
+         WHERE DATE(returned_at) = ? AND status IN ('returned','completed')
+           AND notes LIKE '%[CADET_REPORT]%'"
+    );
+    $reportTripsStmt->execute([$date]);
+    $reportTrips = $reportTripsStmt->fetchAll() ?: [];
+    $tripIds = array_map('intval', array_column($reportTrips, 'id'));
+
+    $eodPackets = 0;
+    if ($tripIds) {
+        $placeholders = implode(',', array_fill(0, count($tripIds), '?'));
+        $eodStmt = $pdo->prepare(
+            "SELECT COUNT(DISTINCT trip_id) FROM report_packets
+             WHERE report_type = 'field_eod' AND trip_id IN ({$placeholders})"
+        );
+        $eodStmt->execute($tripIds);
+        $eodPackets = (int) $eodStmt->fetchColumn();
+    }
+
+    $pendingCash = count(array_filter($reportTrips, static fn(array $trip): bool => $trip['cash_collected'] === null));
+    $activeStmt = $pdo->prepare(
+        "SELECT COUNT(*) FROM delivery_trips
+         WHERE DATE(dispatched_at) = ? AND status IN ('dispatched','on_route')
+           AND (cadet_id IS NOT NULL OR driver_id IS NOT NULL)"
+    );
+    $activeStmt->execute([$date]);
+    $activeTrips = (int) $activeStmt->fetchColumn();
+
+    $sheetStmt = $pdo->prepare('SELECT status, variance FROM rdc_daily_sheets WHERE balance_date = ? LIMIT 1');
+    $sheetStmt->execute([$date]);
+    $sheet = $sheetStmt->fetch() ?: null;
+    $sheetSubmitted = $sheet && in_array((string) $sheet['status'], ['submitted', 'under_review', 'approved'], true);
+
+    $items = [
+        ['key' => 'field_eod', 'label' => 'Field EOD reports archived', 'ready' => $eodPackets === count($reportTrips), 'status' => $eodPackets . ' of ' . count($reportTrips) . ' reports', 'page' => 'accountant-rdc'],
+        ['key' => 'cash_confirmed', 'label' => 'Cadet cash handovers confirmed', 'ready' => $pendingCash === 0, 'status' => $pendingCash === 0 ? 'All confirmed' : $pendingCash . ' pending', 'page' => 'accountant-cash'],
+        ['key' => 'routes_closed', 'label' => 'Today\'s assigned trips closed', 'ready' => $activeTrips === 0, 'status' => $activeTrips === 0 ? 'All closed' : $activeTrips . ' still active', 'page' => 'accountant-rdc-hub'],
+        ['key' => 'rdc_submitted', 'label' => 'RDC daily balancing submitted', 'ready' => (bool) $sheetSubmitted, 'status' => $sheet ? ucfirst(str_replace('_', ' ', (string) $sheet['status'])) : 'No sheet', 'page' => 'accountant-rdc'],
+    ];
+
+    return [
+        'report_date' => $date,
+        'ready' => count(array_filter($items, static fn(array $item): bool => !$item['ready'])) === 0,
+        'completed' => count(array_filter($items, static fn(array $item): bool => $item['ready'])),
+        'total' => count($items),
+        'items' => $items,
+    ];
+}
+
+function report_require_accountant_ready(string $date): void
+{
+    $readiness = report_accountant_readiness($date);
+    if ($readiness['ready']) return;
+    $missing = array_map(
+        static fn(array $item): string => $item['label'],
+        array_values(array_filter($readiness['items'], static fn(array $item): bool => !$item['ready']))
+    );
+    throw new RuntimeException('Manager pack is not ready: ' . implode('; ', $missing));
+}
+
+/** One shared status model for the Cadet -> Accountant -> Manager -> Executive report chain. */
+function report_chain_status(string $date): array
+{
+    $pdo = db();
+    $accountant = report_accountant_readiness($date);
+    $manager = report_manager_readiness($date);
+    $packetStmt = $pdo->prepare(
+        "SELECT report_type, status, sent_at, read_at, acknowledged_at
+         FROM report_packets WHERE report_date = ?
+           AND report_type IN ('accountant_pack','manager_brief','ccba_boards')
+         ORDER BY sent_at DESC"
+    );
+    $packetStmt->execute([$date]);
+    $packets = [];
+    foreach ($packetStmt->fetchAll() ?: [] as $packet) {
+        $packets[$packet['report_type']] ??= $packet;
+    }
+    $accountantPack = $packets['accountant_pack'] ?? null;
+    $brief = $packets['manager_brief'] ?? null;
+    $boards = $packets['ccba_boards'] ?? null;
+    $executiveComplete = $brief && $boards
+        && ($brief['status'] ?? '') === 'acknowledged'
+        && ($boards['status'] ?? '') === 'acknowledged';
+
+    return [
+        'report_date' => $date,
+        'stages' => [
+            ['key' => 'field', 'label' => 'Field reports', 'complete' => (bool) ($accountant['items'][0]['ready'] ?? false), 'status' => $accountant['items'][0]['status'] ?? 'Waiting'],
+            ['key' => 'accountant', 'label' => 'Accountant pack', 'complete' => (bool) $accountantPack, 'status' => $accountantPack ? ucfirst((string) $accountantPack['status']) : ($accountant['ready'] ? 'Ready to send' : 'Preparing')],
+            ['key' => 'manager', 'label' => 'Executive pack', 'complete' => (bool) ($brief && $boards), 'status' => ($brief && $boards) ? 'Sent' : ($manager['ready'] ? 'Ready to send' : 'Preparing')],
+            ['key' => 'executive', 'label' => 'Executive review', 'complete' => (bool) $executiveComplete, 'status' => $executiveComplete ? 'Acknowledged' : (($brief || $boards) ? 'Awaiting acknowledgement' : 'Waiting')],
+        ],
+        'complete' => (bool) $executiveComplete,
+    ];
+}
+
 function report_can_access_role(string $userRole, string $packetRole, bool $isSender, int $userId, int $fromUserId): bool
 {
     if ($userRole === 'admin') {
@@ -131,86 +289,6 @@ function report_outbox(int $userId, int $limit = 50): array
     $stmt->execute([$userId]);
     $role = current_user()['role'] ?? '';
     return array_map(fn($r) => report_format_packet($r, $role, $userId), $stmt->fetchAll());
-}
-
-function report_ensure_demo_files(): void
-{
-    $dir = report_storage_dir();
-    if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
-    }
-    // Keep demo PDF metadata in sync with the server's local (Africa/Kampala) date.
-    $today = date('Y-m-d');
-    $demos = [
-        'demo-eod-001.pdf' => [
-            'Field End-of-Day Report',
-            [
-                'doc_title' => 'Field End-of-Day Report',
-                'meta' => [
-                    'Report date' => $today,
-                    'Agent' => 'David Ssemuju (Cadet)',
-                    'Vehicle' => 'TUK-001',
-                    'Route' => 'Owino / Katwe',
-                    'Recipient' => 'Accountant (RDC)',
-                ],
-                'sections' => [
-                    ['heading' => 'Cash handed', 'lines' => ['Cash reported: UGX 480,000']],
-                    ['heading' => 'Notes', 'lines' => ['2 edit requests pending manager approval.']],
-                ],
-            ],
-        ],
-        'demo-acc-001.pdf' => [
-            'RDC daily pack for manager - ' . $today,
-            [
-                'doc_title' => 'RDC daily pack for manager - ' . $today,
-                'meta' => [
-                    'Report date' => $today,
-                    'Prepared by' => 'Grace Apio (Accountant / RDC)',
-                    'Recipient' => 'Manager',
-                    'Purpose' => 'Review balancing, cash, cadets, stock, deliveries',
-                ],
-                'sections' => [
-                    ['heading' => 'Manager attention', 'lines' => [
-                        'Sample pack - regenerate from live data for today\'s figures.',
-                        'Cash variance and cadet flags appear here when present.',
-                    ]],
-                    ['heading' => 'Cash and receivables', 'lines' => [
-                        'Cash confirmations pending: 1 trip',
-                        'Receivables total: UGX 280,000',
-                        'Variance vs reported cash: UGX 0',
-                    ]],
-                    ['heading' => 'Next step for manager', 'lines' => [
-                        'Open RDC review, confirm deliveries, then Approve.',
-                    ]],
-                ],
-            ],
-        ],
-        'demo-mgr-001.pdf' => [
-            'Executive operations brief - ' . $today,
-            [
-                'doc_title' => 'Executive operations brief - ' . $today,
-                'meta' => [
-                    'Report date' => $today,
-                    'Prepared by' => 'Sarah Nakato (Manager)',
-                    'Recipient' => 'Executive / Board',
-                ],
-                'sections' => [
-                    ['heading' => 'Operations snapshot', 'lines' => [
-                        'Sales today: 186 cartons - UGX 3.72M',
-                        'Fleet: 3/4 vehicles on route',
-                    ]],
-                    ['heading' => 'Low stock', 'lines' => ['- Coke 500ml', '- Sprite 1L']],
-                ],
-            ],
-        ],
-    ];
-    foreach ($demos as $file => [$title, $layout]) {
-        $path = $dir . '/' . $file;
-        // Always keep demos on the branded multi-page writer.
-        if (!is_file($path) || filesize($path) < 8000) {
-            simple_pdf_write($path, $title, [], $layout);
-        }
-    }
 }
 
 function report_save_uploaded_file(array $file): array
@@ -1809,6 +1887,7 @@ function report_generate_pack(string $role, int $userId, string $date, ?string $
     $userName = (string) (db()->query('SELECT full_name FROM users WHERE id = ' . (int) $userId)->fetchColumn() ?: ucfirst($role));
 
     if ($role === 'accountant') {
+        report_require_accountant_ready($date);
         $layout = report_build_accountant_layout($date, $userName . ' (Accountant / RDC)');
         if ($title) {
             $layout['doc_title'] = $title;
@@ -1834,6 +1913,7 @@ function report_generate_pack(string $role, int $userId, string $date, ?string $
     }
 
     // Manager → executive: operations brief + separate CCBA boards PDF
+    report_require_manager_ready($date);
     $layout = report_build_manager_layout($date, $userName . ' (Manager)');
     if ($title) {
         $layout['doc_title'] = $title;

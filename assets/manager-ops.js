@@ -474,16 +474,14 @@ async function prepareDispatchModal() {
   try {
     const stale = !mgrDispatchCache.loadedAt || (Date.now() - mgrDispatchCache.loadedAt > mgrDispatchCache.ttlMs);
     if (stale || !mgrDispatchData.vehicles.length || !mgrDispatchData.users.length || !mgrDispatchData.products.length) {
-      // Managers cannot call /api/users/fetch_users.php (admin-only). Use recipients for cadets.
-      // Skip mapped routes until fleet map / route stops are wired in.
-      const [vehicles, recipients, stock] = await Promise.all([
+      const [vehicles, assignments, stock] = await Promise.all([
         LapokAPI.get('/api/vehicles/fetch_vehicles.php'),
-        LapokAPI.get('/api/notifications/recipients.php'),
+        LapokAPI.get('/api/assignments/fetch.php'),
         LapokAPI.get('/api/stock/fetch_stock.php'),
       ]);
       mgrDispatchData.vehicles = vehicles.vehicles || [];
-      mgrDispatchData.routes = [];
-      mgrDispatchData.users = recipients.recipients || [];
+      mgrDispatchData.routes = assignments.assignments || [];
+      mgrDispatchData.users = assignments.cadets || [];
       mgrDispatchData.products = stock.stock || [];
       mgrDispatchCache.loadedAt = Date.now();
     }
@@ -495,19 +493,15 @@ async function prepareDispatchModal() {
       } else {
         vSel.innerHTML = mgrDispatchData.vehicles.map((v) => {
           const icon = v.vehicle_type === 'truck' ? '[TRUCK]' : '[TUK]';
-          const crew = v.driver_name || v.cadet_name || 'Unassigned';
-          return `<option value="${v.id}" data-driver="${v.driver_id || ''}" data-cadet="${v.cadet_id || ''}" data-route="${mgrEscapeAttr(v.current_route || '')}">${icon} ${escMgr(v.registration)} - ${escMgr(crew)}</option>`;
+          const today = mgrDispatchData.routes.find((a) => Number(a.vehicle_id) === Number(v.id) && Number(a.day_of_week) === Number(new Date().getDay()));
+          const crew = today?.cadet_name || 'Unassigned';
+          return `<option value="${v.id}" data-driver="${v.driver_id || ''}" data-cadet="${today?.cadet_id || ''}" data-cadet-name="${mgrEscapeAttr(today?.cadet_name || 'Unassigned')}" data-route="${mgrEscapeAttr(today?.route_area || '')}">${icon} ${escMgr(v.registration)} - ${escMgr(crew)}</option>`;
         }).join('');
       }
     }
     const dSel = document.getElementById('dispatchDriver');
     const cSel = document.getElementById('dispatchCadet');
-    const fieldUsers = mgrDispatchData.users.filter((u) => ['cadet', 'field_user'].includes(u.role));
     if (dSel) dSel.closest('.form-group')?.style && (dSel.closest('.form-group').style.display = 'none');
-    if (cSel) {
-      cSel.innerHTML = '<option value="">— Select cadet —</option>' +
-        fieldUsers.map((u) => `<option value="${u.id}">${escMgr(u.full_name)}</option>`).join('');
-    }
 
 
     const tbody = document.getElementById('dispatchLoadBody');
@@ -538,10 +532,13 @@ async function prepareDispatchModal() {
     if (vSel) vSel.onchange = () => {
       const opt = vSel.selectedOptions[0];
       if (!opt) return;
-      if (cSel && opt.dataset.cadet) cSel.value = opt.dataset.cadet;
+      if (cSel) cSel.value = opt.dataset.cadet || '';
+      const cadetName = document.getElementById('dispatchCadetName');
+      if (cadetName) cadetName.value = opt.dataset.cadetName || 'Unassigned';
       const area = document.getElementById('dispatchRouteArea');
-      if (area && opt.dataset.route) area.value = opt.dataset.route;
+      if (area) area.value = opt.dataset.route || '';
     };
+    if (vSel) vSel.onchange();
   } catch (e) {
     const vSel = document.getElementById('dispatchVehicle');
     if (vSel) vSel.innerHTML = '<option value="">Could not load vehicles</option>';
@@ -582,9 +579,6 @@ async function saveDispatch(btn) {
     await LapokAPI.post('/api/vehicles/dispatch.php', {
       vehicle_id: vehicleId,
       driver_id: driverId,
-      cadet_id: cadetId,
-      route_id: null,
-      route_area: routeArea,
       load_items: loadItems,
     });
     closeModal('dispatchModal');

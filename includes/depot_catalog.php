@@ -297,7 +297,7 @@ function depot_stock_brand_order(): array
 }
 
 /**
- * Ensure manager catalog products exist in `products` (+ starter warehouse batch when new).
+ * Ensure manager catalog products exist in `products` without inventing stock.
  * Safe to call often.
  *
  * @return list<array<string, mixed>> product rows keyed for stock/dispatch UIs
@@ -314,12 +314,6 @@ function depot_ensure_warehouse_products(): array
     $update = $pdo->prepare(
         'UPDATE products SET name = ?, unit_price = ?, min_stock = ?, is_active = 1 WHERE id = ?'
     );
-    $batchExists = $pdo->prepare('SELECT id FROM batches WHERE product_id = ? LIMIT 1');
-    $insertBatch = $pdo->prepare(
-        'INSERT INTO batches (product_id, batch_number, expiry_date, qty_warehouse, qty_on_vehicles, unit_cost)
-         VALUES (?, ?, ?, ?, 0, ?)'
-    );
-
     $out = [];
     foreach (depot_manager_warehouse_catalog() as $row) {
         $sku = (string) $row['sku'];
@@ -342,28 +336,6 @@ function depot_ensure_warehouse_products(): array
                 (int) $row['min_stock'],
             ]);
             $productId = (int) $pdo->lastInsertId();
-            $starter = (int) ($row['starter_qty'] ?? 0);
-            if ($starter > 0) {
-                $insertBatch->execute([
-                    $productId,
-                    'INIT-' . $sku,
-                    date('Y-m-d', strtotime('+180 days')),
-                    $starter,
-                    round((float) $row['price'] * 0.6, 2),
-                ]);
-            }
-        }
-
-        $batchExists->execute([$productId]);
-        if (!$batchExists->fetch()) {
-            $starter = max(0, (int) ($row['starter_qty'] ?? 0));
-            $insertBatch->execute([
-                $productId,
-                'INIT-' . $sku,
-                date('Y-m-d', strtotime('+180 days')),
-                $starter,
-                round((float) $row['price'] * 0.6, 2),
-            ]);
         }
 
         $out[] = [
@@ -378,7 +350,7 @@ function depot_ensure_warehouse_products(): array
         ];
     }
 
-    // Hide previous non-flavor / demo SKUs that are not on LAPOK BOOK page 1.
+    // Hide legacy SKUs that are not on LAPOK BOOK page 1.
     $legacySkus = [
         'CK-500', 'FT-OR', 'SP-500', 'SP-1L', 'NV-OR', 'CK-1L',
         'RGB-300', 'PET-300', 'PET-500', 'PET-2000',

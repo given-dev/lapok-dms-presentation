@@ -69,6 +69,7 @@ function fleetSourceLabel(src) {
     route_centroid: 'Route area',
     depot: 'Depot',
     manual: 'Manual',
+    unavailable: 'Awaiting GPS',
   }[src] || src;
 }
 
@@ -141,7 +142,7 @@ async function refreshFleetMap() {
         fleetMapLayers.routes.push(line);
         v.route.path.forEach((pt) => bounds.push(pt));
       }
-      (v.route?.stops || []).forEach((st) => {
+      (v.route?.stops || []).filter((st) => st.lat != null && st.lng != null).forEach((st) => {
         const sm = L.marker([st.lat, st.lng], { icon: fleetStopIcon(st.stop_order) })
           .bindPopup(`<strong>Stop ${st.stop_order}</strong><br>${escFleet(st.name)}<br><small>${escFleet(st.location || '')}</small>`);
         sm.addTo(fleetMapInstance);

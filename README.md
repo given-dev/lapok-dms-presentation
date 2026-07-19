@@ -5,7 +5,9 @@
 **Stack:** PHP APIs + MySQL + vanilla JS (`index.html`, `assets/*.js`)  
 **Purpose:** Multi-depot stock, sales, cash handover, and leadership reporting. Cadet, accountant (RDC), manager, and admin workflows are live in this cleaned presentation build — including stock taking, RDC review, CCBA boards, PDF report chain, and role ownership guards.
 
-Demo tenant data may still use LAPOK Ventures sample emails (`*@lapok.ug`) — that is customer demo data, not the product name.
+**Shared navigation:** every account uses the same off-canvas left menu. The dashboard remains full width until the three-bar button at the top left is hovered or clicked/tapped. A click pins the menu open; selecting a page, clicking outside, or pressing Escape closes it.
+
+This installation contains no seeded operational transactions or sample reports. The preserved `*@lapok.ug` accounts are the initial operational accounts and should be renamed or secured for the deployment.
 
 External systems (CCBA, EFRIS, fleet GPS) are manual or deferred in this build.
 
@@ -14,6 +16,8 @@ External systems (CCBA, EFRIS, fleet GPS) are manual or deferred in this build.
 **Team change log:** when you finish edits (or after a code push), update [`docs/TEAM_CHANGELOG.md`](docs/TEAM_CHANGELOG.md) with date, time, who, and what changed. Newest entry at the top.
 
 **Feature tracker / next focus:** [`docs/MODULE_TRACKER.md`](docs/MODULE_TRACKER.md) — **Current build focus** at the top.
+
+**Admin-controlled assignments:** the main Admin maintains the recurring Monday–Saturday cadet, vehicle and route board under **Administration → User management**. Managers can dispatch stock, but cadet and route are read-only and are resolved again by the server from today's approved assignment. Missing, incomplete and Sunday assignments block dispatch. The approved upper route table is included; the separate assets-per-route table is not.
 
 ### Next shifts (team agreement)
 
@@ -26,7 +30,7 @@ External systems (CCBA, EFRIS, fleet GPS) are manual or deferred in this build.
 
 1. Start **Apache** and **MySQL** in XAMPP.
 2. Create and seed the database (see [Database setup](#database-setup) below).
-3. Open **http://localhost/project/lapok-dms-presentation/login.html**
+3. Open **http://localhost/lapok-dms-presentation/login.html**
 4. Sign in as `accountant@lapok.ug` / `password123`
 5. After JS changes, hard refresh with **Ctrl+F5**.
 
@@ -41,14 +45,14 @@ External systems (CCBA, EFRIS, fleet GPS) are manual or deferred in this build.
 | Accountant (RDC) | Yes |
 | Cadet | Yes |
 | Executive | Yes |
-| Driver | No demo login seeded currently |
-| Field user | No demo login seeded currently |
+| Driver | Disabled in this build |
+| Field user | Not provisioned |
 
-All demo users share password **`password123`** (see [Demo accounts](#demo-accounts)).
+Initial accounts use password **`password123`** for local setup only. Change every password before operational deployment.
 
 ---
 
-## Demo accounts
+## Initial accounts
 
 | Role | Email |
 |------|-------|
@@ -68,10 +72,12 @@ All demo users share password **`password123`** (see [Demo accounts](#demo-accou
 |------|------|-------|
 | Dashboard (home) | `cadet-dashboard` | Trip status, load summary, messages from depot |
 | Today's report | `cadet-daily` | All depot products grouped like depot sales book (CSD, ENERGY, JUICE, VAD, WATER, OTHER) |
-| Notifications | Bell icon | Receive messages from manager / RDC / admin |
+| Notifications | Bell icon | Bell shows unread items only; read items remain in Messages history and open in a message-detail popup |
 | Receive dispatch | `cadet-dashboard` | **Next focus** — acknowledge manager dispatch / load before route (planned) |
 
 On submit, sales, expenses, and cash **auto-sync** into the accountant's **Today's close** sheet on the **vehicle column** for the assigned trip. The Cadet Daily returns and stock tables are fully dynamic, reading live stock quantities directly from the database.
+
+Notification behavior is intentionally split: **Bell = unread notifications**, while **Messages from depot = full history**. Marking an item read removes it from the bell without deleting it from Messages.
 
 ### Manager
 
@@ -82,14 +88,16 @@ On submit, sales, expenses, and cash **auto-sync** into the accountant's **Today
 
 Stock page is daily only: opening/closing counts + delivery confirmation. CCBA boards (**Inventory + OCCD only**) feed the executive brief when submitted — **SKU map / warehouse sync are Phase 2** (not on boards). Dashboard shows an ordered **daily checklist** with RDC pending review count.
 
-**Executive brief PDF** (manager → executive) summarises: attention flags, day glance, RDC finance, **styled full stock-book table**, most & least selling products, stock risk. **CCBA Inventory + OCCD** go as a **separate companion PDF** with **navy banners and bordered tables** matching the boards UI. Re-send after code changes to regenerate both. Apply migration **016** for typed `ccba_boards` packets. Sample: `scripts/sample_executive_brief.php`.
+**Executive brief PDF** (manager → executive) summarises: attention flags, day glance, RDC finance, **styled full stock-book table**, most & least selling products, stock risk. **CCBA Inventory + OCCD** go as a **separate companion PDF** with **navy banners and bordered tables** matching the boards UI. Re-send after code changes to regenerate both. Apply migration **016** for typed `ccba_boards` packets.
+
+**Manager reporting desk:** `report-exchange` is an inbox-first, date-based workflow. The manager must review the Accountant pack, approve the RDC daily sheet, complete opening and closing stock, and submit both Inventory and OCCD boards. Only then can the manager confirm generation and delivery of the two-document executive pack. The same readiness gate is enforced by the generation and upload APIs, so it cannot be bypassed from the browser.
 
 ### Accountant (RDC)
 
 | Area | Page | Notes |
 |------|------|-------|
 | Home (default) | `accountant-rdc-hub` | 2-step EOD checklist, cadet intake nudge, depot/welfare/cash nudges — **primary polish target** |
-| Today's close | `accountant-rdc` | 3-step wizard, products grouped like depot sales book, cadet data by vehicle column, auto-save — **primary polish target** |
+| Today's close | `accountant-rdc` | 3-step wizard, products grouped like depot sales book, cadet data by vehicle column, auto-save, and per-vehicle cash reconciliation |
 | Manager pack | `report-exchange` | One-tap send; gated on submitted balancing |
 | Cash handover | `accountant-cash` | Confirm field trip cash |
 | Month-end | `accountant-improvements` | Checklist + monthly notes — **DB sync** across roles |
@@ -102,9 +110,11 @@ Stock page is daily only: opening/closing counts + delivery confirmation. CCBA b
 
 Receivables (`admin-customers`) are **manager-only**. Accountants see a Home nudge when outstanding credit ≥ **8M UGX**.
 
+**Cadet cash reconciliation:** the RDC cash step calculates `expected cash = sales + recoveries - operational expenses`, compares it with the cadet's handed-over cash, and labels the result as **Balanced**, **Missing**, or **Excess** per vehicle. `SHORTAGE/EXCESS` remains an accountability line and does not reduce expected cash or hide a shortage. Completed trips remain in RDC synchronization after cash confirmation.
+
 ### Executive
 
-Read-only board/MD view. Demo login: `executive@lapok.ug` / `password123`.
+Read-only board/MD view. Initial local account: `executive@lapok.ug`; change its setup password before operational use.
 
 **Sidebar — Overview:** Executive dashboard (daily checklist + P&L widget), Director brief (date picker / today / yesterday, **live opening/closing stock snapshot**)  
 **Sidebar — Reports:** PDF reports (acknowledge manager brief), Reports & analytics  
@@ -122,6 +132,8 @@ Login: `admin@lapok.ug` / `password123`.
 **Sidebar:** Admin dashboard, User management, Audit log, Customers & receivables, Edit requests, Exception center, PDF reports, Reports & analytics, Month-end, Staff welfare.
 
 Dashboard shows an **Admin daily checklist** (users → edit requests → exceptions → reporting-chain health → audit → welfare/month-end) plus the action center. Charts (sales/expenses/profit, product share MTD, monthly bars) use live API data. Admin does not own day-to-day depot close (RDC / Manager do).
+
+The Audit log detail action opens a structured interface with event, user, time, affected record, and before/after fields rather than raw JSON.
 
 ### Depot alerts (exception center)
 
@@ -151,6 +163,15 @@ Accountant: Home → Continue
 Manager: Stock taking (opening first, closing from 6:30 PM) + delivery confirmation
   → RDC daily sheets → Approve / reject / reopen
 ```
+
+**Synchronized reporting chain:** every role now reads the same date-specific chain status instead of treating its PDF as an isolated file.
+
+1. **Field / Cadet:** submitting an end-of-day trip report archives one Field EOD PDF for that trip.
+2. **Accountant / RDC:** the manager finance pack unlocks only when all Field EOD PDFs exist, cadet cash handovers are confirmed, assigned trips are closed, and the RDC sheet is submitted.
+3. **Manager:** the executive pack unlocks only after the Accountant pack is opened, RDC is approved, opening and closing stock exist, and Inventory + OCCD boards are submitted.
+4. **Executive / Board:** the chain is complete only after both the operations brief and CCBA boards companion are acknowledged.
+
+These readiness rules are enforced by both PDF generation and replacement-upload APIs. The PDF report screens show the same live four-stage status for the selected reporting date.
 
 Optional nudges on Home: field cash, high receivables, depot alerts, open welfare, cadet flags.  
 Month-end banner (last 3 days of month) → Month-end tools.
@@ -188,14 +209,15 @@ From the `lapok-dms-presentation` folder in PowerShell:
 Get-Content database\schema.sql | C:\xampp\mysql\bin\mysql.exe -u root
 Get-Content database\seed.sql | C:\xampp\mysql\bin\mysql.exe -u root lapok_dms
 
-# Apply every migration (001–014). Safe to re-run: most use IF NOT EXISTS / ADD COLUMN IF NOT EXISTS.
+# Apply every migration (001–017). Safe to re-run: most use IF NOT EXISTS / ADD COLUMN IF NOT EXISTS.
+# Both 004 files are separate required migrations (EFRIS and fleet tracking).
 Get-ChildItem database\migrations\*.sql | Sort-Object Name | ForEach-Object {
   Write-Host "Applying $($_.Name)…"
   Get-Content $_.FullName | C:\xampp\mysql\bin\mysql.exe -u root lapok_dms
 }
 
-# Demo passwords → password123
-C:\xampp\php\php.exe scripts\setup_passwords.php
+# Reset initial local passwords to password123 (local/dev only)
+C:\xampp\php\php.exe scripts\setup_passwords.php --confirm-local-reset
 ```
 
 ### Migration catalog
@@ -208,8 +230,8 @@ C:\xampp\php\php.exe scripts\setup_passwords.php
 | **004a** | `004_efris_integration.sql` | EFRIS product map + receipt import tables |
 | **004b** | `004_fleet_tracking.sql` | Vehicle GPS pings / route geo (Phase 2 map) |
 | **005** | `005_report_exchange.sql` | PDF report packets (accountant → manager → executive) |
-| **006** | `006_trim_demo_users.sql` | Trim/align demo users |
-| **007** | `007_field_role_emails.sql` | Field/cadet demo emails |
+| **006** | `006_trim_demo_users.sql` | Trim/align baseline users |
+| **007** | `007_field_role_emails.sql` | Field/cadet account emails |
 | **008** | `008_rdc_daily_balancing.sql` | RDC daily sheets |
 | **009** | `009_rdc_review_workflow.sql` | Manager approve / reject / reopen |
 | **010** | `010_depot_finance.sql` | Opening/closing stock snapshots + monthly fixed costs |
@@ -219,8 +241,9 @@ C:\xampp\php\php.exe scripts\setup_passwords.php
 | **014** | `014_rdc_review_comments.sql` | RDC review comment threads |
 | **015** | `015_depot_warehouse_catalog.sql` | Depot sales-book product seed / warehouse batches |
 | **016** | `016_ccba_boards_report_type.sql` | Report type `ccba_boards` (companion PDF to executive brief) |
+| **017** | `017_remove_demo_operational_data.sql` | Remove seeded operations, stock quantities, stale trips, and historical sample packets while preserving accounts and genuine records |
 
-**Required for this presentation build:** **008–014** (plus **003** / **005** / **011** if those features are empty; **015**–**016** for catalog seed + typed CCBA boards packets).
+**Required for this build:** apply **001–017**, including both `004_efris_integration.sql` and `004_fleet_tracking.sql`. Migration `017` is the no-demo cleanup and intentionally preserves the six accounts, fleet master, product catalogue, and genuine operational records.
 
 Verify core tables:
 
@@ -262,7 +285,7 @@ Admin owns users, audit, and system health — not day-to-day depot close.
 
 ## Phase 2 (deferred integrations)
 
-Still deferred / placeholder (not required for the role walkthrough):
+Not yet implemented (not required for the current operational workflow):
 
 - Fleet map GPS live tracking (tables from **004b** exist; UI deferred)
 - Full CCBA bank/portal automation — boards + MyCCBA order draft are live **manual**; **SKU map UI** and **warehouse snapshot sync** are **not** on daily boards (see `docs/CCBA_INTEGRATION_BLUEPRINT.md` §0)

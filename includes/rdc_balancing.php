@@ -197,6 +197,20 @@ function rdc_sum_amounts_map(array $amounts): float
     return round(array_sum(array_map('floatval', $amounts)), 2);
 }
 
+/** Shortage/excess is an accountability result, not an expense that reduces expected cash. */
+function rdc_cash_reducing_expenses(array $rows): float
+{
+    $total = 0.0;
+    foreach ($rows as $row) {
+        $label = strtoupper(trim((string) ($row['label'] ?? '')));
+        if (str_contains($label, 'SHORTAGE') || str_contains($label, 'EXCESS')) {
+            continue;
+        }
+        $total += rdc_sum_amounts_map(is_array($row['amounts'] ?? null) ? $row['amounts'] : []);
+    }
+    return round($total, 2);
+}
+
 /**
  * @param array<string, mixed> $payload
  * @return array<string, mixed>
@@ -207,9 +221,10 @@ function rdc_compute_totals(array $payload): array
     $recoveryTotal = rdc_sum_row_amounts($payload['recoveries'] ?? []);
     $expensesTotal = rdc_sum_row_amounts($payload['expenses'] ?? []);
     $grandTotal = round($salesTotal + $recoveryTotal, 2);
+    $cashReducingExpenses = rdc_cash_reducing_expenses($payload['expenses'] ?? []);
     $expected = isset($payload['expected_amount'])
         ? (float) $payload['expected_amount']
-        : round($grandTotal - $expensesTotal, 2);
+        : round($grandTotal - $cashReducingExpenses, 2);
     $actual = rdc_sum_amounts_map($payload['cash_actual'] ?? []);
     $variance = round($expected - $actual, 2);
 
@@ -642,7 +657,6 @@ function rdc_sync_cadet_reports_into_sheet(PDO $pdo, string $date, bool $persist
         'recoveries' => $sheet['recoveries'],
         'expenses' => $sheet['expenses'],
         'cash_actual' => $sheet['cash_actual'],
-        'expected_amount' => $sheet['expected_amount'] ?? null,
     ]);
 
     $fields = [
@@ -756,8 +770,8 @@ function rdc_update_cadet_report(PDO $pdo, int $tripId, array $body, int $editor
     if (!$trip) {
         throw new RuntimeException('Cadet trip not found');
     }
-    if ((string) $trip['status'] !== 'returned') {
-        throw new RuntimeException('Only returned cadet reports can be corrected');
+    if (!in_array((string) $trip['status'], ['returned', 'completed'], true)) {
+        throw new RuntimeException('Only returned or completed cadet reports can be corrected');
     }
 
     $existing = cadet_parse_report_note($trip['notes'] ?? null);
@@ -890,7 +904,7 @@ function rdc_cadet_reports_for_date(string $date): array
          FROM delivery_trips dt
          JOIN vehicles v ON v.id = dt.vehicle_id
          LEFT JOIN users u ON u.id = dt.cadet_id
-         WHERE dt.status = 'returned' AND DATE(dt.returned_at) = ?
+         WHERE dt.status IN ('returned','completed') AND DATE(dt.returned_at) = ?
            AND dt.notes LIKE '%[CADET_REPORT]%'
          ORDER BY dt.returned_at ASC"
     );

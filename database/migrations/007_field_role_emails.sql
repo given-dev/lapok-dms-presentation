@@ -1,4 +1,4 @@
--- Rename field demo emails to role-based addresses (cadet@ / driver@)
+-- Rename field account emails to role-based addresses (cadet@ / driver@).
 USE lapok_dms;
 
 UPDATE users SET email = 'cadet@lapok.ug' WHERE email = 'david@lapok.ug';

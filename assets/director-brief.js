@@ -139,7 +139,9 @@
 
   async function loadDirectorBriefWidget() {
     if (!currentUser || !['executive', 'manager', 'accountant', 'admin'].includes(currentUser.role)) return;
-    const box = document.getElementById('directorBriefWidget');
+    const box = currentUser.role === 'accountant'
+      ? document.getElementById('accountantDirectorBriefWidget')
+      : document.getElementById('directorBriefWidget');
     if (!box) return;
     try {
       const d = await LapokAPI.get('/api/reports/director_snapshot.php');
