@@ -209,7 +209,7 @@ From the `lapok-dms-presentation` folder in PowerShell:
 Get-Content database\schema.sql | C:\xampp\mysql\bin\mysql.exe -u root
 Get-Content database\seed.sql | C:\xampp\mysql\bin\mysql.exe -u root lapok_dms
 
-# Apply every migration (001–017). Safe to re-run: most use IF NOT EXISTS / ADD COLUMN IF NOT EXISTS.
+# Apply every migration (001–018). Safe to re-run: most use IF NOT EXISTS / ADD COLUMN IF NOT EXISTS.
 # Both 004 files are separate required migrations (EFRIS and fleet tracking).
 Get-ChildItem database\migrations\*.sql | Sort-Object Name | ForEach-Object {
   Write-Host "Applying $($_.Name)…"
@@ -242,8 +242,9 @@ C:\xampp\php\php.exe scripts\setup_passwords.php --confirm-local-reset
 | **015** | `015_depot_warehouse_catalog.sql` | Depot sales-book product seed / warehouse batches |
 | **016** | `016_ccba_boards_report_type.sql` | Report type `ccba_boards` (companion PDF to executive brief) |
 | **017** | `017_remove_demo_operational_data.sql` | Remove seeded operations, stock quantities, stale trips, and historical sample packets while preserving accounts and genuine records |
+| **018** | `018_admin_vehicle_route_assignments.sql` | Weekly Admin vehicle / cadet / route assignments (`vehicle_route_assignments`) |
 
-**Required for this build:** apply **001–017**, including both `004_efris_integration.sql` and `004_fleet_tracking.sql`. Migration `017` is the no-demo cleanup and intentionally preserves the six accounts, fleet master, product catalogue, and genuine operational records.
+**Required for this build:** apply **001–018**, including both `004_efris_integration.sql` and `004_fleet_tracking.sql`. Migration `017` is the no-demo cleanup and intentionally preserves the six accounts, fleet master, product catalogue, and genuine operational records.
 
 Verify core tables:
 
@@ -262,6 +263,7 @@ C:\xampp\mysql\bin\mysql.exe -u root lapok_dms -e "SHOW TABLES LIKE 'rdc_%'; SHO
 | Cadet notifications empty | Run migration **011** |
 | RDC comments panel warns | Run migration **014** |
 | Director brief / stock snapshots missing | Run migration **010** |
+| Weekly assignments **Request failed (500)** | Run migration **018** (`vehicle_route_assignments`) |
 | Balancing save/submit 500 | Confirm `rdc_daily_sheets` exists |
 | Cadet report not in RDC sheet | Vehicle must be dispatched; sheet must not be locked (submitted) |
 | Stale UI after edits | Hard refresh **Ctrl+F5** (scripts use `?v=` cache bust) |

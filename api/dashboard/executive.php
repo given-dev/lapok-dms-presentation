@@ -12,7 +12,9 @@ if (!in_array($user['role'], ['executive', 'admin'], true)) {
 $pdo = db();
 
 $warehouse = (int) $pdo->query(
-    'SELECT COALESCE(SUM(qty_warehouse), 0) FROM batches'
+    'SELECT COALESCE(SUM(b.qty_warehouse), 0)
+     FROM batches b
+     INNER JOIN products p ON p.id = b.product_id AND p.is_active = 1'
 )->fetchColumn();
 
 $revenueToday = (float) $pdo->query(
