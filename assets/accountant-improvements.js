@@ -217,28 +217,34 @@
 
   function updateKpis(metrics) {
     if (!metrics) return;
-    const marginPct = metrics.revenue > 0 ? ((metrics.revenue - metrics.expenses) / metrics.revenue) * 100 : 0;
+    const revenue = Number(metrics.revenue || 0);
+    const expenses = Number(metrics.expenses || 0);
+    const marginPct = revenue > 0 ? ((revenue - expenses) / revenue) * 100 : 0;
     const set = (id, value) => {
       const el = document.getElementById(id);
       if (el) el.textContent = value;
     };
-    set('accKpiCashFlow', fmtUgx(metrics.revenue - metrics.expenses));
+    set('accKpiCashFlow', fmtUgx(revenue - expenses));
     set('accKpiReceivables', fmtUgx(metrics.total_receivables));
     set('accKpiMargin', marginPct.toFixed(1) + '%');
   }
 
-  function renderAlerts(financial, cashData) {
+  function renderAlerts(financial, cashData, meta) {
     const root = document.getElementById('accAlertsList');
     if (!root) return;
     const alerts = [];
-    if ((financial.total_receivables || 0) > 8000000) {
+    if (meta?.note) {
+      alerts.push({ tone: 'a-info', text: meta.note });
+    }
+    if (financial && (financial.total_receivables || 0) > 8000000) {
       alerts.push({ tone: 'a-danger', text: 'High receivables exposure. Prioritize collections this week.' });
     }
-    const pendingCash = (cashData?.trips || []).filter((t) => t.cash_collected === null).length;
+    const trips = cashData?.trips || [];
+    const pendingCash = trips.filter((t) => t.cash_collected === null).length;
     if (pendingCash > 0) {
       alerts.push({ tone: 'a-warning', text: pendingCash + ' trips pending cash confirmation.' });
     }
-    const varianceTrips = (cashData?.trips || []).filter((t) => t.variance !== null && Math.abs(Number(t.variance)) > 0);
+    const varianceTrips = trips.filter((t) => t.variance !== null && Math.abs(Number(t.variance)) > 0);
     if (varianceTrips.length > 0) {
       alerts.push({ tone: 'a-warning', text: varianceTrips.length + ' trips have cash variance and need review.' });
     }
@@ -248,17 +254,57 @@
     root.innerHTML = alerts.map((a) => `<div class="alert ${a.tone}" style="margin-bottom:8px"><span>${a.tone === 'a-danger' ? '⚠' : 'ℹ'}</span><div>${a.text}</div></div>`).join('');
   }
 
+  function currentRole() {
+    return (typeof currentUser !== 'undefined' && currentUser?.role) || '';
+  }
+
+  /** Soft-load KPIs by role — never surface raw 403s as "proactive alerts". */
   async function fetchMetrics() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth() + 1;
-    const [financial, cashData] = await Promise.all([
-      LapokAPI.get('/api/reports/financial.php?year=' + year + '&month=' + month),
-      LapokAPI.get('/api/trips/pending_cash.php'),
-    ]);
-    latestMetrics = { financial, cashData };
+    const role = currentRole();
+    const canFinancial = role === 'accountant' || role === 'admin' || role === 'executive';
+    const canCash = role === 'accountant' || role === 'admin';
+    const canCustomers = role === 'accountant' || role === 'admin' || role === 'manager' || role === 'executive';
+
+    let financial = { revenue: 0, expenses: 0, total_receivables: 0 };
+    let cashData = { trips: [] };
+    const notes = [];
+
+    if (canFinancial) {
+      try {
+        const month = (document.getElementById('accMonthPicker')?.value || currentMonthIso());
+        const from = month + '-01';
+        const toDate = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0);
+        const to = toDate.getFullYear() + '-' + String(toDate.getMonth() + 1).padStart(2, '0') + '-' + String(toDate.getDate()).padStart(2, '0');
+        financial = await LapokAPI.get('/api/reports/financial.php?from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to));
+      } catch (e) {
+        notes.push('Financial KPIs unavailable for this role.');
+      }
+    } else if (canCustomers) {
+      try {
+        const data = await LapokAPI.get('/api/customers/fetch_customers.php');
+        const owing = (data.customers || []).filter((c) => Number(c.credit_balance) > 0);
+        financial.total_receivables = owing.reduce((s, c) => s + Number(c.credit_balance || 0), 0);
+        notes.push('Showing receivables only. Full P&amp;L KPIs are available to the accountant.');
+      } catch (_) {
+        notes.push('Receivables snapshot unavailable.');
+      }
+    } else {
+      notes.push('Live KPIs are shown for the accountant role.');
+    }
+
+    if (canCash) {
+      try {
+        cashData = await LapokAPI.get('/api/trips/pending_cash.php');
+      } catch (_) {
+        notes.push('Cash confirmation alerts are accountant-only.');
+      }
+    } else if (role === 'manager' || role === 'executive') {
+      notes.push('Cash confirmation alerts are managed by the accountant (Cash handover).');
+    }
+
+    latestMetrics = { financial, cashData, note: notes[0] || '' };
     updateKpis(financial);
-    renderAlerts(financial, cashData);
+    renderAlerts(financial, cashData, { note: latestMetrics.note });
   }
 
   function renderAll() {
@@ -270,7 +316,7 @@
     applyReadOnlyUi();
     if (latestMetrics?.financial) {
       updateKpis(latestMetrics.financial);
-      renderAlerts(latestMetrics.financial, latestMetrics.cashData);
+      renderAlerts(latestMetrics.financial, latestMetrics.cashData, { note: latestMetrics.note });
     }
   }
 
@@ -328,13 +374,20 @@
     try {
       await loadMonthEndFromApi(month);
       renderAll();
+    } catch (e) {
+      toast(e.message || 'Could not load month-end workspace', true);
+      return;
+    }
+    if (typeof loadManagerFixedCosts === 'function') {
+      try { await loadManagerFixedCosts(); } catch (_) { /* fixed costs optional for some roles */ }
+    }
+    try {
       await fetchMetrics();
     } catch (e) {
       const root = document.getElementById('accAlertsList');
       if (root) {
-        root.innerHTML = `<div class="alert a-warning"><span>⚠</span><div>${e.message}</div></div>`;
+        root.innerHTML = '<div class="alert a-info"><span>ℹ</span><div>Live KPI alerts are available to the accountant. Checklist and notes above still work.</div></div>';
       }
-      toast(e.message, true);
     }
   }
 

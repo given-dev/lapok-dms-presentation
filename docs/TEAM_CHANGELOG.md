@@ -37,6 +37,56 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 
 ## Log
 
+### 2026-07-21 · ~09:35 (Africa/Kampala)
+
+| | |
+|--|--|
+| **Who** | Team |
+| **Push / ref** | Local — update when pushed |
+| **Area** | Stock reset for testing |
+
+**Changes**
+- Zeroed all `batches` warehouse / on-vehicle qty (dashboard Warehouse = **0**).
+- Cleared `depot_stock_snapshots` and `stock_movements` so opening/closing stock can be tested from empty.
+- Kept product catalogue (44 active SKUs) — counts start at zero; manager enters opening stock.
+
+### 2026-07-21 · ~09:30 (Africa/Kampala)
+
+| | |
+|--|--|
+| **Who** | Team |
+| **Push / ref** | Local — update when pushed |
+| **Area** | Dashboard warehouse metric |
+
+**Changes**
+- Warehouse crates total was **overstated** (summed inactive product batches too). Now counts active products only — should show **2,450** not **4,030** on this DB.
+- Fixed in `api/dashboard/admin.php`, `api/dashboard/executive.php`; stock summary uses full filtered set not just current page.
+
+### 2026-07-21 · ~09:20 (Africa/Kampala)
+
+| | |
+|--|--|
+| **Who** | Team |
+| **Push / ref** | Local — update when pushed |
+| **Area** | Admin weekly assignments |
+
+**Changes**
+- Fixed Weekly cadet/vehicle/route assignments **500** by applying migration **018** (`vehicle_route_assignments`).
+- Documented **018** in README migration catalog + troubleshooting.
+
+### 2026-07-21 · ~09:10 (Africa/Kampala)
+
+| | |
+|--|--|
+| **Who** | Team |
+| **Push / ref** | Local — update when pushed |
+| **Area** | Accountant month-end · Advanced KPIs |
+
+**Changes**
+- Month-end **Proactive alerts** no longer dumps raw `Insufficient permissions` for manager/executive.
+- Advanced KPIs load by role: accountant/admin get full financial + cash; manager gets receivables-only + info note; executive gets financial when permitted.
+- Month-end workspace still loads even if KPI APIs fail (`assets/accountant-improvements.js`).
+
 ### 2026-07-19 · Compact dashboard stock warning (Africa/Kampala)
 
 - Replaced the full low-stock product dump with a count, three examples, and a link to the complete Exception Center list.

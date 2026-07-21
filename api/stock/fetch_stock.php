@@ -83,7 +83,8 @@ usort($stock, function ($a, $b) use ($order) {
     return strcasecmp((string) $a['name'], (string) $b['name']);
 });
 
-$totalWarehouse = array_sum(array_column($stock, 'warehouse_qty'));
+// Summary over all filtered rows (not just the current page).
+$totalWarehouse = (int) array_sum(array_map(static fn($r) => (int) $r['warehouse_qty'], $rows));
 
 json_ok([
     'stock' => $stock,
