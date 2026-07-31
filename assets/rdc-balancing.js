@@ -281,7 +281,7 @@ function rdcRenderWizardChrome() {
   });
 
   const titles = isMgr ? {
-    1: ['Manager review — Sales', 'Correct cadet/RDC quantities if needed, then continue.'],
+    1: ['Manager review — Sales', 'Sales come from cadet reports and are locked here. Review expenses & cash next.'],
     2: ['Manager review — Expenses & cash', 'Adjust expenses or cash received before approve.'],
     3: ['Manager review — Totals', 'Save corrections, then Approve or go back to the review queue.'],
   } : rdcViewingSubmitted ? {
@@ -382,6 +382,11 @@ function rdcDisabled() {
   return rdcReadOnly ? 'disabled' : '';
 }
 
+// Sales are captured automatically from cadet reports, so the manager's review is read-only on sales.
+function rdcSalesDisabled() {
+  return (rdcReadOnly || rdcEditorMode === 'manager') ? 'disabled' : '';
+}
+
 function rdcCanEditUnitPrice() {
   return !rdcReadOnly && typeof currentUser !== 'undefined' && currentUser?.role === 'admin';
 }
@@ -397,12 +402,12 @@ function rdcPriceCellHtml(line, li) {
 function rdcSalesRowHtml(line, li, cols) {
   const qtyCells = cols.map((c) => {
     const v = line.qty?.[c.key] ?? 0;
-    return `<td><input class="qty-inp rdc-qty" type="number" min="0" step="1" value="${v}" data-section="sales" data-li="${li}" data-key="${c.key}" ${rdcDisabled()}></td>`;
+    return `<td><input class="qty-inp rdc-qty" type="number" min="0" step="1" value="${v}" data-section="sales" data-li="${li}" data-key="${c.key}" ${rdcSalesDisabled()}></td>`;
   }).join('');
   const totalQ = rdcLineTotalQty(line.qty);
   const amt = rdcLineAmount(line);
   return `<tr>
-    <td><input class="input" style="min-height:36px;padding:6px 8px;font-size:12px;min-width:110px" value="${line.label || ''}" data-section="sales-label" data-li="${li}" ${rdcDisabled()}></td>
+    <td><input class="input" style="min-height:36px;padding:6px 8px;font-size:12px;min-width:110px" value="${line.label || ''}" data-section="sales-label" data-li="${li}" ${rdcSalesDisabled()}></td>
     ${qtyCells}
     <td class="rdc-calc">${totalQ}</td>
     ${rdcPriceCellHtml(line, li)}
