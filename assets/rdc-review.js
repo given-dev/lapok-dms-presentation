@@ -159,7 +159,7 @@ async function rdcOpenComments(balanceDate) {
   const title = document.getElementById('rdcCommentsTitle');
   const list = document.getElementById('rdcCommentsList');
   const dateInp = document.getElementById('rdcCommentsDate');
-  if (title) title.textContent = `Comment thread &mdash; ${balanceDate}`;
+  if (title) title.textContent = `Comment thread — ${balanceDate}`;
   if (dateInp) dateInp.value = balanceDate;
   if (panel) panel.style.display = 'block';
   if (list) list.innerHTML = '<p style="color:var(--gray-mid)">Loading…</p>';

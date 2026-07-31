@@ -82,13 +82,13 @@ async function loadManagerDashboardExtras() {
     }
     if (closeEl) {
       if (d.closing_stock_done) {
-        closeEl.textContent = 'Done' + (d.closing_stock_at ? ' &middot; ' + LapokAPI.formatTime(d.closing_stock_at) : '');
+        closeEl.textContent = 'Done' + (d.closing_stock_at ? ' · ' + LapokAPI.formatTime(d.closing_stock_at) : '');
         closeEl.style.color = 'var(--green, #166534)';
       } else if (typeof isClosingStockWindowOpen === 'function' && !isClosingStockWindowOpen()) {
         closeEl.textContent = 'Locked until 6:30 PM';
         closeEl.style.color = 'var(--gray-mid)';
       } else {
-        closeEl.textContent = 'Open now &mdash; save by 7:00 PM';
+        closeEl.textContent = 'Open now — save by 7:00 PM';
         closeEl.style.color = 'var(--red, #B91C1C)';
       }
     }

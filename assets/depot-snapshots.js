@@ -304,9 +304,9 @@
             ? 'Not submitted yet &mdash; manager enters opening stock at 7:00 AM'
             : 'Not submitted yet &mdash; manager enters closing stock from 6:30 PM';
         } else if (type === 'closing' && !isClosingStockWindowOpen()) {
-          status.textContent = `Locked until ${closingWindowLabel()} &mdash; then enter and save closing stock (target 7:00 PM)`;
+          status.textContent = `Locked until ${closingWindowLabel()} — then enter and save closing stock (target 7:00 PM)`;
         } else {
-          status.textContent = type === 'opening' ? 'Not submitted &mdash; target 7:00 AM' : 'Open now &mdash; target save by 7:00 PM';
+          status.textContent = type === 'opening' ? 'Not submitted — target 7:00 AM' : 'Open now — target save by 7:00 PM';
         }
       }
       const notes = document.getElementById(notesId);

@@ -293,7 +293,7 @@ async function loadFieldDashboard() {
     const s = d.summary;
     if (trip) {
       document.getElementById('fieldVehicleIcon').textContent = trip.vehicle_type === 'truck' ? '🚛' : '🛺';
-      document.getElementById('fieldVehicleTitle').textContent = trip.registration + ' &mdash; Assigned vehicle';
+      document.getElementById('fieldVehicleTitle').textContent = trip.registration + ' — Assigned vehicle';
       document.getElementById('fieldVehicleDetail').textContent =
         `Route: ${trip.route_name || trip.route_area || '&mdash;'} &middot; Capacity: ${trip.capacity} cartons`;
       document.getElementById('fieldVehicleBadges').innerHTML =
@@ -305,7 +305,7 @@ async function loadFieldDashboard() {
     document.getElementById('fmRevenue').textContent = LapokAPI.formatUgx(s.revenue_today);
     document.getElementById('fmRemaining').textContent = s.total_remaining;
     document.getElementById('fmReceipts').textContent = s.receipts_today;
-    document.getElementById('fmStops').textContent = s.stops_total ? `0/${s.stops_total}` : '&mdash;';
+    document.getElementById('fmStops').textContent = s.stops_total ? `0/${s.stops_total}` : '—';
 
     const lt = document.getElementById('fieldLoadTable');
     if (lt) {

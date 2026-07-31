@@ -102,9 +102,9 @@
       const summary = d.summary || {};
 
       const vehicle = document.getElementById('cadetTripVehicle');
-      if (vehicle) vehicle.textContent = trip?.registration || '&mdash;';
+      if (vehicle) vehicle.textContent = trip?.registration || '—';
       const route = document.getElementById('cadetTripRoute');
-      if (route) route.textContent = trip?.route_name || trip?.route_area || '&mdash;';
+      if (route) route.textContent = trip?.route_name || trip?.route_area || '—';
       const status = document.getElementById('cadetTripStatus');
       if (status) status.textContent = trip?.status || 'No active trip';
       const sales = document.getElementById('cadetSalesToday');

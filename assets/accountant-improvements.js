@@ -121,11 +121,11 @@
     const el = document.getElementById('accMonthEndSync');
     if (!el) return;
     if (!at) {
-      el.textContent = 'Not saved yet &mdash; shared across depot roles when you save.';
+      el.textContent = 'Not saved yet — shared across depot roles when you save.';
       return;
     }
     const when = new Date(at).toLocaleString('en-UG', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-    el.textContent = `Last saved ${when}${byName ? ' by ' + byName : ''} &mdash; synced for manager & leadership.`;
+    el.textContent = `Last saved ${when}${byName ? ' by ' + byName : ''} — synced for manager & leadership.`;
   }
 
   function fmtUgx(value) {

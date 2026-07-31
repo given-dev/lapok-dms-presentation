@@ -160,7 +160,7 @@
     if (ctx.cadetReportCount) {
       const n = ctx.cadetReportCount;
       if (title) title.textContent = `${n} cadet report${n === 1 ? '' : 's'} ready to review`;
-      if (sub) sub.textContent = 'Open Today\'s close &mdash; Cadet reports received is at the top with Edit.';
+      if (sub) sub.textContent = 'Open Today\'s close — Cadet reports received is at the top with Edit.';
       box.style.display = 'flex';
       return;
     }
@@ -178,7 +178,7 @@
     }
     const n = ctx.exceptionCount;
     if (title) title.textContent = `${n} depot alert${n === 1 ? '' : 's'}`;
-    if (sub) sub.textContent = 'Optional &mdash; review stock and depot issues when you have time.';
+    if (sub) sub.textContent = 'Optional — review stock and depot issues when you have time.';
     box.style.display = 'flex';
   }
 
@@ -206,7 +206,7 @@
     }
     const n = ctx.cashPending;
     if (title) title.textContent = `${n} trip${n === 1 ? '' : 's'} need cash confirm`;
-    if (sub) sub.textContent = 'Optional &mdash; confirm when cadets return. Under More → Cash handover.';
+    if (sub) sub.textContent = 'Optional — confirm when cadets return. Under More → Cash handover.';
     box.style.display = 'flex';
   }
 
@@ -219,9 +219,9 @@
       box.style.display = 'none';
       return;
     }
-    if (title) title.textContent = `High receivables &mdash; ${fmtUgx(ctx.totalReceivables)}`;
+    if (title) title.textContent = `High receivables — ${fmtUgx(ctx.totalReceivables)}`;
     if (sub) {
-      sub.textContent = `${ctx.receivablesCount} customer${ctx.receivablesCount === 1 ? '' : 's'} owing. Collections are managed by your manager &mdash; not part of today's close.`;
+      sub.textContent = `${ctx.receivablesCount} customer${ctx.receivablesCount === 1 ? '' : 's'} owing. Collections are managed by your manager — not part of today's close.`;
     }
     box.style.display = 'flex';
   }

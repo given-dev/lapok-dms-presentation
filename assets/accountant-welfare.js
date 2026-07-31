@@ -66,7 +66,7 @@
     const chip = document.getElementById('welfareSummaryChip');
     if (!chip) return;
     const n = summary.open_count || 0;
-    chip.textContent = n ? `${n} open &middot; UGX ${Number(summary.open_amount || 0).toLocaleString()}` : 'All resolved';
+    chip.textContent = n ? `${n} open · UGX ${Number(summary.open_amount || 0).toLocaleString()}` : 'All resolved';
     chip.className = 'badge ' + (n ? 'bw' : 'bs');
   }
 

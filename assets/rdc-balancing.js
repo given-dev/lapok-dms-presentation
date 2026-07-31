@@ -264,7 +264,7 @@ function rdcRenderWizardChrome() {
   if (importBtn) importBtn.style.display = step === 1 && canEdit && !isMgr ? 'inline-flex' : 'none';
   if (nextBtn) {
     nextBtn.style.display = step < 3 ? 'inline-flex' : 'none';
-    nextBtn.textContent = step === 1 ? 'Next &mdash; expenses & cash →' : 'Next &mdash; review →';
+    nextBtn.textContent = step === 1 ? 'Next — expenses & cash →' : 'Next — review →';
     nextBtn.className = 'btn btn-sm btn-red';
   }
   if (submitBtn) submitBtn.style.display = step === 3 && canEdit && !isMgr ? 'inline-flex' : 'none';
@@ -298,9 +298,9 @@ function rdcRenderWizardChrome() {
 
   if (hint && rdcSheet) {
     const v = Number(rdcSheet.variance || 0);
-    if (isMgr) hint.textContent = v === 0 ? 'Manager can edit, then Approve' : 'Variance ' + rdcFmt(v) + ' &mdash; correct or note before approve';
-    else if (rdcViewingSubmitted) hint.textContent = 'Read-only &mdash; submitted to manager';
-    else if (step === 3 && v !== 0) hint.textContent = 'Variance ' + rdcFmt(v) + ' &mdash; explain in notes before submit';
+    if (isMgr) hint.textContent = v === 0 ? 'Manager can edit, then Approve' : 'Variance ' + rdcFmt(v) + ' — correct or note before approve';
+    else if (rdcViewingSubmitted) hint.textContent = 'Read-only — submitted to manager';
+    else if (step === 3 && v !== 0) hint.textContent = 'Variance ' + rdcFmt(v) + ' — explain in notes before submit';
     else if (step === 1) hint.textContent = 'Use Import sales to load recorded depot orders';
     else if (step === 2) hint.textContent = 'Expected cash updates when you save';
     else hint.textContent = 'Submit sends the sheet to your manager';
@@ -584,7 +584,7 @@ function rdcRenderMeta() {
   if (rdcSheet.reviewed_at) {
     parts.push('reviewed ' + LapokAPI.formatDate(rdcSheet.reviewed_at));
   }
-  el.textContent = parts.join(' &middot; ');
+  el.textContent = parts.join(' · ');
 }
 
 function rdcRenderReadOnly() {
@@ -594,7 +594,7 @@ function rdcRenderReadOnly() {
   if (rdcEditorMode === 'manager' && !rdcReadOnly) {
     banner.style.display = 'flex';
     banner.className = 'alert a-warning';
-    text.textContent = 'Manager edit mode &mdash; correct mistakes on this received sheet, Save, then Approve.';
+    text.textContent = 'Manager edit mode — correct mistakes on this received sheet, Save, then Approve.';
     return;
   }
   if (!rdcReadOnly) {
@@ -605,11 +605,11 @@ function rdcRenderReadOnly() {
   banner.style.display = 'flex';
   banner.className = 'alert a-info';
   if (s === 'approved') {
-    text.textContent = 'Approved &mdash; view only. Ask admin or manager to reopen if a correction is needed.';
+    text.textContent = 'Approved — view only. Ask admin or manager to reopen if a correction is needed.';
   } else if (s === 'submitted' || s === 'under_review') {
-    text.textContent = 'Submitted report &mdash; read only. Manager reviews (and may correct) this sheet.';
+    text.textContent = 'Submitted report — read only. Manager reviews (and may correct) this sheet.';
   } else if (s === 'rejected') {
-    text.textContent = 'Rejected &mdash; manager will reopen for edits, or contact admin.';
+    text.textContent = 'Rejected — manager will reopen for edits, or contact admin.';
   } else {
     text.textContent = 'This sheet is read-only.';
   }
@@ -818,10 +818,10 @@ function rdcOpenCadetReportEdit(tripId) {
   const report = entry.report || entry;
   const title = document.getElementById('rdcEditCadetTitle');
   const meta = document.getElementById('rdcEditCadetMeta');
-  if (title) title.textContent = `Correct report &mdash; ${entry.registration || 'Vehicle'}`;
+  if (title) title.textContent = `Correct report — ${entry.registration || 'Vehicle'}`;
   if (meta) {
-    meta.textContent = `${entry.cadet_name || 'Cadet'} &middot; trip #${tripId}` +
-      (entry.corrected_at ? ` &middot; last corrected by ${entry.corrected_by_name || 'RDC'}` : '');
+    meta.textContent = `${entry.cadet_name || 'Cadet'} · trip #${tripId}` +
+      (entry.corrected_at ? ` · last corrected by ${entry.corrected_by_name || 'RDC'}` : '');
   }
 
   const body = document.getElementById('rdcEditCadetSalesBody');
