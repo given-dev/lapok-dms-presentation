@@ -321,7 +321,8 @@ function depot_director_snapshot(string $date): array
     $cashVarStmt = $pdo->prepare(
         "SELECT COALESCE(SUM(ABS(COALESCE(cash_collected, 0) - COALESCE(cash_reported, 0))), 0)
          FROM delivery_trips
-         WHERE status = 'returned' AND DATE(returned_at) = ?"
+         WHERE status IN ('returned','completed') AND DATE(returned_at) = ?
+           AND cash_collected IS NOT NULL"
     );
     $cashVarStmt->execute([$date]);
     $cashShortage = (float) $cashVarStmt->fetchColumn();

@@ -389,7 +389,8 @@ function report_build_accountant_layout(string $date, ?string $preparedBy = null
 
     $cash = $pdo->query(
         "SELECT COUNT(*) AS cnt, COALESCE(SUM(cash_reported),0) AS reported,
-                COALESCE(SUM(cash_collected),0) AS collected
+                COALESCE(SUM(cash_collected),0) AS collected,
+                COALESCE(SUM(CASE WHEN cash_collected IS NOT NULL THEN cash_reported ELSE 0 END),0) AS confirmed_reported
          FROM delivery_trips WHERE DATE(returned_at) = " . $pdo->quote($date)
     )->fetch();
     $pendingCash = (int) $pdo->query(
@@ -454,8 +455,8 @@ function report_build_accountant_layout(string $date, ?string $preparedBy = null
         'Cash confirmations PENDING: ' . $pendingCash,
         'Total cash reported: ' . simple_pdf_ugx((float) ($cash['reported'] ?? 0)),
         'Total cash collected (confirmed): ' . simple_pdf_ugx((float) ($cash['collected'] ?? 0)),
-        'Net collection gap (reported - collected): ' . simple_pdf_ugx(
-            (float) ($cash['reported'] ?? 0) - (float) ($cash['collected'] ?? 0)
+        'Net collection gap on confirmed trips (reported - collected): ' . simple_pdf_ugx(
+            (float) ($cash['confirmed_reported'] ?? 0) - (float) ($cash['collected'] ?? 0)
         ),
     ];
     if ($confirmedVarianceAbs >= 1) {

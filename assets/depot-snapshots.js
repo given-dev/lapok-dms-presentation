@@ -271,14 +271,18 @@
     const date = todayIso();
     try {
       const d = await LapokAPI.get('/api/depot/fetch_snapshot.php?date=' + encodeURIComponent(date) + '&type=' + encodeURIComponent(type));
-      const suggested = (d.suggested_lines || []).map((l) => ({
-        ...l,
-        qty: 0,
-        opening: Number(l.opening || 0),
-        purchase: Number(l.purchase || 0),
-        sales: Number(l.sales || 0),
-        closing: Number(l.closing || 0),
-      }));
+      // Only the opening editor carries an "opening" suggestion (previous day's closing stock).
+      // The closing editor must NOT set opening on its unsaved rows, otherwise mergedSnapshotLines
+      // would overwrite today's opening column with 0 before closing stock is saved.
+      const isOpening = type === 'opening';
+      const suggested = (d.suggested_lines || []).map((l) => {
+        const base = { ...l, qty: 0 };
+        if (isOpening) base.opening = Number(l.opening || 0);
+        base.purchase = Number(l.purchase || 0);
+        base.sales = Number(l.sales || 0);
+        base.closing = Number(l.closing || 0);
+        return base;
+      });
       snapshotCache.template = suggested.map((l) => ({ ...l }));
       if (d.snapshot?.lines?.length) {
         // Server already merged onto current catalog — keep only those rows.

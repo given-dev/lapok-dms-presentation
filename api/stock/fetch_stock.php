@@ -39,7 +39,7 @@ $stock = array_map(function ($row) {
     $expiry = $row['nearest_expiry'];
     $expiringSoon = false;
     if ($expiry) {
-        $days = (int) ((strtotime($expiry) - time()) / 86400);
+        $days = (int) ceil((strtotime($expiry) - time()) / 86400);
         $expiringSoon = $days <= 30;
     }
     $levelPct = $min > 0 ? min(100, round(($warehouse / $min) * 100)) : 100;

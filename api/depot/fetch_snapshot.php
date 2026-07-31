@@ -21,6 +21,23 @@ if (!in_array($type, ['opening', 'closing'], true)) {
 
 $snapshot = depot_snapshot_fetch($date, $type);
 $warehouseLines = depot_stock_lines_from_warehouse($date);
+
+// Opening stock carries over the previous day's closing stock (counts carry forward).
+if ($type === 'opening' && (!$snapshot || empty($snapshot['lines']))) {
+    $prevDate = date('Y-m-d', strtotime($date . ' -1 day'));
+    $prevClosing = depot_snapshot_fetch($prevDate, 'closing');
+    if ($prevClosing && !empty($prevClosing['lines'])) {
+        $carry = depot_merge_snapshot_onto_catalog($prevClosing['lines']);
+        foreach ($carry as &$line) {
+            $line['opening'] = (int) ($line['closing'] ?? $line['qty'] ?? 0);
+            $line['qty'] = 0;
+            $line['sales'] = 0;
+        }
+        unset($line);
+        $warehouseLines = depot_apply_purchases_from_deliveries($carry, $date);
+    }
+}
+
 if ($snapshot && !empty($snapshot['lines'])) {
     // Always rebuild onto current LAPOK BOOK flavor catalog so legacy SKUs
     // (PREDATOR GOLD / POWERPLAY) do not appear beside the new ENERGY rows.

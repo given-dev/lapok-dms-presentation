@@ -10,9 +10,11 @@ INSERT INTO vehicles
   (id, registration, vehicle_type, make_model, capacity, status, current_route, is_active)
 VALUES
   (1, 'KCA 201T', 'truck', 'Isuzu NPR', 150, 'available', NULL, 1),
-  (2, 'KCB 774Y', 'truck', 'Mercedes Sprinter', 120, 'available', NULL, 1),
-  (3, 'TUK-001', 'tuktuk', 'Bajaj RE', 40, 'available', NULL, 1),
-  (4, 'TUK-002', 'tuktuk', 'Bajaj RE', 40, 'available', NULL, 1)
+  (2, 'TUK-001', 'tuktuk', 'Bajaj RE', 40, 'available', NULL, 1),
+  (3, 'TUK-002', 'tuktuk', 'Bajaj RE', 40, 'available', NULL, 1),
+  (4, 'KCB 774Y', 'truck', 'Mercedes Sprinter', 120, 'available', NULL, 1),
+  (5, 'TUK-003', 'tuktuk', 'Bajaj RE', 40, 'available', NULL, 1),
+  (6, 'TUK-004', 'tuktuk', 'Bajaj RE', 40, 'available', NULL, 1)
 ON DUPLICATE KEY UPDATE
   registration = VALUES(registration),
   vehicle_type = VALUES(vehicle_type),

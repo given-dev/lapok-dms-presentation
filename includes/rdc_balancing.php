@@ -222,9 +222,10 @@ function rdc_compute_totals(array $payload): array
     $expensesTotal = rdc_sum_row_amounts($payload['expenses'] ?? []);
     $grandTotal = round($salesTotal + $recoveryTotal, 2);
     $cashReducingExpenses = rdc_cash_reducing_expenses($payload['expenses'] ?? []);
+    $cashOutTotal = rdc_sum_row_amounts($payload['cash_out'] ?? []);
     $expected = isset($payload['expected_amount'])
         ? (float) $payload['expected_amount']
-        : round($grandTotal - $cashReducingExpenses, 2);
+        : round($grandTotal - $cashReducingExpenses - $cashOutTotal, 2);
     $actual = rdc_sum_amounts_map($payload['cash_actual'] ?? []);
     $variance = round($expected - $actual, 2);
 
