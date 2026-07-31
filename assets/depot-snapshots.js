@@ -148,6 +148,40 @@
     });
   }
 
+  function stockBookBrandTotals() {
+    const totals = {};
+    mergedSnapshotLines().forEach((row) => {
+      const brand = row.brand || row.category || 'OTHER';
+      if (!totals[brand]) totals[brand] = { opening: 0, purchase: 0, sales: 0, closing: 0 };
+      totals[brand].opening += Number(row.openingQty || 0);
+      totals[brand].purchase += Number(row.purchaseQty || 0);
+      totals[brand].sales += Number(row.salesQty || 0);
+      totals[brand].closing += Number(row.closingQty || 0);
+    });
+    return totals;
+  }
+
+  function updateStockBookTotals() {
+    const table = document.getElementById('mgrStockBookTable');
+    if (!table) return;
+    const totals = stockBookBrandTotals();
+    const setCell = (cell, v) => {
+      const strong = cell.querySelector('strong');
+      if (strong) strong.textContent = String(v);
+      else cell.textContent = String(v);
+    };
+    table.querySelectorAll('tr.stock-book-total').forEach((tr) => {
+      if (!tr.cells) return;
+      const label = (tr.cells[0]?.textContent || '').replace(/\s*TOTAL$/i, '').trim();
+      const t = totals[label];
+      if (!t) return;
+      setCell(tr.cells[2], t.opening);
+      setCell(tr.cells[3], t.purchase);
+      setCell(tr.cells[4], t.sales);
+      setCell(tr.cells[5], t.closing);
+    });
+  }
+
   function renderManagerStockBook() {
     const table = document.getElementById('mgrStockBookTable');
     if (!table) return;
@@ -161,15 +195,7 @@
     const closingLocked = !isClosingStockWindowOpen();
     let html = '<tr><th>Brand</th><th>SKUs</th><th>Opening stock</th><th class="stock-book-th-locked">Purchase<small>Locked · from deliveries</small></th><th>Sales</th><th>Closing stock</th></tr>';
     let currentBrand = '';
-    const brandTotals = {};
-    rows.forEach((row) => {
-      const brand = row.brand || row.category || 'OTHER';
-      if (!brandTotals[brand]) brandTotals[brand] = { opening: 0, purchase: 0, sales: 0, closing: 0 };
-      brandTotals[brand].opening += Number(row.openingQty || 0);
-      brandTotals[brand].purchase += Number(row.purchaseQty || 0);
-      brandTotals[brand].sales += Number(row.salesQty || 0);
-      brandTotals[brand].closing += Number(row.closingQty || 0);
-    });
+    const brandTotals = stockBookBrandTotals();
 
     rows.forEach((row, idx) => {
       const brand = row.brand || row.category || 'OTHER';
@@ -202,6 +228,7 @@
     table.querySelectorAll('.stock-book-input').forEach((inp) => {
       inp.addEventListener('input', () => {
         syncCacheField(Number(inp.getAttribute('data-product-id')), inp.getAttribute('data-field'), Number(inp.value || 0));
+        updateStockBookTotals();
       });
     });
   }
