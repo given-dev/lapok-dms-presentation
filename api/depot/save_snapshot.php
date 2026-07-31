@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/permissions.php';
 require_once dirname(__DIR__, 2) . '/includes/depot_finance.php';
+require_once dirname(__DIR__, 2) . '/includes/stock.php';
 
 $user = require_login();
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
@@ -78,22 +79,43 @@ $clean = depot_apply_purchases_from_deliveries($clean, $date);
 $clean = depot_apply_cadet_sales_from_trips($clean, $date);
 
 $pdo = db();
-$stmt = $pdo->prepare(
-    'INSERT INTO depot_stock_snapshots (snapshot_date, snapshot_type, lines_json, notes, submitted_by, submitted_at)
-     VALUES (?, ?, ?, ?, ?, NOW())
-     ON DUPLICATE KEY UPDATE
-       lines_json = VALUES(lines_json),
-       notes = VALUES(notes),
-       submitted_by = VALUES(submitted_by),
-       submitted_at = NOW()'
-);
-$stmt->execute([
-    $date,
-    $type,
-    json_encode($clean, JSON_UNESCAPED_UNICODE),
-    $notes,
-    (int) $user['id'],
-]);
+try {
+    $pdo->beginTransaction();
+    $stmt = $pdo->prepare(
+        'INSERT INTO depot_stock_snapshots (snapshot_date, snapshot_type, lines_json, notes, submitted_by, submitted_at)
+         VALUES (?, ?, ?, ?, ?, NOW())
+         ON DUPLICATE KEY UPDATE
+           lines_json = VALUES(lines_json),
+           notes = VALUES(notes),
+           submitted_by = VALUES(submitted_by),
+           submitted_at = NOW()'
+    );
+    $stmt->execute([
+        $date,
+        $type,
+        json_encode($clean, JSON_UNESCAPED_UNICODE),
+        $notes,
+        (int) $user['id'],
+    ]);
+    $snapshotId = (int) $pdo->lastInsertId();
+
+    // Opening stock IS the warehouse's live stock for the day: reconcile the ledger to the count.
+    // Deliveries and dispatches then move stock on top of it.
+    if ($type === 'opening') {
+        $desiredById = [];
+        foreach ($clean as $line) {
+            $desiredById[(int) $line['product_id']] = (int) $line['opening'];
+        }
+        reconcile_warehouse_stock_to_counts($desiredById, (int) $user['id'], 'opening_stock', $snapshotId > 0 ? $snapshotId : null);
+    }
+
+    $pdo->commit();
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    json_error('Could not save snapshot: ' . $e->getMessage(), 500);
+}
 
 audit_log((int) $user['id'], 'depot_stock_snapshots', null, 'save_' . $type, null, [
     'date' => $date,

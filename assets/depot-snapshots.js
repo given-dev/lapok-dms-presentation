@@ -305,6 +305,7 @@
       const suggested = (d.suggested_lines || []).map((l) => {
         const base = { ...l, qty: 0 };
         if (isOpening) base.opening = Number(l.opening || 0);
+        else delete base.opening;
         base.purchase = Number(l.purchase || 0);
         base.sales = Number(l.sales || 0);
         base.closing = Number(l.closing || 0);

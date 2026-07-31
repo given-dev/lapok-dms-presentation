@@ -124,6 +124,70 @@ function restore_warehouse_stock(int $productId, int $qty, ?int $batchId, ?int $
     }
 }
 
+/**
+ * Make the warehouse live stock match the manager's physical opening count.
+ * The opening count IS the warehouse's starting balance for the day; Coca-Cola
+ * deliveries and dispatches then move stock on top of it.
+ *
+ * @param array<int, int> $desiredById product_id => opening qty
+ */
+function reconcile_warehouse_stock_to_counts(array $desiredById, int $userId, string $refType, ?int $refId = null, ?string $notes = null): void
+{
+    $pdo = db();
+    $note = $notes ?? 'Opening stock count reconcile';
+    foreach ($desiredById as $productId => $desired) {
+        $desired = max(0, (int) $desired);
+        $productId = (int) $productId;
+        if ($productId <= 0) {
+            continue;
+        }
+
+        $stmt = $pdo->prepare(
+            'SELECT id, qty_warehouse FROM batches WHERE product_id = ? AND qty_warehouse > 0 ORDER BY expiry_date ASC, id ASC'
+        );
+        $stmt->execute([$productId]);
+        $batches = $stmt->fetchAll();
+        $current = 0;
+        foreach ($batches as $b) {
+            $current += (int) $b['qty_warehouse'];
+        }
+        $delta = $desired - $current;
+        if ($delta === 0) {
+            continue;
+        }
+
+        if ($delta > 0) {
+            $last = $pdo->prepare('SELECT id FROM batches WHERE product_id = ? ORDER BY expiry_date DESC, id DESC LIMIT 1');
+            $last->execute([$productId]);
+            $batch = $last->fetch();
+            if ($batch) {
+                $pdo->prepare('UPDATE batches SET qty_warehouse = qty_warehouse + ? WHERE id = ?')
+                    ->execute([$delta, $batch['id']]);
+                $batchId = (int) $batch['id'];
+            } else {
+                $pdo->prepare(
+                    'INSERT INTO batches (product_id, batch_number, expiry_date, qty_warehouse, unit_cost)
+                     VALUES (?, ?, ?, ?, 0)'
+                )->execute([$productId, 'OPEN-' . date('Ymd'), '2099-12-31', $delta]);
+                $batchId = (int) $pdo->lastInsertId();
+            }
+            log_stock_movement($productId, $batchId, 'adjustment', $delta, $refType, $refId, $userId, $note);
+        } else {
+            $remaining = -$delta;
+            foreach ($batches as $b) {
+                if ($remaining <= 0) {
+                    break;
+                }
+                $take = min((int) $b['qty_warehouse'], $remaining);
+                $pdo->prepare('UPDATE batches SET qty_warehouse = qty_warehouse - ? WHERE id = ?')
+                    ->execute([$take, $b['id']]);
+                log_stock_movement($productId, (int) $b['id'], 'adjustment', -$take, $refType, $refId, $userId, $note);
+                $remaining -= $take;
+            }
+        }
+    }
+}
+
 function get_low_stock_alerts(): array
 {
     $sql = stock_summary_query();
