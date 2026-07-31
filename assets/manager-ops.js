@@ -516,9 +516,9 @@ async function prepareDispatchModal() {
       let html = '';
       const paint = (cat, list) => {
         if (!list?.length) return;
-        html += `<tr class="rdc-cat-row"><td colspan="3"><strong>${escMgr(cat)}</strong></td></tr>`;
+        html += `<tr class="cadet-cat-row"><td colspan="3"><strong>${escMgr(cat)}</strong></td></tr>`;
         list.forEach((p) => {
-          html += `<tr data-product-id="${p.product_id}"><td>${escMgr(p.name)} <span style="color:var(--gray-mid);font-size:11px">${escMgr(p.sku || '')}</span></td><td>${p.warehouse_qty}</td>
+          html += `<tr data-product-id="${p.product_id}"><td>${escMgr(p.name)}${p.sku ? `<span class="dispatch-sku">${escMgr(p.sku)}</span>` : ''}</td><td>${Number(p.warehouse_qty || 0).toLocaleString('en-UG')}</td>
           <td><input class="qty-inp dispatch-qty" type="number" min="0" value="0" data-product-id="${p.product_id}"></td></tr>`;
         });
       };

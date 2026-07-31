@@ -382,6 +382,11 @@ tr:hover td{background:rgba(0,0,0,.012)}
 .cadet-sales-table td:nth-child(2),.cadet-sales-table th:nth-child(2){text-align:right;white-space:nowrap}
 .cadet-sales-table td:nth-child(3),.cadet-sales-table th:nth-child(3),
 .cadet-sales-table td:nth-child(4),.cadet-sales-table th:nth-child(4){white-space:nowrap}
+.dispatch-sales-table{width:100%;min-width:480px}
+.dispatch-sales-table .dispatch-qty{width:84px;min-width:84px;text-align:right;font-variant-numeric:tabular-nums}
+.dispatch-sales-table td:nth-child(2),.dispatch-sales-table th:nth-child(2){text-align:right;white-space:nowrap}
+.dispatch-sales-table td:nth-child(3),.dispatch-sales-table th:nth-child(3){white-space:nowrap}
+.dispatch-sales-table .dispatch-sku{display:block;color:var(--gray-mid);font-size:11px;font-weight:400;text-transform:none;letter-spacing:0}
 .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;background:var(--gradient-primary);color:#fff;box-shadow:0 4px 12px rgba(229,62,62,.25);transition:var(--transition)}
 .av-red{background:#fee2e2;color:var(--red)}.av-blk{background:#f3f4f6;color:#374151}
 .toggle{position:relative;display:inline-block;width:50px;height:28px;cursor:pointer;border-radius:14px;background:var(--gray-light);border:none;transition:var(--transition)}
@@ -1846,7 +1851,7 @@ canvas{display:block;width:100%!important}
   <div class="alert a-info"><span>ℹ</span><div>Cadet and route are taken from the main Admin's assignment for today and cannot be changed during dispatch.</div></div>
   <div class="form-row"><div class="form-group"><label>Vehicle</label><select class="select-inp" id="dispatchVehicle"><option value="">Loading…</option></select></div><div class="form-group" id="dispatchCadetGroup"><label>Assigned cadet / rider</label><input class="input" id="dispatchCadetName" readonly value="Select a vehicle"></div></div>
   <input type="hidden" id="dispatchCadet"><div class="form-group"><label>Today's assigned route</label><textarea class="textarea-inp" id="dispatchRouteArea" rows="2" readonly placeholder="Select a vehicle"></textarea></div>
-  <div class="tbl-wrap"><table style="margin-bottom:.8rem;min-width:280px"><tr><th>Product</th><th>In warehouse</th><th>Crates to load</th></tr>
+  <div class="tbl-wrap"><table class="dispatch-sales-table" style="margin-bottom:.8rem"><tr><th>Product</th><th>In warehouse</th><th>Crates to load</th></tr>
     <tbody id="dispatchLoadBody"><tr><td colspan="3" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr></tbody>
   </table></div>
   <div class="modal-actions"><button class="btn" onclick="closeModal('dispatchModal')">Cancel</button><button class="btn btn-red" onclick="saveDispatch(this)">Confirm dispatch</button></div>
@@ -2316,7 +2321,7 @@ window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementBy
 <script src="assets/app.js?v=20260726a"></script>
 <script src="assets/phase45.js?v=20260719a"></script>
 <script src="assets/report-exchange.js?v=20260719c"></script>
-<script src="assets/manager-ops.js?v=20260716r"></script>
+<script src="assets/manager-ops.js?v=20260731c"></script>
 <script src="assets/occd-boards.js?v=20260716g"></script>
 <script src="assets/ccba.js?v=20260716a"></script>
 <script src="assets/rdc-balancing.js?v=20260726d"></script>
