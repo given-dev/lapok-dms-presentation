@@ -88,6 +88,7 @@ $totalWarehouse = (int) array_sum(array_map(static fn($r) => (int) $r['warehouse
 
 json_ok([
     'stock' => $stock,
+    'packs' => depot_dispatch_pack_groups(),
     'pagination' => [
         'page' => $page,
         'per_page' => $perPage,

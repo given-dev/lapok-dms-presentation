@@ -483,6 +483,7 @@ async function prepareDispatchModal() {
       mgrDispatchData.routes = assignments.assignments || [];
       mgrDispatchData.users = assignments.cadets || [];
       mgrDispatchData.products = stock.stock || [];
+      mgrDispatchData.packs = stock.packs || [];
       mgrDispatchCache.loadedAt = Date.now();
     }
 
@@ -506,28 +507,18 @@ async function prepareDispatchModal() {
 
     const tbody = document.getElementById('dispatchLoadBody');
     if (tbody) {
-      const cats = ['300ML RGB', '330ML', 'ENERGY', '500ML', '1 LITRE', 'JUICE', '2 LITRE', 'RWENZORI WATER', 'EMPTIES'];
-      const byCat = {};
-      mgrDispatchData.products.forEach((p) => {
-        const cat = p.category || p.brand || 'OTHER';
-        if (!byCat[cat]) byCat[cat] = [];
-        byCat[cat].push(p);
-      });
+      const groups = mgrDispatchData.packs || [];
       let html = '';
-      const paint = (cat, list) => {
-        if (!list?.length) return;
-        html += `<tr class="cadet-cat-row"><td colspan="3"><strong>${escMgr(cat)}</strong></td></tr>`;
-        list.forEach((p) => {
-          html += `<tr data-product-id="${p.product_id}"><td>${escMgr(p.name)}${p.sku ? `<span class="dispatch-sku">${escMgr(p.sku)}</span>` : ''}</td><td>${Number(p.warehouse_qty || 0).toLocaleString('en-UG')}</td>
-          <td><input class="qty-inp dispatch-qty" type="number" min="0" value="0" data-product-id="${p.product_id}"></td></tr>`;
+      groups.forEach((g) => {
+        if (!g.packs?.length) return;
+        html += `<tr class="cadet-cat-row"><td colspan="3"><strong>${escMgr(g.category)}</strong></td></tr>`;
+        g.packs.forEach((p) => {
+          if (Number(p.warehouse_qty || 0) <= 0) return;
+          html += `<tr data-rdc-key="${escMgr(p.rdc_key)}"><td>${escMgr(p.label)}</td><td>${Number(p.warehouse_qty || 0).toLocaleString('en-UG')}</td>
+          <td><input class="qty-inp dispatch-qty" type="number" min="0" value="0" data-rdc-key="${escMgr(p.rdc_key)}"></td></tr>`;
         });
-      };
-      cats.forEach((cat) => paint(cat, byCat[cat]));
-      Object.keys(byCat).forEach((cat) => {
-        if (cats.includes(cat)) return;
-        paint(cat, byCat[cat]);
       });
-      tbody.innerHTML = html || '<tr><td colspan="3" style="color:var(--gray-mid)">No warehouse products. Refresh the page.</td></tr>';
+      tbody.innerHTML = html || '<tr><td colspan="3" style="color:var(--gray-mid)">No warehouse stock. Refresh the page.</td></tr>';
     }
     if (vSel) vSel.onchange = () => {
       const opt = vSel.selectedOptions[0];
@@ -556,7 +547,7 @@ async function saveDispatch(btn) {
   const loadItems = [];
   document.querySelectorAll('.dispatch-qty').forEach((inp) => {
     const qty = parseInt(inp.value || '0', 10);
-    if (qty > 0) loadItems.push({ product_id: parseInt(inp.dataset.productId, 10), qty });
+    if (qty > 0) loadItems.push({ rdc_key: inp.dataset.rdcKey, qty });
   });
   if (!vehicleId || !loadItems.length) {
     mgrNotify('Select a vehicle and enter load quantities.', 'error');
