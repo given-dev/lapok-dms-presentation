@@ -6,6 +6,9 @@
 (function () {
   /** Separate caches so opening/closing do not overwrite each other on this page. */
   const snapshotCache = { opening: [], closing: [] };
+  /** Opening stock locks after save; the manager must click Edit to change it again. */
+  let openingHasSaved = false;
+  let openingUnlock = false;
   const CLOSING_OPENS_HOUR = 18;
   const CLOSING_OPENS_MINUTE = 30;
 
@@ -36,9 +39,10 @@
   }
 
   function setClosingCardLocked(locked) {
-    const card = document.getElementById('mgrClosingStockCard');
+    const block = document.getElementById('mgrClosingBlock');
     const btn = document.getElementById('mgrClosingSaveBtn');
     const notes = document.getElementById('mgrClosingNotes');
+    const chip = document.getElementById('mgrClosingLockChip');
     if (btn) {
       btn.disabled = locked;
       btn.title = locked
@@ -51,10 +55,34 @@
       notes.readOnly = locked;
       notes.disabled = locked;
     }
-    if (card) {
-      card.style.opacity = locked ? '0.72' : '';
-      card.classList.toggle('depot-closing-locked', locked);
+    if (block) block.classList.toggle('depot-closing-locked', locked);
+    if (chip) chip.textContent = locked ? `Locked until ${closingWindowLabel()}` : 'Open now';
+  }
+
+  function openingIsLocked() {
+    return openingHasSaved && !openingUnlock;
+  }
+
+  function setOpeningCardLocked(locked) {
+    const saveBtn = document.getElementById('mgrOpeningSaveBtn');
+    const editBtn = document.getElementById('mgrOpeningEditBtn');
+    const notes = document.getElementById('mgrOpeningNotes');
+    if (saveBtn) {
+      saveBtn.style.display = locked ? 'none' : '';
+      saveBtn.disabled = locked;
     }
+    if (editBtn) editBtn.style.display = locked ? '' : 'none';
+    if (notes) {
+      notes.readOnly = locked;
+      notes.disabled = locked;
+    }
+  }
+
+  function editManagerOpeningStock() {
+    if (!confirm('Unlock saved opening stock for corrections? Saving again updates the warehouse live stock.')) return;
+    openingUnlock = true;
+    setOpeningCardLocked(false);
+    renderManagerStockBook();
   }
 
   function depotBrandOrder() {
@@ -187,13 +215,17 @@
     if (!table) return;
     setStockBookDate();
     const rows = mergedSnapshotLines();
+    const openingLocked = openingIsLocked();
+    const openingTh = openingLocked
+      ? '<th class="qty-col stock-book-th-locked">Opening stock<small>Saved · locked</small></th>'
+      : '<th class="qty-col">Opening stock</th>';
     if (!rows.length) {
-      table.innerHTML = '<tr><th>Brand</th><th>SKUs</th><th>Opening stock</th><th class="stock-book-th-locked">Purchase<small>Locked · from deliveries</small></th><th class="stock-book-th-locked">Sales<small>Locked · from cadets</small></th><th>Closing stock</th></tr><tr><td colspan="6" style="color:var(--gray-mid)">No stock lines.</td></tr>';
+      table.innerHTML = '<tr><th>Brand</th><th>SKUs</th>' + openingTh + '<th class="stock-book-th-locked">Purchase<small>Locked · from deliveries</small></th><th class="stock-book-th-locked">Sales<small>Locked · from cadets</small></th><th>Closing stock</th></tr><tr><td colspan="6" style="color:var(--gray-mid)">No stock lines.</td></tr>';
       return;
     }
 
     const closingLocked = !isClosingStockWindowOpen();
-    let html = '<tr><th>Brand</th><th>SKUs</th><th>Opening stock</th><th class="stock-book-th-locked">Purchase<small>Locked · from deliveries</small></th><th class="stock-book-th-locked">Sales<small>Locked · from cadets</small></th><th>Closing stock</th></tr>';
+    let html = '<tr><th>Brand</th><th>SKUs</th>' + openingTh + '<th class="stock-book-th-locked">Purchase<small>Locked · from deliveries</small></th><th class="stock-book-th-locked">Sales<small>Locked · from cadets</small></th><th>Closing stock</th></tr>';
     let currentBrand = '';
     const brandTotals = stockBookBrandTotals();
 
@@ -209,10 +241,13 @@
         currentBrand = brand;
         html += `<tr class="cat-row"><td colspan="6">${brand}</td></tr>`;
       }
+      const openingCell = openingLocked
+        ? `<span class="stock-book-purchase${Number(row.openingQty || 0) === 0 ? ' is-zero' : ''}" title="Locked — saved. Use Edit to change." aria-readonly="true">${Number(row.openingQty || 0)}</span>`
+        : `<input class="stock-book-input" data-field="opening" data-product-id="${row.product_id}" type="number" min="0" value="${Number(row.openingQty || 0)}">`;
       html += `<tr data-product-id="${row.product_id}">
         <td>${idx === 0 || rows[idx - 1].brand !== brand ? brand : ''}</td>
         <td>${row.product_name || '—'}</td>
-        <td><input class="stock-book-input" data-field="opening" data-product-id="${row.product_id}" type="number" min="0" value="${Number(row.openingQty || 0)}"></td>
+        <td>${openingCell}</td>
         <td><span class="stock-book-purchase${Number(row.purchaseQty || 0) === 0 ? ' is-zero' : ''}" title="Locked — filled from Coca-Cola deliveries" aria-readonly="true">${Number(row.purchaseQty || 0)}</span></td>
         <td><span class="stock-book-purchase${Number(row.salesQty || 0) === 0 ? ' is-zero' : ''}" title="Locked — filled from cadet sales reports" aria-readonly="true">${Number(row.salesQty || 0)}</span></td>
         <td><input class="stock-book-input" data-field="closing" data-product-id="${row.product_id}" type="number" min="0" value="${Number(row.closingQty || 0)}" ${closingLocked ? 'disabled' : ''}></td>
@@ -318,6 +353,11 @@
       } else {
         snapshotCache[type] = suggested.map((l) => ({ ...l }));
       }
+      if (type === 'opening') {
+        openingHasSaved = !!(d.snapshot && (d.snapshot.lines || []).length);
+        if (!openingHasSaved) openingUnlock = false;
+        setOpeningCardLocked(openingIsLocked());
+      }
       if (tableId === 'mgrOpeningStockTable' || tableId === 'mgrClosingStockTable') {
         renderManagerStockBook();
       } else {
@@ -381,6 +421,12 @@
         notes: document.getElementById(notesId)?.value?.trim() || '',
       });
       toast(type === 'opening' ? 'Opening stock saved (7am).' : 'Closing stock saved (7pm).');
+      if (type === 'opening') {
+        openingHasSaved = true;
+        openingUnlock = false;
+        setOpeningCardLocked(true);
+        renderManagerStockBook();
+      }
       if (type === 'opening' && typeof loadManagerOccdBoards === 'function'
           && document.getElementById('page-manager-ccba-boards')?.classList.contains('active')) {
         loadManagerOccdBoards();
@@ -467,6 +513,7 @@
   window.loadAccountantClosingStock = loadAccountantClosingStock;
   window.saveManagerOpeningStock = () => saveDepotSnapshot('opening', 'mgrOpeningNotes', loadManagerOpeningStock);
   window.saveManagerClosingStock = () => saveDepotSnapshot('closing', 'mgrClosingNotes', loadManagerClosingStock);
+  window.editManagerOpeningStock = editManagerOpeningStock;
   window.saveAccountantClosingStock = () => toast('Closing stock is entered by the manager only.', true);
   window.loadManagerFixedCosts = loadManagerFixedCosts;
   window.saveManagerFixedCosts = saveManagerFixedCosts;

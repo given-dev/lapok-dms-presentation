@@ -259,10 +259,7 @@ tr:hover td{background:rgba(0,0,0,.012)}
 .stock-book-input{width:86px;min-height:38px;padding:7px 8px;text-align:center;border:1.5px solid var(--gray-light);border-radius:8px;font:inherit}
 .stock-book-input:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 3px var(--red-light)}
 .stock-book-input[disabled]{background:#f8fafc;color:var(--gray-mid);cursor:not-allowed}
-.stock-book-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-.stock-book-actions .card{margin-bottom:0}
-.stock-book-actions .card-header{margin-bottom:.6rem}
-@media(max-width:768px){.stock-book-meta,.stock-book-actions{grid-template-columns:1fr}}
+@media(max-width:768px){.stock-book-meta{grid-template-columns:1fr}}
 
 /* ── OCCD DAILY BOARDS ── */
 .occd-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;padding:12px 14px;background:var(--white);border:1px solid var(--gray-light);border-radius:var(--rl);box-shadow:var(--shadow)}
@@ -1273,7 +1270,7 @@ canvas{display:block;width:100%!important}
     <div class="page-section-label">1. Stock taking (start here)</div>
     <div class="alert a-info" style="margin:0 0 .8rem">
       <span>ℹ</span>
-      <div style="font-size:12px"><strong>Do stock counts first.</strong> Enter opening stock at 7:00 AM before dispatch. Enter closing stock at 7:00 PM. RDC sees these figures read-only.</div>
+      <div style="font-size:12px"><strong>One stock taking page.</strong> Count opening stock at 7:00 AM before dispatch (it locks after save — use <strong>Edit</strong> to correct), then closing stock from 6:30 PM. RDC sees these figures read-only.</div>
     </div>
     <div class="card stock-book-card" id="mgrClosingStockCard">
       <div class="stock-book-head">
@@ -1297,7 +1294,7 @@ canvas{display:block;width:100%!important}
       <div class="stock-book-wrap">
         <div class="alert a-info" style="margin:0 0 12px">
           <span>ℹ</span>
-          <div style="font-size:12px"><strong>Purchase</strong> = cartons received on <a href="#" onclick="showPage('manager-delivery');return false" style="font-weight:700;color:var(--red)">Record Coca-Cola delivery</a>. Save a delivery, then this column updates automatically. <strong>Sales</strong> come from cadet sales reports and fill in automatically — you only count <strong>Opening</strong> and <strong>Closing</strong> stock. <strong>Closing stock</strong> is pre-filled from today's warehouse count + the stock cadets returned in the evening — adjust it to match your physical count.</div>
+          <div style="font-size:12px"><strong>Purchase</strong> = cartons received on <a href="#" onclick="showPage('manager-delivery');return false" style="font-weight:700;color:var(--red)">Record Coca-Cola delivery</a>. Save a delivery, then this column updates automatically. <strong>Sales</strong> come from cadet sales reports and fill in automatically — you only count <strong>Opening</strong> and <strong>Closing</strong> stock. <strong>Opening stock</strong> locks after you save it — use <strong>Edit</strong> to correct it. <strong>Closing stock</strong> is pre-filled from today's warehouse count + the stock cadets returned in the evening — adjust it to match your physical count.</div>
         </div>
         <div class="tbl-wrap">
           <table id="mgrStockBookTable" class="stock-book-table">
@@ -1312,24 +1309,25 @@ canvas{display:block;width:100%!important}
             <tr><td colspan="6" style="color:var(--gray-mid)">Loading…</td></tr>
           </table>
         </div>
-        <div class="stock-book-actions">
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">Opening stock — 7:00 AM</span>
-              <button class="btn btn-sm btn-red" type="button" onclick="saveManagerOpeningStock()">Save opening</button>
-            </div>
-            <div class="form-group" style="margin:0">
-              <label>Opening notes</label>
+        <div class="card" style="margin-top:14px">
+          <div class="card-header">
+            <span class="card-title">Stock taking — save the counts</span>
+            <span class="chip" id="mgrClosingLockChip">—</span>
+          </div>
+          <div class="form-row" style="grid-template-columns:1fr 1fr">
+            <div class="form-group" style="margin:0" id="mgrOpeningBlock">
+              <label>Opening stock — 7:00 AM</label>
+              <div class="btn-group" style="margin:0 0 .6rem">
+                <button class="btn btn-sm btn-red" id="mgrOpeningSaveBtn" type="button" onclick="saveManagerOpeningStock()">Save opening</button>
+                <button class="btn btn-sm" id="mgrOpeningEditBtn" type="button" onclick="editManagerOpeningStock()" style="display:none">Edit</button>
+              </div>
               <textarea class="textarea-inp" id="mgrOpeningNotes" rows="2" placeholder="Short note for morning count..."></textarea>
             </div>
-          </div>
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">Closing stock — from 6:30 PM</span>
-              <button class="btn btn-sm btn-red" id="mgrClosingSaveBtn" type="button" onclick="saveManagerClosingStock()">Save closing</button>
-            </div>
-            <div class="form-group" style="margin:0">
-              <label>Closing notes</label>
+            <div class="form-group" style="margin:0" id="mgrClosingBlock">
+              <label>Closing stock — from 6:30 PM</label>
+              <div class="btn-group" style="margin:0 0 .6rem">
+                <button class="btn btn-sm btn-red" id="mgrClosingSaveBtn" type="button" onclick="saveManagerClosingStock()">Save closing</button>
+              </div>
               <textarea class="textarea-inp" id="mgrClosingNotes" rows="2" placeholder="Shortages, recount notes…"></textarea>
             </div>
           </div>
@@ -2328,7 +2326,7 @@ window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementBy
 <script src="assets/notifications.js?v=20260719b"></script>
 <script src="assets/cadet-dashboard.js?v=20260708j"></script>
 <script src="assets/cadet-daily.js?v=20260716m"></script>
-<script src="assets/depot-snapshots.js?v=20260726e"></script>
+<script src="assets/depot-snapshots.js?v=20260731a"></script>
 <script src="assets/director-brief.js?v=20260719d"></script>
 </body>
 </html>
