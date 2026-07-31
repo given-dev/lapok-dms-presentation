@@ -1037,9 +1037,10 @@ async function loadRdcBalancingPage() {
     const resume = sessionStorage.getItem('rdcResumeWizard');
     if (resume) sessionStorage.removeItem('rdcResumeWizard');
     rdcSetWizardStep(rdcInferWizardStep());
-    // Accountant submitted view starts on finish panel; manager starts on sales for editing
+    // Accountant submitted view starts on finish panel; manager lands on the review/totals step —
+    // sales are auto-captured from cadets and are read-only for the manager.
     if (rdcEditorMode === 'manager') {
-      rdcSetWizardStep(1);
+      rdcSetWizardStep(3);
     }
   } catch (e) {
     const err = document.createElement('div');
