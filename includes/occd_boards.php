@@ -690,8 +690,8 @@ function occd_dashboard_brief_lines($row): array
                 . '  -  YTD ' . ($rowVals['ytd'] !== '' ? $rowVals['ytd'] : ' - ');
         }
     }
-    $exec = $payload['execution_model']['values'] ?? [];
-    if (isset($exec['nps']) && is_array($exec['nps'])) {
+    $exec = $payload['execution_excellence']['values'] ?? $payload['execution_model']['values'] ?? null;
+    if (is_array($exec) && isset($exec['nps']) && is_array($exec['nps'])) {
         $out[] = 'NPS  -  MTD ' . (($exec['nps']['mtd'] ?? '') !== '' ? $exec['nps']['mtd'] : ' - ')
             . '  -  YTD ' . (($exec['nps']['ytd'] ?? '') !== '' ? $exec['nps']['ytd'] : ' - ');
     }

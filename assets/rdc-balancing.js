@@ -94,10 +94,17 @@ function rdcShiftDate(delta) {
   openRdcSheetDate(rdcLocalIsoDate(d));
 }
 
+function rdcCashOutTotal(columnKey = null) {
+  return (rdcSheet?.cash_out || []).reduce((sum, row) => {
+    if (columnKey) return sum + (parseFloat(row.amounts?.[columnKey]) || 0);
+    return sum + rdcRowAmountSum(row);
+  }, 0);
+}
+
 function rdcAutoExpected() {
   if (!rdcSheet || rdcReadOnly) return;
   rdcRecalcClientTotals();
-  const expected = (rdcSheet.grand_total || 0) - rdcCashReducingExpensesTotal();
+  const expected = (rdcSheet.grand_total || 0) - rdcCashReducingExpensesTotal() - rdcCashOutTotal();
   const exp = document.getElementById('rdcExpected');
   if (exp) exp.value = Math.round(expected);
   rdcRecalcClientTotals();
@@ -140,7 +147,7 @@ function rdcRecalcClientTotals() {
   const recoveryTotal = (rdcSheet.recoveries || []).reduce((s, r) => s + rdcRowAmountSum(r), 0);
   const expensesTotal = (rdcSheet.expenses || []).reduce((s, r) => s + rdcRowAmountSum(r), 0);
   const grandTotal = salesTotal + recoveryTotal;
-  const expected = parseFloat(document.getElementById('rdcExpected')?.value) || (grandTotal - rdcCashReducingExpensesTotal());
+  const expected = parseFloat(document.getElementById('rdcExpected')?.value) || (grandTotal - rdcCashReducingExpensesTotal() - rdcCashOutTotal());
   const actual = Object.values(rdcSheet.cash_actual || {}).reduce((s, v) => s + (parseFloat(v) || 0), 0);
   const variance = expected - actual;
 

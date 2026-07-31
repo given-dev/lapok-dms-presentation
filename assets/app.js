@@ -144,8 +144,10 @@ async function refreshDashboardData() {
 
 async function loadStockTable() {
   const table = document.getElementById('mgrStockTable') || document.querySelector('#page-manager-stock table');
-  if (!table) return;
-  table.classList.add('wh-stock-table');
+  const dispatchTable = document.getElementById('dispatchStockTable');
+  const tables = [table, dispatchTable].filter(Boolean);
+  if (!tables.length) return;
+  tables.forEach((t) => t.classList.add('wh-stock-table'));
   try {
     const data = await LapokAPI.get('/api/stock/fetch_stock.php');
     productCatalog = data.stock || [];
@@ -164,8 +166,9 @@ async function loadStockTable() {
         <td><div class="progress-bar"><div class="progress-fill ${LapokAPI.progressClass(s.level_percent)}" style="width:${s.level_percent}%"></div></div></td>
       </tr>`;
     }).join('');
-    table.innerHTML = '<tr><th>Product</th><th>SKU</th><th>Warehouse</th><th>With vehicles</th><th>Sold today</th><th>Level</th></tr>' +
+    const html = '<tr><th>Product</th><th>SKU</th><th>Warehouse</th><th>With vehicles</th><th>Sold today</th><th>Level</th></tr>' +
       (rows || '<tr><td colspan="6" style="color:var(--gray-mid)">No stock lines</td></tr>');
+    tables.forEach((t) => { t.innerHTML = html; });
 
     const whEl = document.querySelector('#page-admin-dashboard .metric-card.hi .metric-value');
     if (whEl && data.summary) whEl.textContent = Number(data.summary.total_warehouse_cartons).toLocaleString();

@@ -100,6 +100,7 @@ $totals = rdc_compute_totals([
     'sales' => $sales,
     'recoveries' => $recoveries,
     'expenses' => $expenses,
+    'cash_out' => $cashOut,
     'cash_actual' => $cashActual,
     'expected_amount' => $expectedOverride,
 ]);

@@ -209,6 +209,10 @@ function cadet_apply_trip_sales(PDO $pdo, int $tripId, array $salesLines): void
         }
         $qtySold = $soldByKey[$key];
         $qtyLoaded = (int) $row['qty_loaded'];
+        // NOTE (known gap): qty_returned is recorded here but is never restocked back into
+        // batches.qty_warehouse (nor removed from qty_on_vehicles). Warehouse counts therefore
+        // stay depressed and on-vehicle counts grow over time. Verified 2026-07-31 by calc_check.php;
+        // intentionally left unfixed pending a product decision.
         $pdo->prepare(
             'UPDATE trip_load_items SET qty_sold = ?, qty_returned = ? WHERE trip_id = ? AND product_id = ?'
         )->execute([

@@ -31,7 +31,7 @@ if ($trip['status'] !== 'returned') {
 }
 
 $reported = (float) ($trip['cash_reported'] ?? 0);
-$variance = $cashCollected - $reported;
+$variance = round($cashCollected - $reported, 2);
 
 db()->prepare(
     'UPDATE delivery_trips SET cash_collected = ?, status = ? WHERE id = ?'

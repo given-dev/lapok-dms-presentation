@@ -1041,6 +1041,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof loadManagerClosingStock === 'function') loadManagerClosingStock();
       }
     },
+    'manager-dispatch': () => {
+      prepareDispatchModal();
+      loadDispatchLog();
+      loadStockTable();
+    },
     'manager-delivery': () => {
       if (typeof loadManagerDeliveryPage === 'function') loadManagerDeliveryPage();
     },
