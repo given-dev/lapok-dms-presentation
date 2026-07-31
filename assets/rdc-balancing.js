@@ -284,10 +284,10 @@ function rdcRenderWizardChrome() {
     1: ['Manager review — Sales', 'Sales come from cadet reports and are locked here. Review expenses & cash next.'],
     2: ['Manager review — Expenses & cash', 'Adjust expenses or cash received before approve.'],
     3: ['Manager review — Totals', 'Save corrections, then Approve or go back to the review queue.'],
-  } : rdcViewingSubmitted ? {
-    1: ['Submitted report — Sales (read only)', 'This is what you sent to the manager.'],
-    2: ['Submitted report — Expenses & cash (read only)', 'Figures locked after submit.'],
-    3: ['Submitted report — Totals (read only)', 'Use Back to closeout if you need to send the pack.'],
+  } : (rdcViewingSubmitted || rdcReadOnly) ? {
+    1: ['View only — Sales', 'Sales are auto-captured from cadet reports and stay locked.'],
+    2: ['View only — Expenses & cash', 'Expenses and cash shown for reference.'],
+    3: ['View only — Totals', 'Only the RDC can edit while this day has not been submitted yet.'],
   } : {
     1: ['Step 1 of 3 — Sales', 'Enter verified quantities or import sales from depot orders.'],
     2: ['Step 2 of 3 — Expenses & cash', 'Record expenses, then enter cash actually on hand.'],
@@ -298,8 +298,8 @@ function rdcRenderWizardChrome() {
 
   if (hint && rdcSheet) {
     const v = Number(rdcSheet.variance || 0);
-    if (isMgr) hint.textContent = v === 0 ? 'Manager can edit, then Approve' : 'Variance ' + rdcFmt(v) + ' — correct or note before approve';
-    else if (rdcViewingSubmitted) hint.textContent = 'Read-only — submitted to manager';
+    if (isMgr) hint.textContent = v === 0 ? 'Manager can edit expenses/cash, then Approve' : 'Variance ' + rdcFmt(v) + ' — correct or note before approve';
+    else if (rdcViewingSubmitted || rdcReadOnly) hint.textContent = 'Read only — sales captured automatically from cadet reports';
     else if (step === 3 && v !== 0) hint.textContent = 'Variance ' + rdcFmt(v) + ' — explain in notes before submit';
     else if (step === 1) hint.textContent = 'Use Import sales to load recorded depot orders';
     else if (step === 2) hint.textContent = 'Expected cash updates when you save';
