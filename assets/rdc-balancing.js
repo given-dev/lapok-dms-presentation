@@ -774,6 +774,7 @@ function rdcRenderCadetConsolidationBanner(meta) {
   const count = meta?.reports_today || reports.length || 0;
   const card = document.getElementById('rdcCadetVehicleCard');
   const table = document.getElementById('rdcCadetVehicleTable');
+  const cadetLocked = rdcReadOnly || rdcEditorMode === 'manager';
 
   if (!count) {
     el.style.display = 'none';
@@ -785,7 +786,7 @@ function rdcRenderCadetConsolidationBanner(meta) {
     `<strong>${rdcEsc(r.registration || 'Vehicle')}</strong> · ${rdcEsc(r.cadet_name || 'Cadet')} — sales UGX ${Number(r.sales_total || 0).toLocaleString()}, cash UGX ${Number(r.cash_handed || 0).toLocaleString()}${(r.flags || []).length ? ' · flagged' : ''}${r.corrected_at ? ' · corrected' : ''}`
   ).join('<br>');
   el.style.display = 'flex';
-  el.innerHTML = `<span>ℹ</span><div><strong>${count} cadet report${count === 1 ? '' : 's'} received</strong> — click <em>Edit</em> below to fix mistakes before you balance.<div style="font-size:13px;margin-top:6px">${lines}</div>${!rdcReadOnly ? '<button class="btn btn-sm" type="button" style="margin-top:8px" onclick="rdcSyncCadetReports()">Refresh from cadets</button>' : ''}</div>`;
+  el.innerHTML = `<span>ℹ</span><div><strong>${count} cadet report${count === 1 ? '' : 's'} received</strong> — sales are auto-captured from cadets and stay locked here.<div style="font-size:13px;margin-top:6px">${lines}</div>${!cadetLocked ? '<button class="btn btn-sm" type="button" style="margin-top:8px" onclick="rdcSyncCadetReports()">Refresh from cadets</button>' : ''}</div>`;
 
   if (card) card.style.display = 'block';
   if (table) {
@@ -794,7 +795,7 @@ function rdcRenderCadetConsolidationBanner(meta) {
         const status = r.corrected_at
           ? '<span class="badge bd">Corrected</span>'
           : ((r.flags || []).length ? '<span class="badge bw">Flagged</span>' : '<span class="badge bs">OK</span>');
-        const editBtn = rdcReadOnly
+        const editBtn = cadetLocked
           ? '<span style="color:var(--gray-mid);font-size:12px">Locked</span>'
           : `<button type="button" class="btn btn-sm btn-red" onclick="rdcOpenCadetReportEdit(${Number(r.trip_id)})">Edit</button>`;
         return `<tr>
@@ -810,8 +811,8 @@ function rdcRenderCadetConsolidationBanner(meta) {
 }
 
 function rdcOpenCadetReportEdit(tripId) {
-  if (rdcReadOnly) {
-    rdcNotify('Sheet is locked — reopen before correcting cadet reports.', true);
+  if (rdcReadOnly || rdcEditorMode === 'manager') {
+    rdcNotify('Sales come from cadet reports and are locked for manager review.', true);
     return;
   }
   const entry = rdcCadetReportsCache.find((r) => Number(r.trip_id) === Number(tripId));
@@ -919,7 +920,7 @@ function rdcUpdateCadetEditTotals() {
 }
 
 async function rdcSaveCadetReportEdit() {
-  if (!rdcEditCadetTripId || rdcReadOnly) return;
+  if (!rdcEditCadetTripId || rdcReadOnly || rdcEditorMode === 'manager') return;
   const body = document.getElementById('rdcEditCadetSalesBody');
   const sales_lines = [];
   body?.querySelectorAll('tr[data-rdc-key]').forEach((tr) => {
