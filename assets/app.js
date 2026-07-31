@@ -54,6 +54,13 @@ async function initApp() {
   await refreshDashboardData();
 }
 
+window.addEventListener('hashchange', () => {
+  const wanted = (location.hash || '').startsWith('#page-') ? (location.hash || '').slice(6) : '';
+  if (wanted && currentUser && document.getElementById('page-' + wanted)) {
+    window.showPage(wanted);
+  }
+});
+
 function navToGroups(nav) {
   const groups = [];
   let current = null;
@@ -126,7 +133,12 @@ function applyUserSession(user) {
   items.forEach((n) => { LABELS[n.id] = n.l; });
   LABELS['manager-delivery'] = 'Coca-Cola delivery';
   const homePage = LapokAPI.roleHomePage?.[role] || items[0]?.id;
-  if (homePage) {
+  const wanted = (location.hash || '').startsWith('#page-')
+    ? (location.hash || '').slice(6)
+    : '';
+  if (wanted && document.getElementById('page-' + wanted)) {
+    showPage(wanted);
+  } else if (homePage) {
     showPage(homePage);
   }
   applyExecutiveReadOnlyMode();

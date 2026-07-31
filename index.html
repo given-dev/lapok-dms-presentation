@@ -2065,6 +2065,7 @@ function showPage(id){
   document.getElementById('topbarTitle').textContent=LABELS[id]||id;
   if(id==='admin-dashboard')setTimeout(drawCharts,100);
   if(id==='admin-reports')setTimeout(drawReportChart,100);
+  if(pg&&location.hash!=='#page-'+id){try{history.replaceState(null,'','#page-'+id)}catch(_){ }}
   window.scrollTo(0,0);
 }
 
@@ -2312,7 +2313,7 @@ setInterval(refreshTopbarClock,1000);
 window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementById('page-admin-dashboard').classList.contains('active'))setTimeout(drawCharts,150)});
 
 </script>
-<script src="assets/app.js?v=20260719a"></script>
+<script src="assets/app.js?v=20260726a"></script>
 <script src="assets/phase45.js?v=20260719a"></script>
 <script src="assets/report-exchange.js?v=20260719c"></script>
 <script src="assets/manager-ops.js?v=20260716r"></script>
