@@ -193,6 +193,13 @@
     const table = document.getElementById('mgrStockBookTable');
     if (!table) return;
     const totals = stockBookBrandTotals();
+    const grand = { opening: 0, purchase: 0, sales: 0, closing: 0 };
+    Object.values(totals).forEach((t) => {
+      grand.opening += t.opening;
+      grand.purchase += t.purchase;
+      grand.sales += t.sales;
+      grand.closing += t.closing;
+    });
     const setCell = (cell, v) => {
       const strong = cell.querySelector('strong');
       if (strong) strong.textContent = String(v);
@@ -200,6 +207,13 @@
     };
     table.querySelectorAll('tr.stock-book-total').forEach((tr) => {
       if (!tr.cells) return;
+      if (tr.classList.contains('stock-book-grand-total')) {
+        setCell(tr.cells[1], grand.opening);
+        setCell(tr.cells[2], grand.purchase);
+        setCell(tr.cells[3], grand.sales);
+        setCell(tr.cells[4], grand.closing);
+        return;
+      }
       const label = (tr.cells[0]?.textContent || '').replace(/\s*TOTAL$/i, '').trim();
       const t = totals[label];
       if (!t) return;
@@ -234,7 +248,7 @@
       if (brand !== currentBrand) {
         if (currentBrand && brandTotals[currentBrand]) {
           const t = brandTotals[currentBrand];
-          html += `<tr class="stock-book-total"><td colspan="2"><strong>${currentBrand} TOTAL</strong></td>
+          html += `<tr class="stock-book-total"><td colspan="2" class="stock-book-total-label"><strong>${currentBrand} TOTAL</strong></td>
             <td><strong>${t.opening}</strong></td><td><strong>${t.purchase}</strong></td>
             <td><strong>${t.sales}</strong></td><td><strong>${t.closing}</strong></td></tr>`;
         }
@@ -255,10 +269,20 @@
     });
     if (currentBrand && brandTotals[currentBrand]) {
       const t = brandTotals[currentBrand];
-      html += `<tr class="stock-book-total"><td colspan="2"><strong>${currentBrand} TOTAL</strong></td>
+      html += `<tr class="stock-book-total"><td colspan="2" class="stock-book-total-label"><strong>${currentBrand} TOTAL</strong></td>
         <td><strong>${t.opening}</strong></td><td><strong>${t.purchase}</strong></td>
         <td><strong>${t.sales}</strong></td><td><strong>${t.closing}</strong></td></tr>`;
     }
+    const grand = { opening: 0, purchase: 0, sales: 0, closing: 0 };
+    Object.values(brandTotals).forEach((bt) => {
+      grand.opening += bt.opening;
+      grand.purchase += bt.purchase;
+      grand.sales += bt.sales;
+      grand.closing += bt.closing;
+    });
+    html += `<tr class="stock-book-total stock-book-grand-total"><td colspan="2" class="stock-book-total-label"><strong>GRAND TOTAL</strong></td>
+      <td><strong>${grand.opening}</strong></td><td><strong>${grand.purchase}</strong></td>
+      <td><strong>${grand.sales}</strong></td><td><strong>${grand.closing}</strong></td></tr>`;
     table.innerHTML = html;
     table.querySelectorAll('.stock-book-input').forEach((inp) => {
       inp.addEventListener('input', () => {

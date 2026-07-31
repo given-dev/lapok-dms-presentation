@@ -236,7 +236,9 @@ tr:hover td{background:rgba(0,0,0,.012)}
 .stock-book-table td:nth-child(1),.stock-book-table td:nth-child(2){text-align:left}
 .stock-book-table td{text-align:center}
 .stock-book-table .cat-row td{background:#f8fafc;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--gray);text-align:left}
-.stock-book-table .stock-book-total td{background:#eef2f7;border-top:1px solid #d8dee8}
+.stock-book-table .stock-book-total td{background:#eef2f7;border-top:1px solid #d8dee8;text-align:center}
+.stock-book-table .stock-book-total .stock-book-total-label{text-align:left}
+.stock-book-table .stock-book-grand-total td{background:#dde5ee}
 
 /* Warehouse stock overview — roomy rows + brand groups */
 .wh-stock-table{font-size:13px}
@@ -2326,7 +2328,7 @@ window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementBy
 <script src="assets/notifications.js?v=20260719b"></script>
 <script src="assets/cadet-dashboard.js?v=20260708j"></script>
 <script src="assets/cadet-daily.js?v=20260716m"></script>
-<script src="assets/depot-snapshots.js?v=20260731a"></script>
+<script src="assets/depot-snapshots.js?v=20260731b"></script>
 <script src="assets/director-brief.js?v=20260719d"></script>
 </body>
 </html>
