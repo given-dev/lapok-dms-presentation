@@ -1,5 +1,5 @@
 /**
- * RDC Home &mdash; accountant daily command desk
+ * RDC Home — accountant daily command desk
  */
 (function () {
   const RECEIVABLES_HIGH_UGX = 8000000;
@@ -59,8 +59,8 @@
     const pendingReview = list.filter((s) => ['submitted', 'under_review', 'reopened'].includes(String(s.status))).length;
     const approved = list.filter((s) => s.status === 'approved').length;
     let label = `${submitted}/${list.length} submitted this month`;
-    if (pendingReview > 0) label += ` &middot; ${pendingReview} awaiting review`;
-    else if (approved > 0) label += ` &middot; ${approved} approved`;
+    if (pendingReview > 0) label += ` · ${pendingReview} awaiting review`;
+    else if (approved > 0) label += ` · ${approved} approved`;
     return label;
   }
 
@@ -90,16 +90,16 @@
   }
 
   function renderStepStates(wf) {
-    /* step cards removed &mdash; progress bar only */
+    /* step cards removed — progress bar only */
   }
 
   function balChecklistSub(ctx) {
-    if (!ctx.sheetLoaded) return 'Could not load &mdash; tap to retry';
+    if (!ctx.sheetLoaded) return 'Could not load — tap to retry';
     const s = ctx.sheetStatus;
-    if (s === 'rejected') return 'Manager rejected &mdash; fix and resubmit';
+    if (s === 'rejected') return 'Manager rejected — fix and resubmit';
     if (s === 'reopened') return 'Reopened for correction';
     if (s === 'under_review') return 'Manager reviewing your sheet';
-    if (s === 'submitted') return 'Submitted &mdash; awaiting manager review';
+    if (s === 'submitted') return 'Submitted — awaiting manager review';
     if (s === 'approved') return 'Approved by manager';
     return 'Sales, expenses & cash';
   }
@@ -251,13 +251,13 @@
       resumeWizard = true;
     } else if (wf.balActive) {
       headline = 'Continue daily balancing';
-      detail = 'Step 1 &mdash; enter sales, expenses, and cash.';
+      detail = 'Step 1 — enter sales, expenses, and cash.';
       label = 'Continue balancing';
       resumeWizard = true;
     } else if (wf.packActive) {
       page = 'report-exchange';
       headline = 'Send manager pack';
-      detail = 'One tap &mdash; Outpost builds a PDF for your manager.';
+      detail = 'One tap — Outpost builds a PDF for your manager.';
       label = 'Send pack';
     } else if (wf.dayComplete) {
       headline = 'Today\'s close is complete';
@@ -303,13 +303,13 @@
     const rows = [];
 
     if (ctx.cashPending > 0) {
-      rows.push(priorityRow('warn', 'Field cash', `${ctx.cashPending} trip(s) waiting &mdash; optional handover.`, 'accountant-cash'));
+      rows.push(priorityRow('warn', 'Field cash', `${ctx.cashPending} trip(s) waiting — optional handover.`, 'accountant-cash'));
     }
     if (ctx.exceptionCount > 0) {
       rows.push(priorityRow('alert', 'Depot alerts', `${ctx.exceptionCount} item(s) to review.`, 'admin-exceptions'));
     }
     if (ctx.welfareOpen > 0) {
-      rows.push(priorityRow('warn', 'Staff welfare', `${ctx.welfareOpen} open request(s) &mdash; UGX ${Number(ctx.welfareOpenAmount || 0).toLocaleString()}.`, 'accountant-welfare'));
+      rows.push(priorityRow('warn', 'Staff welfare', `${ctx.welfareOpen} open request(s) — UGX ${Number(ctx.welfareOpenAmount || 0).toLocaleString()}.`, 'accountant-welfare'));
     }
     if (!ctx.sheetLoaded) {
       rows.push(priorityRow('alert', 'Sheet not loaded', 'Check connection and refresh.', 'accountant-rdc'));
@@ -325,7 +325,7 @@
   }
 
   function renderStepLabels() {
-    /* removed &mdash; checklist handles labels */
+    /* removed — checklist handles labels */
   }
 
   function renderRecentSheets(sheets, today) {
@@ -344,7 +344,7 @@
       </tr>`;
     }).join('');
     table.innerHTML = '<tr><th>Date</th><th>Status</th><th>Variance</th><th></th></tr>' +
-      (rows || '<tr><td colspan="4" style="color:var(--gray-mid)">No sheets this month yet &mdash; start with Step 1.</td></tr>');
+      (rows || '<tr><td colspan="4" style="color:var(--gray-mid)">No sheets this month yet — start with Step 1.</td></tr>');
   }
 
   function renderHubAlert(ctx) {
@@ -352,7 +352,7 @@
     if (!el) return;
     const msgs = [];
     if (ctx.sheetStatus === 'rejected') {
-      msgs.push('Today\'s balancing was rejected &mdash; review the manager note and resubmit.');
+      msgs.push('Today\'s balancing was rejected — review the manager note and resubmit.');
       el.className = 'alert a-danger';
     } else if (ctx.sheetStatus === 'reopened') {
       msgs.push('Today\'s sheet was reopened for correction.');
@@ -361,7 +361,7 @@
       msgs.push('Manager approved today\'s balancing sheet.');
       el.className = 'alert a-success';
     } else if (ctx.sheetStatus === 'submitted') {
-      msgs.push('Balancing submitted &mdash; waiting for manager review.');
+      msgs.push('Balancing submitted — waiting for manager review.');
       el.className = 'alert a-info';
     } else if (ctx.sheetStatus === 'under_review') {
       msgs.push('Manager is reviewing your submitted sheet.');

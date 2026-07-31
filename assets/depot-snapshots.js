@@ -175,10 +175,10 @@
       const label = (tr.cells[0]?.textContent || '').replace(/\s*TOTAL$/i, '').trim();
       const t = totals[label];
       if (!t) return;
-      setCell(tr.cells[2], t.opening);
-      setCell(tr.cells[3], t.purchase);
-      setCell(tr.cells[4], t.sales);
-      setCell(tr.cells[5], t.closing);
+      setCell(tr.cells[1], t.opening);
+      setCell(tr.cells[2], t.purchase);
+      setCell(tr.cells[3], t.sales);
+      setCell(tr.cells[4], t.closing);
     });
   }
 
@@ -262,8 +262,8 @@
           ? `<td><strong>${qty}</strong></td>`
           : `<td><input class="qty-inp depot-snap-qty" data-type="${type}" data-idx="${idx}" type="number" min="0" value="${qty}"></td>`;
         html += `<tr>
-          <td>${line.product_name || '&mdash;'}</td>
-          <td>${line.sku || '&mdash;'}</td>
+          <td>${line.product_name || '—'}</td>
+          <td>${line.sku || '—'}</td>
           ${qtyCell}
         </tr>`;
       });
@@ -328,8 +328,8 @@
           status.textContent = `Submitted ${new Date(d.snapshot.submitted_at).toLocaleTimeString('en-UG', { hour: '2-digit', minute: '2-digit' })} by ${d.snapshot.submitted_by_name || 'manager'}`;
         } else if (readOnly) {
           status.textContent = type === 'opening'
-            ? 'Not submitted yet &mdash; manager enters opening stock at 7:00 AM'
-            : 'Not submitted yet &mdash; manager enters closing stock from 6:30 PM';
+            ? 'Not submitted yet — manager enters opening stock at 7:00 AM'
+            : 'Not submitted yet — manager enters closing stock from 6:30 PM';
         } else if (type === 'closing' && !isClosingStockWindowOpen()) {
           status.textContent = `Locked until ${closingWindowLabel()} — then enter and save closing stock (target 7:00 PM)`;
         } else {

@@ -1,5 +1,5 @@
 /**
- * Director / executive daily P&L brief &mdash; revenue, expenses, shortages, 7pm readiness.
+ * Director / executive daily P&L brief — revenue, expenses, shortages, 7pm readiness.
  */
 (function () {
   function ugx(n) {
@@ -25,9 +25,9 @@
       on_track: 'On track',
       opening_missing: 'Opening stock missing',
       due: '7pm close due now',
-      late: 'Late &mdash; past 7:30pm',
+      late: 'Late — past 7:30pm',
     };
-    return map[code] || code || '&mdash;';
+    return map[code] || code || '—';
   }
 
   function directorBriefSetDate(offsetDays) {
@@ -57,7 +57,7 @@
       setText('dirRdcVariance', ugx(d.shortages?.rdc_variance_ugx || 0));
       setText('dirOpeningStatus', d.controls?.opening_submitted ? 'Submitted' : 'Missing');
       setText('dirClosingStatus', d.controls?.closing_submitted ? 'Submitted' : 'Pending');
-      setText('dirRdcStatus', d.controls?.rdc_status || '&mdash;');
+      setText('dirRdcStatus', d.controls?.rdc_status || '—');
       setText('dirReadiness', readinessLabel(d.controls?.readiness));
       setText('dirTripsReturned', String(d.controls?.trips_returned || 0));
       setText('dirTripsOut', String(d.controls?.trips_out || 0));

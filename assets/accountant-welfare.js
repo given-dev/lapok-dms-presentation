@@ -1,5 +1,5 @@
 /**
- * Staff welfare register &mdash; server-synced for accountant, manager, executive, admin.
+ * Staff welfare register — server-synced for accountant, manager, executive, admin.
  */
 (function () {
   const LEGACY_STORE_KEY = 'lapok.welfare.register.v1';
@@ -51,7 +51,7 @@
       banner.style.marginBottom = '1rem';
       page.querySelector('.rdc-bal-toolbar')?.after(banner);
     }
-    banner.innerHTML = '<span>ℹ</span><div>View only &mdash; welfare register is maintained by depot staff. Entries sync across roles.</div>';
+    banner.innerHTML = '<span>ℹ</span><div>View only — welfare register is maintained by depot staff. Entries sync across roles.</div>';
   }
 
   function applyReadOnlyUi() {
@@ -88,8 +88,8 @@
         <td>${esc(typeLabel(e.type))}</td>
         <td>${Number(e.amount || 0).toLocaleString()}</td>
         <td><span class="badge ${e.status === 'resolved' ? 'bs' : 'bw'}">${esc(e.status || 'open')}</span></td>
-        <td style="max-width:200px;font-size:12px">${esc(e.notes || '&mdash;')}</td>
-        <td style="font-size:12px;color:var(--gray-mid)">${esc(e.created_by_name || '&mdash;')}</td>
+        <td style="max-width:200px;font-size:12px">${esc(e.notes || '—')}</td>
+        <td style="font-size:12px;color:var(--gray-mid)">${esc(e.created_by_name || '—')}</td>
         <td style="white-space:nowrap">${actions}</td>
       </tr>`;
     }).join('');

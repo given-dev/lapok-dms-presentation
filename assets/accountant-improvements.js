@@ -1,5 +1,5 @@
 /**
- * Accountant month-end workspace &mdash; synced via API (all depot roles can view).
+ * Accountant month-end workspace — synced via API (all depot roles can view).
  */
 (function () {
   const LEGACY_STORE_KEY = 'lapok.accountant.command.center.v1';
@@ -55,7 +55,7 @@
       banner.style.marginBottom = '1rem';
       page.querySelector('.rdc-bal-toolbar')?.after(banner);
     }
-    banner.innerHTML = '<span>ℹ</span><div>View only for checklist/notes &mdash; those are edited by the accountant. <strong>Monthly fixed costs</strong> above stay editable for the manager.</div>';
+    banner.innerHTML = '<span>ℹ</span><div>View only for checklist/notes — those are edited by the accountant. <strong>Monthly fixed costs</strong> above stay editable for the manager.</div>';
   }
 
   function applyReadOnlyUi() {
@@ -343,7 +343,7 @@
     const legacy = loadLegacyState();
     if (legacy && !data.updated_at) {
       state = { ...state, ...legacy };
-      await persistState('Imported from this device &mdash; now synced for all roles.');
+      await persistState('Imported from this device — now synced for all roles.');
       clearLegacyState();
     }
     return data;

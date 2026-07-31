@@ -1,5 +1,5 @@
 /**
- * Lapok DMS &mdash; PDF report exchange (Accountant ↔ Manager ↔ Executive)
+ * Lapok DMS — PDF report exchange (Accountant ↔ Manager ↔ Executive)
  */
 let reportExchangeData = null;
 let reportSelectedDate = null;
@@ -100,21 +100,21 @@ function renderAccountantPackPageLegacy() {
   const balStatus = reportExchangeData.balancingStatus || 'draft';
 
   const gateHtml = !sentToday && !balOk
-    ? `<div class="alert a-warning" style="margin-bottom:1rem"><span>⚠</span><div><strong>Submit balancing first.</strong> Today's sheet is <em>${escReport(balStatus.replace('_', ' '))}</em> &mdash; complete Step 1 before sending the pack. <button class="btn btn-sm" type="button" style="margin-left:8px" onclick="showPage('accountant-rdc')">Open today's close</button></div></div>`
+    ? `<div class="alert a-warning" style="margin-bottom:1rem"><span>⚠</span><div><strong>Submit balancing first.</strong> Today's sheet is <em>${escReport(balStatus.replace('_', ' '))}</em> — complete Step 1 before sending the pack. <button class="btn btn-sm" type="button" style="margin-left:8px" onclick="showPage('accountant-rdc')">Open today's close</button></div></div>`
     : '';
 
   const primaryHtml = sentToday
     ? `<div class="rdc-hub-primary done" style="display:flex">
         <div class="rdc-hub-primary-text">
           <div class="rdc-hub-primary-title">Pack sent for today</div>
-          <div class="rdc-hub-primary-sub">${escReport(sentToday.title || 'Daily pack')} &middot; ${LapokAPI.formatDate(sentToday.sent_at)} ${LapokAPI.formatTime(sentToday.sent_at)}</div>
+          <div class="rdc-hub-primary-sub">${escReport(sentToday.title || 'Daily pack')} · ${LapokAPI.formatDate(sentToday.sent_at)} ${LapokAPI.formatTime(sentToday.sent_at)}</div>
         </div>
         <button class="btn btn-red" type="button" onclick="reportOpenPdf(${sentToday.id})">View PDF</button>
       </div>`
     : `<div class="rdc-hub-primary" style="display:flex">
         <div class="rdc-hub-primary-text">
           <div class="rdc-hub-primary-title">Send today's pack to manager</div>
-          <div class="rdc-hub-primary-sub">Outpost builds a PDF from today's depot data &mdash; one tap to deliver.</div>
+          <div class="rdc-hub-primary-sub">Outpost builds a PDF from today's depot data — one tap to deliver.</div>
         </div>
         <button class="btn btn-red" type="button" id="acctPackSendBtn" onclick="reportAccountantSendPack()" ${balOk ? '' : 'disabled'}>Send pack now</button>
       </div>`;
@@ -122,7 +122,7 @@ function renderAccountantPackPageLegacy() {
   root.innerHTML = `
     <div class="rdc-bal-toolbar">
       <button class="btn btn-sm" type="button" onclick="showPage('accountant-rdc-hub')">← Home</button>
-      <span class="chip">Step 2 &mdash; Manager pack</span>
+      <span class="chip">Step 2 — Manager pack</span>
       <button class="btn btn-sm" type="button" style="margin-left:auto" onclick="loadReportExchangePage()">Refresh</button>
     </div>
     ${gateHtml}
@@ -178,7 +178,7 @@ function renderAccountantPackPage() {
     <div class="two-col" style="align-items:start">
       <div class="card"><div class="card-header"><span class="card-title">Daily close readiness</span><span class="chip">${readiness.completed || 0}/${readiness.total || 4}</span></div><div class="rdc-hub-checklist">${checklist}</div></div>
       <div>
-        ${sentPack ? `<div class="rdc-hub-primary done" style="display:flex"><div class="rdc-hub-primary-text"><div class="rdc-hub-primary-title">Pack sent for this date</div><div class="rdc-hub-primary-sub">${escReport(sentPack.title || 'Daily pack')} &middot; ${LapokAPI.formatDate(sentPack.sent_at)} ${LapokAPI.formatTime(sentPack.sent_at)}</div></div><button class="btn btn-red" type="button" onclick="reportOpenPdf(${sentPack.id})">View PDF</button></div>` : `<div class="rdc-hub-primary" style="display:flex"><div class="rdc-hub-primary-text"><div class="rdc-hub-primary-title">Send finance pack to manager</div><div class="rdc-hub-primary-sub">Outpost consolidates the verified field, cash, route, and RDC records.</div></div><button class="btn btn-red" type="button" id="acctPackSendBtn" onclick="reportAccountantSendPack()" ${readiness.ready ? '' : 'disabled'}>Send pack now</button></div>`}
+        ${sentPack ? `<div class="rdc-hub-primary done" style="display:flex"><div class="rdc-hub-primary-text"><div class="rdc-hub-primary-title">Pack sent for this date</div><div class="rdc-hub-primary-sub">${escReport(sentPack.title || 'Daily pack')} · ${LapokAPI.formatDate(sentPack.sent_at)} ${LapokAPI.formatTime(sentPack.sent_at)}</div></div><button class="btn btn-red" type="button" onclick="reportOpenPdf(${sentPack.id})">View PDF</button></div>` : `<div class="rdc-hub-primary" style="display:flex"><div class="rdc-hub-primary-text"><div class="rdc-hub-primary-title">Send finance pack to manager</div><div class="rdc-hub-primary-sub">Outpost consolidates the verified field, cash, route, and RDC records.</div></div><button class="btn btn-red" type="button" id="acctPackSendBtn" onclick="reportAccountantSendPack()" ${readiness.ready ? '' : 'disabled'}>Send pack now</button></div>`}
         <div class="card" style="margin-top:1rem"><div class="form-group" style="margin:0"><label>Cover note for manager (optional)</label><textarea class="textarea-inp" id="acctPackNotes" rows="2" placeholder="Explain any variance or decision required"></textarea></div></div>
         <input type="hidden" id="reportSendDate" value="${escReport(reportDate)}">
         <details class="rdc-section" style="margin-top:1rem"><summary>Upload your own PDF instead</summary><div class="rdc-section-body"><form id="reportUploadForm" onsubmit="reportUploadAndSend(event)"><input type="hidden" name="report_date" id="reportUploadDate" value="${escReport(reportDate)}"><div class="form-group"><label>Title</label><input class="input" name="title" required></div><div class="form-group"><label>PDF file</label><input class="input" type="file" name="pdf" accept="application/pdf,.pdf" required></div><button type="submit" class="btn btn-sm" ${readiness.ready ? '' : 'disabled'}>Upload &amp; send</button></form></div></details>
@@ -520,8 +520,8 @@ function escReport(s) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    // Normalize em/en dashes &mdash; catches both real UTF-8 chars and their
+    // Normalize em/en dashes — catches both real UTF-8 chars and their
     // Windows-1252 mojibake equivalents (ÔÇö = U+2014 misread as cp1252)
-    .replace(/\u2014|\u00c3\u2020\u00c3\u0087\u00c3\u00b6|\u00e2\u20ac\u201d/g, '&mdash;')
-    .replace(/\u2013/g, '&ndash;');
+    .replace(/\u2014|\u00c3\u2020\u00c3\u0087\u00c3\u00b6|\u00e2\u20ac\u201d/g, '—')
+    .replace(/\u2013/g, '–');
 }
