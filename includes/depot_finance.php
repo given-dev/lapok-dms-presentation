@@ -119,13 +119,18 @@ function depot_apply_purchases_from_deliveries(array $lines, string $date): arra
     return $lines;
 }
 
-function depot_stock_lines_from_warehouse(?string $date = null): array
+function depot_stock_lines_from_warehouse(?string $date = null, bool $includeCadetReturns = false): array
 {
     require_once __DIR__ . '/depot_catalog.php';
     $ensured = depot_ensure_warehouse_products();
     $qtyById = [];
     foreach (db()->query(stock_summary_query())->fetchAll() as $row) {
         $qtyById[(int) $row['product_id']] = (int) ($row['warehouse_qty'] ?? 0);
+    }
+
+    $returnsById = [];
+    if ($includeCadetReturns && $date !== null && $date !== '') {
+        $returnsById = depot_cadet_returns_for_date($date);
     }
 
     $purchaseById = [];
@@ -137,16 +142,20 @@ function depot_stock_lines_from_warehouse(?string $date = null): array
     foreach ($ensured as $row) {
         $productId = (int) $row['product_id'];
         $brand = (string) ($row['brand'] ?? $row['category'] ?? '');
+        $returns = (int) ($returnsById[$productId] ?? 0);
+        // Closing stock = warehouse count + what cadets brought back this evening.
+        $closing = (int) ($qtyById[$productId] ?? 0) + $returns;
         $lines[] = [
             'product_id' => $productId,
             'product_name' => (string) $row['name'],
             'sku' => (string) $row['sku'],
             'brand' => $brand,
-            'qty' => (int) ($qtyById[$productId] ?? 0),
+            'qty' => $includeCadetReturns ? $closing : (int) ($qtyById[$productId] ?? 0),
             'opening' => 0,
             'purchase' => (int) ($purchaseById[$productId] ?? 0),
             'sales' => 0,
-            'closing' => 0,
+            'closing' => $includeCadetReturns ? $closing : 0,
+            'returns' => $returns,
             'category' => $brand,
             'unit_price' => (float) ($row['unit_price'] ?? 0),
             'rdc_key' => (string) ($row['rdc_key'] ?? ''),
@@ -154,6 +163,24 @@ function depot_stock_lines_from_warehouse(?string $date = null): array
         ];
     }
     return depot_sort_lines_by_category($lines);
+}
+
+/** Total units each product's cadets returned on a given date (unsold evening stock). */
+function depot_cadet_returns_for_date(string $date): array
+{
+    $stmt = db()->prepare(
+        "SELECT tli.product_id, COALESCE(SUM(tli.qty_returned), 0) AS ret
+         FROM trip_load_items tli
+         JOIN delivery_trips dt ON dt.id = tli.trip_id
+         WHERE dt.status IN ('returned','completed') AND DATE(dt.returned_at) = ?
+         GROUP BY tli.product_id"
+    );
+    $stmt->execute([$date]);
+    $out = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $out[(int) $row['product_id']] = (int) ($row['ret'] ?? 0);
+    }
+    return $out;
 }
 
 /** @param list<array<string, mixed>> $lines */

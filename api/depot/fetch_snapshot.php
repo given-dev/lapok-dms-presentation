@@ -20,7 +20,8 @@ if (!in_array($type, ['opening', 'closing'], true)) {
 }
 
 $snapshot = depot_snapshot_fetch($date, $type);
-$warehouseLines = depot_stock_lines_from_warehouse($date);
+// Closing stock must count the stock cadets returned this evening (unsold remains).
+$warehouseLines = depot_stock_lines_from_warehouse($date, $type === 'closing');
 
 // Opening stock carries over the previous day's closing stock (counts carry forward).
 if ($type === 'opening' && (!$snapshot || empty($snapshot['lines']))) {
