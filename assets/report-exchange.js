@@ -283,7 +283,7 @@ function renderReportExchange() {
 function renderManagerReportingDesk() {
   const root = document.getElementById('reportExchangeRoot');
   if (!root || !reportExchangeData) return;
-  const readiness = reportExchangeData.manager_readiness || { ready: false, completed: 0, total: 6, items: [] };
+  const readiness = reportExchangeData.manager_readiness || { ready: false, completed: 0, total: 3, items: [] };
   const selectedDate = readiness.report_date || reportSelectedDate || reportTodayIso();
   reportSelectedDate = selectedDate;
   const inbox = (reportExchangeData.inbox || []).filter((p) => String(p.report_date || '').slice(0, 10) === selectedDate);
@@ -314,7 +314,7 @@ function renderManagerReportingDesk() {
     <div class="alert ${readiness.ready ? 'a-success' : 'a-warning'}" style="margin-bottom:1rem">
       <span>${readiness.ready ? '✓' : '⚠'}</span>
       <div><strong>${readiness.ready ? 'Executive pack is ready' : `${missing} requirement${missing === 1 ? '' : 's'} remaining`}</strong>
-      <div style="font-size:12px;margin-top:3px">${readiness.completed || 0} of ${readiness.total || 6} reporting checks complete for ${LapokAPI.formatDate(selectedDate)}.</div></div>
+      <div style="font-size:12px;margin-top:3px">${readiness.completed || 0} of ${readiness.total || 3} reporting checks complete for ${LapokAPI.formatDate(selectedDate)}.</div></div>
     </div>
 
     ${renderReportChainOverview()}
@@ -327,7 +327,7 @@ function renderManagerReportingDesk() {
 
     <div class="two-col" style="align-items:start">
       <div class="card">
-        <div class="card-header"><span class="card-title">2. Daily readiness</span><span class="chip">${readiness.completed || 0}/${readiness.total || 6}</span></div>
+        <div class="card-header"><span class="card-title">2. Daily readiness</span><span class="chip">${readiness.completed || 0}/${readiness.total || 3}</span></div>
         <div class="rdc-hub-checklist">${checklist}</div>
       </div>
       <div class="card">

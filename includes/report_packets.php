@@ -54,20 +54,10 @@ function report_manager_readiness(string $date): array
     $snapshotStmt->execute([$date]);
     $snapshots = array_fill_keys(array_column($snapshotStmt->fetchAll() ?: [], 'snapshot_type'), true);
 
-    $boardStmt = $pdo->prepare('SELECT board_type, status FROM manager_daily_boards WHERE board_date = ?');
-    $boardStmt->execute([$date]);
-    $boards = [];
-    foreach ($boardStmt->fetchAll() ?: [] as $row) {
-        $boards[$row['board_type']] = $row['status'];
-    }
-
     $items = [
         ['key' => 'accountant_pack', 'label' => 'Accountant pack reviewed', 'ready' => (bool) $packReviewed, 'status' => $pack ? ($packReviewed ? 'Read' : 'Waiting for review') : 'Not received', 'page' => 'report-exchange'],
         ['key' => 'rdc_approved', 'label' => 'RDC daily sheet approved', 'ready' => ($rdc['status'] ?? '') === 'approved', 'status' => $rdc ? ucfirst(str_replace('_', ' ', (string) $rdc['status'])) : 'No sheet', 'page' => 'manager-rdc-review'],
         ['key' => 'opening_stock', 'label' => 'Opening stock completed', 'ready' => !empty($snapshots['opening']), 'status' => !empty($snapshots['opening']) ? 'Completed' : 'Missing', 'page' => 'manager-stock'],
-        ['key' => 'closing_stock', 'label' => 'Closing stock completed', 'ready' => !empty($snapshots['closing']), 'status' => !empty($snapshots['closing']) ? 'Completed' : 'Missing', 'page' => 'manager-stock'],
-        ['key' => 'inventory_board', 'label' => 'Inventory board submitted', 'ready' => ($boards['inventory_board'] ?? '') === 'submitted', 'status' => isset($boards['inventory_board']) ? ucfirst((string) $boards['inventory_board']) : 'Missing', 'page' => 'manager-ccba-boards'],
-        ['key' => 'occd_board', 'label' => 'OCCD board submitted', 'ready' => ($boards['occd_dashboard'] ?? '') === 'submitted', 'status' => isset($boards['occd_dashboard']) ? ucfirst((string) $boards['occd_dashboard']) : 'Missing', 'page' => 'manager-ccba-boards'],
     ];
 
     return [
