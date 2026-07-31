@@ -183,6 +183,46 @@ function depot_cadet_returns_for_date(string $date): array
     return $out;
 }
 
+/** Total units each product's cadets sold on a given date (from submitted trip reports). */
+function depot_cadet_sales_for_date(string $date): array
+{
+    $stmt = db()->prepare(
+        "SELECT tli.product_id, COALESCE(SUM(tli.qty_sold), 0) AS sold
+         FROM trip_load_items tli
+         JOIN delivery_trips dt ON dt.id = tli.trip_id
+         WHERE dt.status IN ('returned','completed') AND DATE(dt.returned_at) = ?
+         GROUP BY tli.product_id"
+    );
+    $stmt->execute([$date]);
+    $out = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $out[(int) $row['product_id']] = (int) ($row['sold'] ?? 0);
+    }
+    return $out;
+}
+
+/**
+ * Sales come from cadet reports and are never typed into the stock book.
+ * Overlay cadet-derived sales onto stock lines so the book always matches what cadets reported.
+ *
+ * @param list<array<string, mixed>> $lines
+ * @return list<array<string, mixed>>
+ */
+function depot_apply_cadet_sales_from_trips(array $lines, ?string $date = null): array
+{
+    if ($date === null || $date === '') {
+        return $lines;
+    }
+    $soldById = depot_cadet_sales_for_date($date);
+    foreach ($lines as &$line) {
+        $pid = (int) ($line['product_id'] ?? 0);
+        $line['sales'] = (int) ($soldById[$pid] ?? 0);
+        $line['sales_source'] = 'cadet_reports';
+    }
+    unset($line);
+    return $lines;
+}
+
 /** @param list<array<string, mixed>> $lines */
 function depot_sort_lines_by_category(array $lines): array
 {

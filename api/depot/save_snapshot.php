@@ -74,6 +74,8 @@ if (!count($clean)) {
 
 // Purchase always mirrors Coca-Cola deliveries for this date (not manual entry).
 $clean = depot_apply_purchases_from_deliveries($clean, $date);
+// Sales always mirror cadet reports for this date (not manual entry).
+$clean = depot_apply_cadet_sales_from_trips($clean, $date);
 
 $pdo = db();
 $stmt = $pdo->prepare(

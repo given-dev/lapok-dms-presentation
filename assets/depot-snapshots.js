@@ -188,12 +188,12 @@
     setStockBookDate();
     const rows = mergedSnapshotLines();
     if (!rows.length) {
-      table.innerHTML = '<tr><th>Brand</th><th>SKUs</th><th>Opening stock</th><th class="stock-book-th-locked">Purchase<small>Locked · from deliveries</small></th><th>Sales</th><th>Closing stock</th></tr><tr><td colspan="6" style="color:var(--gray-mid)">No stock lines.</td></tr>';
+      table.innerHTML = '<tr><th>Brand</th><th>SKUs</th><th>Opening stock</th><th class="stock-book-th-locked">Purchase<small>Locked · from deliveries</small></th><th class="stock-book-th-locked">Sales<small>Locked · from cadets</small></th><th>Closing stock</th></tr><tr><td colspan="6" style="color:var(--gray-mid)">No stock lines.</td></tr>';
       return;
     }
 
     const closingLocked = !isClosingStockWindowOpen();
-    let html = '<tr><th>Brand</th><th>SKUs</th><th>Opening stock</th><th class="stock-book-th-locked">Purchase<small>Locked · from deliveries</small></th><th>Sales</th><th>Closing stock</th></tr>';
+    let html = '<tr><th>Brand</th><th>SKUs</th><th>Opening stock</th><th class="stock-book-th-locked">Purchase<small>Locked · from deliveries</small></th><th class="stock-book-th-locked">Sales<small>Locked · from cadets</small></th><th>Closing stock</th></tr>';
     let currentBrand = '';
     const brandTotals = stockBookBrandTotals();
 
@@ -214,7 +214,7 @@
         <td>${row.product_name || '—'}</td>
         <td><input class="stock-book-input" data-field="opening" data-product-id="${row.product_id}" type="number" min="0" value="${Number(row.openingQty || 0)}"></td>
         <td><span class="stock-book-purchase${Number(row.purchaseQty || 0) === 0 ? ' is-zero' : ''}" title="Locked — filled from Coca-Cola deliveries" aria-readonly="true">${Number(row.purchaseQty || 0)}</span></td>
-        <td><input class="stock-book-input" data-field="sales" data-product-id="${row.product_id}" type="number" min="0" value="${Number(row.salesQty || 0)}"></td>
+        <td><span class="stock-book-purchase${Number(row.salesQty || 0) === 0 ? ' is-zero' : ''}" title="Locked — filled from cadet sales reports" aria-readonly="true">${Number(row.salesQty || 0)}</span></td>
         <td><input class="stock-book-input" data-field="closing" data-product-id="${row.product_id}" type="number" min="0" value="${Number(row.closingQty || 0)}" ${closingLocked ? 'disabled' : ''}></td>
       </tr>`;
     });

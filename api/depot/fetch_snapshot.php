@@ -22,6 +22,8 @@ if (!in_array($type, ['opening', 'closing'], true)) {
 $snapshot = depot_snapshot_fetch($date, $type);
 // Closing stock must count the stock cadets returned this evening (unsold remains).
 $warehouseLines = depot_stock_lines_from_warehouse($date, $type === 'closing');
+// Sales come from cadet reports (trip sales), never typed into the stock book.
+$warehouseLines = depot_apply_cadet_sales_from_trips($warehouseLines, $date);
 
 // Opening stock carries over the previous day's closing stock (counts carry forward).
 if ($type === 'opening' && (!$snapshot || empty($snapshot['lines']))) {
@@ -36,6 +38,7 @@ if ($type === 'opening' && (!$snapshot || empty($snapshot['lines']))) {
         }
         unset($line);
         $warehouseLines = depot_apply_purchases_from_deliveries($carry, $date);
+        $warehouseLines = depot_apply_cadet_sales_from_trips($warehouseLines, $date);
     }
 }
 
@@ -44,6 +47,8 @@ if ($snapshot && !empty($snapshot['lines'])) {
     // (PREDATOR GOLD / POWERPLAY) do not appear beside the new ENERGY rows.
     $snapshot['lines'] = depot_merge_snapshot_onto_catalog($snapshot['lines']);
     $snapshot['lines'] = depot_apply_purchases_from_deliveries($snapshot['lines'], $date);
+    // Sales always mirror cadet reports, even on previously saved snapshots.
+    $snapshot['lines'] = depot_apply_cadet_sales_from_trips($snapshot['lines'], $date);
 }
 
 json_ok([
