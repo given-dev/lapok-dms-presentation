@@ -37,6 +37,25 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 
 ## Log
 
+### 2026-08-02 · SODA / WATER target packs defined per manager product list
+
+| | |
+|--|--|
+| **Who** | opencode |
+| **Push / ref** | `main` · local commit |
+| **Area** | Executive dashboard · target tracking |
+
+**Changes**
+- The manager's product list now defines what counts toward the monthly **SODA** and **WATER** targets (previously matched by sheet category only).
+- New `depot_target_packs()` + `depot_target_classify()` in `includes/depot_catalog.php`:
+  - **SODA** (rdc packs): `300ml` (300ML) · `pet_330` (PET-330ML) · `pet_500` (PET-500ML) · `pet_1l` (PET-1L) · `pet_2000` (PET-2000ML)
+  - **WATER** (rdc packs): `rw_500_box` (RWENZORI 500MLS-BOX) · `rw_500_shrink` (RWENZORI 500MLS-SHRINKS) · `rw_1500_box` (RWENZORI 1.5MLS-BOX) · `jumbo_big` (JUMBO-BIG 20L) · `jumbo_small` (JUMBO-SMALL 10L)
+- `depot_sales_split_mtd()` and `depot_sales_split_by_unit_mtd()` now classify each RDC sheet line via `depot_target_classify()` (normalizes legacy keys first). Energy / juice / empties are excluded.
+- Verified live for July 2026 (unchanged vs previous run): **soda 163 / water 23** (TUK-001), independent pack-sum check matches.
+
+**Notes**
+- If a new pack is added to the sales book later, add its `rdc_key` to `depot_target_packs()` to include it in targets.
+
 ### 2026-08-02 · Overall depot targets row + docs + commit
 
 | | |

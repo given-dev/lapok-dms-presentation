@@ -152,6 +152,28 @@ function depot_normalize_rdc_key(string $key): string
     return $legacy[$key] ?? $key;
 }
 
+/** SODA / WATER packs counted toward monthly sales targets (manager-defined product list). */
+function depot_target_packs(): array
+{
+    return [
+        'soda' => ['300ml', 'pet_330', 'pet_500', 'pet_1l', 'pet_2000'],
+        'water' => ['rw_500_box', 'rw_500_shrink', 'rw_1500_box', 'jumbo_big', 'jumbo_small'],
+    ];
+}
+
+/** Classify an RDC sheet line as 'soda', 'water' or null (not part of monthly targets). */
+function depot_target_classify(array $line): ?string
+{
+    $key = depot_normalize_rdc_key(strtolower((string) ($line['rdc_key'] ?? '')));
+    if (in_array($key, depot_target_packs()['soda'], true)) {
+        return 'soda';
+    }
+    if (in_array($key, depot_target_packs()['water'], true)) {
+        return 'water';
+    }
+    return null;
+}
+
 /** @return array<string, int> rdc_key => qty_loaded */
 function depot_trip_loaded_by_rdc_key(int $tripId): array
 {

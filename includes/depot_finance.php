@@ -432,8 +432,8 @@ function depot_sales_split_mtd(string $from, string $to): array
     $stmt->execute([$from, $to]);
     foreach ($stmt->fetchAll() as $row) {
         foreach (json_decode((string) ($row['sales_json'] ?? '[]'), true) ?: [] as $line) {
-            $cat = strtoupper((string) ($line['category'] ?? 'OTHER'));
-            if (!in_array($cat, ['CSD', 'WATER'], true)) {
+            $target = depot_target_classify($line);
+            if ($target === null) {
                 continue;
             }
             // Sum the whole sales unit (DEPOT column + every cadet vehicle column),
@@ -448,9 +448,8 @@ function depot_sales_split_mtd(string $from, string $to): array
             if ($qty <= 0) {
                 continue;
             }
-            $key = $cat === 'CSD' ? 'soda' : 'water';
-            $out[$key . '_units'] += $qty;
-            $out[$key . '_revenue'] += $qty * (float) ($line['price'] ?? 0);
+            $out[$target . '_units'] += $qty;
+            $out[$target . '_revenue'] += $qty * (float) ($line['price'] ?? 0);
         }
     }
     return $out;
@@ -469,11 +468,10 @@ function depot_sales_split_by_unit_mtd(string $from, string $to): array
     $stmt->execute([$from, $to]);
     foreach ($stmt->fetchAll() as $row) {
         foreach (json_decode((string) ($row['sales_json'] ?? '[]'), true) ?: [] as $line) {
-            $cat = strtoupper((string) ($line['category'] ?? 'OTHER'));
-            if (!in_array($cat, ['CSD', 'WATER'], true)) {
+            $target = depot_target_classify($line);
+            if ($target === null) {
                 continue;
             }
-            $key = $cat === 'CSD' ? 'soda' : 'water';
             $qtyMap = is_array($line['qty'] ?? null) ? $line['qty'] : [];
             foreach ($qtyMap as $col => $qty) {
                 $col = (string) $col;
@@ -484,7 +482,7 @@ function depot_sales_split_by_unit_mtd(string $from, string $to): array
                 if ($q <= 0) {
                     continue;
                 }
-                $units[$col][$key] = ($units[$col][$key] ?? 0.0) + $q;
+                $units[$col][$target] = ($units[$col][$target] ?? 0.0) + $q;
             }
         }
     }
