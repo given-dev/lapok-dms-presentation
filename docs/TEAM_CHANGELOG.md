@@ -37,6 +37,21 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 
 ## Log
 
+### 2026-08-01 · afternoon (Africa/Kampala) — cash outs now also live on the cadet "Today's report" page
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | Cadet · RDC |
+
+**Changes**
+- New `api/cashouts/daily.php` — returns today's given-out, recovered, open balance and open count for the current cadet.
+- `assets/cashouts.js` + `index.html` — the cadet daily report page now has a **Cash outs &amp; recoveries** card (`cashoutsDailyMount`): one-tap "New cash out today" and "Record recovery" (pick an open cash out) reusing the existing modals, plus today's summary cards and a link to the full ledger on the dashboard. Recorded from either place, the RDC sheet totals prefill from the same ledger. Recovery cash is **not** added to the daily "amount collected" — kept separate (deliberate).
+
+**Notes**
+- Verified live: daily endpoint returns given 100,000 / recovered 30,000 / open 70,000 / 1 open after a create + partial recovery; cleaned up after test.
+
 ### 2026-08-01 · afternoon (Africa/Kampala) — cadet cash out ledger (credit issued + recoveries, settled over time)
 
 | | |

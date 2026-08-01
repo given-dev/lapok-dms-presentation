@@ -231,6 +231,7 @@
       if (typeof adminToast === 'function') adminToast('Cash out recorded');
       resetCashoutCreateForm();
       refreshCashouts();
+      refreshCashoutDaily();
     } catch (e) {
       const err = document.getElementById('cashoutCreateErr');
       if (err) { err.style.display = 'block'; err.textContent = e.message; }
@@ -272,6 +273,7 @@
       }
       coCurrentCashout = null;
       refreshCashouts();
+      refreshCashoutDaily();
     } catch (e) {
       const err = document.getElementById('cashoutRecoverErr');
       if (err) { err.style.display = 'block'; err.textContent = e.message; }
@@ -289,6 +291,84 @@
     refreshCashouts();
   }
 
+  /** Today's-report page section — record the day's cash outs and recoveries inline. */
+  function renderCashoutDailySection() {
+    const mount = document.getElementById('cashoutsDailyMount');
+    if (!mount) return;
+    mount.innerHTML = `<div class="card">
+      <div class="card-header">
+        <span class="card-title">Cash outs &amp; recoveries</span>
+        <span style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn btn-sm" type="button" onclick="showPage('cadet-dashboard')">Full ledger →</button>
+          <button class="btn btn-sm" type="button" onclick="refreshCashoutDaily()">Refresh</button>
+        </span>
+      </div>
+      <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">
+        Record credit you give out to customers and payments they return. Totals feed the RDC balancing sheet automatically.
+      </p>
+      <div class="metric-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:.8rem">
+        <div class="metric-card"><div class="metric-label">Given out today</div><div class="metric-value" id="coDailySumOut">—</div></div>
+        <div class="metric-card"><div class="metric-label">Recovered today</div><div class="metric-value" id="coDailySumRec">—</div></div>
+        <div class="metric-card"><div class="metric-label">Open balance</div><div class="metric-value" id="coDailySumOpen">—</div></div>
+        <div class="metric-card"><div class="metric-label">Open cash outs</div><div class="metric-value" id="coDailySumCount">—</div></div>
+      </div>
+      <div class="two-col" style="align-items:stretch">
+        <div style="border:1px solid var(--gray-light);border-radius:12px;padding:.9rem">
+          <div class="form-section" style="margin-top:0">Record a cash out</div>
+          <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .7rem">Credit given to a customer — customer + amount.</p>
+          <button class="btn btn-red btn-full" type="button" onclick="openCashoutCreate()">+ New cash out today</button>
+        </div>
+        <div style="border:1px solid var(--gray-light);border-radius:12px;padding:.9rem">
+          <div class="form-section" style="margin-top:0">Record a recovery</div>
+          <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .7rem">Payment received — pick the customer's open cash out.</p>
+          <div class="form-group" style="margin-bottom:.6rem"><label>Open cash out</label><select class="select-inp" id="coDailyRecSel"><option value="">Loading…</option></select></div>
+          <button class="btn btn-full" type="button" onclick="coDailyOpenRecover()">Record recovery</button>
+        </div>
+      </div>
+    </div>`;
+    refreshCashoutDaily();
+  }
+
+  async function refreshCashoutDaily() {
+    const mount = document.getElementById('cashoutsDailyMount');
+    if (!mount) return;
+    try {
+      const [daily, list] = await Promise.all([
+        LapokAPI.get('/api/cashouts/daily.php'),
+        LapokAPI.get('/api/cashouts/list.php'),
+      ]);
+      coState.cashouts = list.cashouts || [];
+      coState.open = list.open || [];
+      coState.settled = list.settled || [];
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('coDailySumOut', money(daily.given_out_today));
+      set('coDailySumRec', money(daily.recovered_today));
+      set('coDailySumOpen', money(daily.open_balance));
+      set('coDailySumCount', String(daily.open_count ?? 0));
+      const sel = document.getElementById('coDailyRecSel');
+      if (sel) {
+        const opts = (list.open || []).map((c) =>
+          `<option value="${c.id}">${esc(c.customer_name || '')} — ${money(c.balance)}</option>`).join('');
+        sel.innerHTML = opts || '<option value="">No open cash outs</option>';
+      }
+    } catch (e) {
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('coDailySumOut', '—');
+      set('coDailySumRec', '—');
+      if (typeof adminToast === 'function') adminToast(e.message, true);
+    }
+  }
+
+  function coDailyOpenRecover() {
+    const sel = document.getElementById('coDailyRecSel');
+    const id = sel?.value;
+    if (!id) {
+      if (typeof adminToast === 'function') adminToast('Select an open cash out first', true);
+      return;
+    }
+    openCashoutRecover(Number(id));
+  }
+
   // Page hooks — re-init whenever the relevant page is shown.
   const origShowPage = window.showPage;
   window.showPage = function (id) {
@@ -296,13 +376,16 @@
     if (id === 'cadet-dashboard') initCashouts('cashoutsMountCadet', 'manage');
     if (id === 'manager-dashboard') initCashouts('cashoutsMountManager', 'view');
     if (id === 'accountant-rdc-hub') initCashouts('cashoutsMountRdc', 'view');
+    if (id === 'cadet-daily') renderCashoutDailySection();
   };
 
   window.initCashouts = initCashouts;
   window.refreshCashouts = refreshCashouts;
+  window.refreshCashoutDaily = refreshCashoutDaily;
   window.openCashoutCreate = openCashoutCreate;
   window.toggleNewCashoutCustomer = toggleNewCashoutCustomer;
   window.submitNewCashout = submitNewCashout;
   window.openCashoutRecover = openCashoutRecover;
   window.submitCashoutRecovery = submitCashoutRecovery;
+  window.coDailyOpenRecover = coDailyOpenRecover;
 })();
