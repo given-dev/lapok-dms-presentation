@@ -25,15 +25,12 @@ $warehouseLines = depot_stock_lines_from_warehouse($date, $type === 'closing');
 // Sales come from cadet reports (trip sales), never typed into the stock book.
 $warehouseLines = depot_apply_cadet_sales_from_trips($warehouseLines, $date);
 
-// Opening stock = yesterday's CLOSING stock, which is calculated automatically as
-// warehouse ledger + cadet returns (it is never stored until the manager saves closing).
-// So carry the live ledger forward, including returns from the previous evening.
+// Opening stock = yesterday's CLOSING stock, which is calculated automatically as the
+// warehouse ledger (cadet remainders are restocked in on trip close, so closing = ledger).
 if ($type === 'opening' && (!$snapshot || empty($snapshot['lines']))) {
-    $prevDate = date('Y-m-d', strtotime($date . ' -1 day'));
-    $returns = depot_cadet_returns_for_date($prevDate);
     $ledgerTotal = 0;
     foreach ($warehouseLines as &$line) {
-        $carried = (int) ($line['qty'] ?? 0) + (int) ($returns[(int) ($line['product_id'] ?? 0)] ?? 0);
+        $carried = (int) ($line['qty'] ?? 0);
         $ledgerTotal += $carried;
         $line['opening'] = $carried;
         $line['qty'] = 0;

@@ -37,6 +37,23 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 
 ## Log
 
+### 2026-08-01 · evening (Africa/Kampala) — cadet remainders restock into warehouse on trip close
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | Manager dispatch · warehouse stock · RDC |
+
+**Changes**
+- `includes/cadet_reports.php` — `cadet_apply_trip_sales()` now closes out the vehicle ledger when a trip's report is applied: the whole load leaves `qty_on_vehicles` and the unsold remainder (`qty_returned`) is added back to `batches.qty_warehouse`, logged as a `return` stock movement. Re-submits only adjust the warehouse by the delta (guarded by the existing `return` movement), so it is idempotent. Resolves the documented "known gap" (remainders were never restocked and on-vehicle counts grew over time).
+- `includes/depot_finance.php` — closing stock is now just the live warehouse ledger (remainders are already restocked in, so they are no longer added a second time).
+- `api/depot/fetch_snapshot.php` — opening carry-forward uses the warehouse ledger directly (same reason).
+- Live DB backfilled: closed trip 47's 29 load lines cleared `qty_on_vehicles` (all products now 0) and its 4-unit remainder (500 ML X 24) was restocked → 2096.
+
+**Notes**
+- Verified: `fetch_stock.php` shows 0 products "with vehicles"; warehouse 500 ML X 24 = 2096, 300-COKE = 370; `cadet_apply_trip_sales` re-run on trip 47 with its stored 8 sales lines is idempotent.
+
 ### 2026-08-01 · evening (Africa/Kampala) — depot stock carries forward; RDC stock status shows real quantities
 
 | | |

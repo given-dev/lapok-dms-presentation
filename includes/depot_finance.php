@@ -144,8 +144,10 @@ function depot_stock_lines_from_warehouse(?string $date = null, bool $includeCad
         $productId = (int) $row['product_id'];
         $brand = (string) ($row['brand'] ?? $row['category'] ?? '');
         $returns = (int) ($returnsById[$productId] ?? 0);
-        // Closing stock = warehouse count + what cadets brought back this evening.
-        $closing = (int) ($qtyById[$productId] ?? 0) + $returns;
+        // Closing stock = the live warehouse ledger. Cadet remainders are restocked
+        // back into the ledger when the trip's report is applied (dispatch_return),
+        // so they must NOT be added a second time here.
+        $closing = (int) ($qtyById[$productId] ?? 0);
         $lines[] = [
             'product_id' => $productId,
             'product_name' => (string) $row['name'],

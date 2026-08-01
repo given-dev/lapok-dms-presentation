@@ -195,12 +195,13 @@ function cadet_sales_summary(array $salesLines): string
 function cadet_apply_trip_sales(PDO $pdo, int $tripId, array $salesLines): void
 {
     require_once __DIR__ . '/depot_catalog.php';
+    require_once __DIR__ . '/stock.php';
     if (!$salesLines) {
         return;
     }
 
     $loadStmt = $pdo->prepare(
-        'SELECT tli.product_id, tli.qty_loaded, p.name, p.sku
+        'SELECT tli.product_id, tli.batch_id, tli.qty_loaded, tli.qty_sold, tli.qty_returned, p.name, p.sku
          FROM trip_load_items tli
          JOIN products p ON p.id = tli.product_id
          WHERE tli.trip_id = ?'
@@ -216,6 +217,16 @@ function cadet_apply_trip_sales(PDO $pdo, int $tripId, array $salesLines): void
         $soldByKey[$line['rdc_key']] = (int) ($line['qty_sold'] ?? 0);
     }
 
+    // First close-out restocks the returned remainder into the warehouse and clears the
+    // trip's share of qty_on_vehicles. Re-submits only adjust warehouse by the delta.
+    $restockedStmt = $pdo->prepare(
+        "SELECT 1 FROM stock_movements
+         WHERE reference_type = 'trip' AND reference_id = ? AND movement_type = 'return'
+         LIMIT 1"
+    );
+    $restockedStmt->execute([$tripId]);
+    $alreadyRestocked = (bool) $restockedStmt->fetch();
+
     $applied = [];
     foreach ($loads as $row) {
         $key = depot_map_product_to_rdc_key((string) $row['name'], (string) $row['sku']);
@@ -224,18 +235,42 @@ function cadet_apply_trip_sales(PDO $pdo, int $tripId, array $salesLines): void
         }
         $qtySold = $soldByKey[$key];
         $qtyLoaded = (int) $row['qty_loaded'];
-        // NOTE (known gap): qty_returned is recorded here but is never restocked back into
-        // batches.qty_warehouse (nor removed from qty_on_vehicles). Warehouse counts therefore
-        // stay depressed and on-vehicle counts grow over time. Verified 2026-07-31 by calc_check.php;
-        // intentionally left unfixed pending a product decision.
+        $qtyReturned = max(0, $qtyLoaded - $qtySold);
+        $oldReturned = (int) ($row['qty_returned'] ?? 0);
+        $productId = (int) $row['product_id'];
+        $batchId = (int) ($row['batch_id'] ?? 0) ?: null;
+
+        if (!$alreadyRestocked) {
+            if ($batchId && $qtyLoaded > 0) {
+                // The whole load leaves the vehicle ledger once the trip closes out.
+                $pdo->prepare(
+                    'UPDATE batches SET qty_on_vehicles = GREATEST(qty_on_vehicles - ?, 0) WHERE id = ?'
+                )->execute([$qtyLoaded, $batchId]);
+            }
+            if ($batchId && $qtyReturned > 0) {
+                $pdo->prepare(
+                    'UPDATE batches SET qty_warehouse = qty_warehouse + ? WHERE id = ?'
+                )->execute([$qtyReturned, $batchId]);
+                log_stock_movement($productId, $batchId, 'return', $qtyReturned, 'trip', $tripId, null, 'Trip return restock');
+            }
+        } elseif ($batchId && $oldReturned !== $qtyReturned) {
+            // Re-submit: only move the difference back in (or out) of the warehouse.
+            $delta = $qtyReturned - $oldReturned;
+            if ($delta > 0) {
+                $pdo->prepare(
+                    'UPDATE batches SET qty_warehouse = qty_warehouse + ? WHERE id = ?'
+                )->execute([$delta, $batchId]);
+            } else {
+                $pdo->prepare(
+                    'UPDATE batches SET qty_warehouse = GREATEST(qty_warehouse - ?, 0) WHERE id = ?'
+                )->execute([-$delta, $batchId]);
+            }
+            log_stock_movement($productId, $batchId, 'return', $delta, 'trip', $tripId, null, 'Trip return restock (revised)');
+        }
+
         $pdo->prepare(
             'UPDATE trip_load_items SET qty_sold = ?, qty_returned = ? WHERE trip_id = ? AND product_id = ?'
-        )->execute([
-            $qtySold,
-            max(0, $qtyLoaded - $qtySold),
-            $tripId,
-            (int) $row['product_id'],
-        ]);
+        )->execute([$qtySold, $qtyReturned, $tripId, $productId]);
         $applied[$key] = true;
     }
 }
