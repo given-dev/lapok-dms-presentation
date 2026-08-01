@@ -31,17 +31,11 @@
   }
 
   function buildCard(mode) {
-    const manage = mode === 'manage';
-    const head = manage
-      ? '<button class="btn btn-sm btn-red" type="button" onclick="openCashoutCreate()">+ New cash out</button>'
-      : '';
+    const head = '<button class="btn btn-sm" type="button" onclick="refreshCashouts()">Refresh</button>';
     return `<div class="card">
       <div class="card-header">
         <span class="card-title">Cash outs</span>
-        <span style="margin-left:auto;display:flex;gap:8px">
-          ${head}
-          <button class="btn btn-sm" type="button" onclick="refreshCashouts()">Refresh</button>
-        </span>
+        <span style="margin-left:auto;display:flex;gap:8px">${head}</span>
       </div>
       <div class="metric-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:.8rem">
         <div class="metric-card"><div class="metric-label">Open cash outs</div><div class="metric-value" id="coSumOpen">—</div></div>
@@ -59,19 +53,16 @@
 
   function buildRows(cashouts, manage) {
     if (!cashouts.length) {
-      return `<tr><td colspan="${manage ? 8 : 9}" style="color:var(--gray-mid);text-align:center">No cash outs yet.</td></tr>`;
+      return `<tr><td colspan="${manage ? 7 : 9}" style="color:var(--gray-mid);text-align:center">No cash outs yet.</td></tr>`;
     }
     return cashouts.map((c) => {
-      const recover = manage && c.status === 'open'
-        ? `<button class="btn btn-sm" type="button" onclick="openCashoutRecover(${c.id})">Recover</button>`
-        : '';
       const cadetCell = manage ? '' : `<td>${esc(c.cadet_name || '—')}</td>`;
       return `<tr>
         ${cadetCell}<td><strong>${esc(c.customer_name)}</strong><div style="font-size:11px;color:var(--gray-mid)">${esc(c.location || '')}</div></td>
         <td>${esc(c.nin || '—')}</td><td>${esc(c.phone || '—')}</td>
         <td>${money(c.amount_out)}</td><td>${money(c.paid_total)}</td>
         <td><strong>${money(c.balance)}</strong></td>
-        <td>${statusBadge(c.status)}</td><td>${recover}</td>
+        <td>${statusBadge(c.status)}</td>
       </tr>`;
     }).join('');
   }
@@ -86,7 +77,7 @@
 
     const manage = coMode === 'manage';
     const headers = (manage ? '' : '<th>Cadet</th>') +
-      '<th>Customer</th><th>NIN</th><th>Phone</th><th>Out</th><th>Paid</th><th>Balance</th><th>Status</th><th></th>';
+      '<th>Customer</th><th>NIN</th><th>Phone</th><th>Out</th><th>Paid</th><th>Balance</th><th>Status</th>';
     const table = coEl('coTable');
     if (table) {
       table.innerHTML = `<thead><tr>${headers}</tr></thead><tbody>${buildRows(coState.open, manage)}</tbody>`;

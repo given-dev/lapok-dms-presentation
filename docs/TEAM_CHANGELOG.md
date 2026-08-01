@@ -37,6 +37,17 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 
 ## Log
 
+### 2026-08-01 · afternoon (Africa/Kampala) — dashboard cash out card is now read-only
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | Cadet |
+
+**Changes**
+- `assets/cashouts.js` — the dashboard cash out ledger no longer has "+ New cash out" or per-row "Recover" actions; it just shows the details (summary cards + open/settled tables). Recording happens on the Today's report page (Cash outs &amp; recoveries card). The manager/RDC read-only view is unchanged.
+
 ### 2026-08-01 · afternoon (Africa/Kampala) — cash outs now also live on the cadet "Today's report" page
 
 | | |
