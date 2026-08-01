@@ -24,7 +24,7 @@
 | **Done (this shift)** | Manager CCBA boards + executive brief | Boards = Inventory + OCCD only; SKU map / sync = Phase 2. Executive brief = finance + **styled full stock-book table** + sellers. **Companion CCBA boards PDF** = navy banners + bordered tables matching on-screen boards (migration **016**). |
 | **Done (31 Jul)** | Manager daily-ops fixes | Dispatch load list is **pack-level** (300ML RGB, 300PET, …) like the cadet daily list; Daily readiness trimmed to **3 items** (Accountant pack reviewed / RDC sheet approved / Opening stock); executive login restored (`executive@lapok.ug`); vehicles free when trips return (cadet report + field EOD); Revenue today / crates sold / revenue MTD, dashboard charts, **financial & sales reports + CSV export** read **real depot sales** (RDC sheet + cadet trip reports) instead of the orders table. |
 | **Done (1 Aug)** | Cadet — receive dispatch | After manager dispatch, the cadet sees a 📦 **Confirm load received** banner on `cadet-dashboard` (load list below it). Confirming moves the trip `dispatched → on_route`, records `acknowledged_at` (migration **019**), and notifies manager/admin. Dispatch log shows **Awaiting confirm → On route ✓**. |
-| **Next (1) — primary attack** | **Accountant (RDC) account** | Deep polish of the accountant daily close: Home → Today's close → cash → manager pack. This is the main quality target now that cadet dispatch receive is live. |
+| **Next (1) — primary attack** | **Accountant (RDC) account** | Deep polish of the accountant daily close: Home → Today's close → cash → manager pack. **RDC polish shipped 1 Aug** — Home checklist mirrors the real 4-item pack gate, step-tab jumps validated, cash handover bulk Match-all + contextual next action, pack page tooltips. Remaining: test in a full demo run. |
 
 Do **not** reopen CCBA SKU map / Sync warehouse on daily boards until Phase 2 MyCCBA integration is intentionally started (`CCBA_INTEGRATION_BLUEPRINT.md` §0).
 
@@ -34,10 +34,10 @@ Do **not** reopen CCBA SKU map / Sync warehouse on daily boards until Phase 2 My
 
 | Feature | Page / area | Status | Notes |
 |---------|-------------|--------|-------|
-| RDC Home (default) | `accountant-rdc-hub` | **Live** | 2-step EOD checklist, Continue CTA, optional nudges (cash, receivables, depot), month-end banner — **primary polish target** |
-| Today's close (balancing) | `accountant-rdc` | **Live** | 3-step wizard, sales grouped (CSD / ENERGY / JUICE / VAD / WATER / OTHER), auto-save, sample-data banner, finish-today panel after submit — **primary polish target** |
-| Manager pack | `report-exchange` | **Live** | Accountant: one-tap send; gated on submitted balancing; View PDF from Home |
-| Cash handover | `accountant-cash` | **Live** | Optional — More menu + Home nudge when trips pending — polish with accountant attack |
+| RDC Home (default) | `accountant-rdc-hub` | **Live** | 5-step EOD checklist mirroring the manager-pack gate (field EOD / cash / trips / balancing / pack), Continue CTA, nudges (cash **required**, receivables, depot), month-end banner — **polished 1 Aug** |
+| Today's close (balancing) | `accountant-rdc` | **Live** | 3-step wizard, sales grouped (CSD / ENERGY / JUICE / VAD / WATER / OTHER), auto-save, sample-data banner, finish-today panel after submit — step-tab jumps validated **1 Aug** |
+| Manager pack | `report-exchange` | **Live** | Accountant: one-tap send; gated on the 4-item daily-close readiness; disabled buttons explain why; View PDF from Home |
+| Cash handover | `accountant-cash` | **Live** | **Required before manager pack** — Home nudge + priority row; bulk Match-all; sticky bar advances to Manager pack when clear — polished **1 Aug** |
 | Depot alerts | `admin-exceptions` | **Live** | Live queue from DB — stock, cash, cadet flags, welfare, edits, sales |
 | Month-end tools | `accountant-improvements` | **Live** | DB sync — accountant edits; manager/executive/admin view |
 | RDC sheet CSV export | `export_csv.php?type=rdc_sheet` | **Live** | From Home history + post-submit panel |
@@ -185,6 +185,7 @@ Month-end (last 3 days): banner on Home → accountant-improvements
 | **CCBA SKU map UI** (`ccba_product_map`) | **Deferred** | **Phase 2 integration** — do **not** put on daily boards. Backend/API may exist; UI returns with MyCCBA sync. See `CCBA_INTEGRATION_BLUEPRINT.md` §0 |
 | **CCBA warehouse snapshot / Sync stock** | **Deferred** | **Phase 2 integration** — removed from manager boards toolbar until CCBA stock sync ships. See blueprint §7.3 |
 | EFRIS fiscal | **Deferred** | Phase 2 — see `EFRIS_FISCAL_INTEGRATION_BLUEPRINT.md` |
+| Multi-branch (shared exec) | **Planned (design only)** | No branch model exists today — single-depot everywhere. Plan tracked in `docs/MULTI_BRANCH_BLUEPRINT.md` (Phase 0 insurance / Phase 1 full scope) |
 | PDF report chain | **Live** | Accountant → Manager → Executive. Brief = styled stock book + sellers + finance. **CCBA boards = separate styled companion PDF** (`ccba_boards`, migration **016**) |
 
 ---

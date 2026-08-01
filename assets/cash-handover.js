@@ -50,6 +50,8 @@
     if (!table) return;
     const badge = document.getElementById('cashPendingBadge');
     if (badge) badge.textContent = pending.length ? pending.length + ' pending' : 'All clear';
+    const matchAll = document.getElementById('cashMatchAllBtn');
+    if (matchAll) matchAll.style.display = pending.length > 1 ? 'inline-flex' : 'none';
 
     if (!pending.length) {
       table.innerHTML = `<tr><th>Trip</th><th>Cadet</th><th>Route</th><th>Returned</th><th>Reported</th><th>Received</th><th>Variance</th><th></th></tr>
@@ -122,17 +124,23 @@
 
       const sticky = document.getElementById('cashStickyHint');
       const nextBtn = document.getElementById('cashNextBtn');
+      const role = (typeof currentUser !== 'undefined' && currentUser?.role) || 'accountant';
+      const home = (typeof LapokAPI !== 'undefined' && LapokAPI.roleHomePage?.[role]) || 'accountant-rdc-hub';
       if (sticky) {
         sticky.textContent = pending.length
-          ? 'Confirm each trip — use Match if received equals reported'
-          : 'No pending handovers';
+          ? pending.length + ' trip' + (pending.length === 1 ? '' : 's') + ' to confirm — Match fills the reported amount'
+          : 'All handovers confirmed — the manager pack is ready';
       }
       if (nextBtn) {
-        const role = (typeof currentUser !== 'undefined' && currentUser?.role) || 'accountant';
-        const home = (typeof LapokAPI !== 'undefined' && LapokAPI.roleHomePage?.[role]) || 'accountant-rdc-hub';
-        nextBtn.textContent = '← Home';
-        nextBtn.className = 'btn btn-sm';
-        nextBtn.onclick = () => showPage(home);
+        if (pending.length) {
+          nextBtn.textContent = '← Home';
+          nextBtn.className = 'btn btn-sm';
+          nextBtn.onclick = () => showPage(home);
+        } else {
+          nextBtn.textContent = 'Manager pack →';
+          nextBtn.className = 'btn btn-sm btn-red';
+          nextBtn.onclick = () => showPage('report-exchange');
+        }
       }
     } catch (e) {
       if (errEl) {
@@ -148,6 +156,13 @@
     if (!inp) return;
     inp.value = inp.getAttribute('data-reported') || inp.value;
     inp.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function cashMatchAll() {
+    document.querySelectorAll('#cashConfirmTable [data-cash-trip]').forEach((inp) => {
+      inp.value = inp.getAttribute('data-reported') || inp.value;
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+    });
   }
 
   async function confirmCash(tripId) {
@@ -169,4 +184,5 @@
   window.loadPendingCash = loadCashHandoverPage;
   window.confirmCash = confirmCash;
   window.cashMatchReported = cashMatchReported;
+  window.cashMatchAll = cashMatchAll;
 })();

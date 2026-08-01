@@ -240,6 +240,25 @@ function rdcWizardNext() {
   }
 }
 
+// Step tabs must not skip required data (unlike Next, they have no inline checks).
+function rdcJumpToStep(step) {
+  if (rdcReadOnly || rdcEditorMode === 'manager') {
+    rdcSetWizardStep(step);
+    return;
+  }
+  if (step >= 2 && !rdcHasSalesData()) {
+    rdcNotify('Enter verified sales quantities or import sales from depot orders first.', true);
+    rdcSetWizardStep(1);
+    return;
+  }
+  if (step >= 3 && !rdcHasCashData()) {
+    rdcNotify('Enter actual cash received before reviewing totals.', true);
+    rdcSetWizardStep(2);
+    return;
+  }
+  rdcSetWizardStep(step);
+}
+
 function rdcRenderWizardChrome() {
   const sticky = document.getElementById('rdcStickyActions');
   const actions = document.getElementById('rdcActions');
@@ -1106,6 +1125,18 @@ async function rdcManagerApproveFromSheet() {
 
 async function rdcSubmitSheet() {
   if (!rdcSheet || rdcReadOnly) return;
+  if (rdcEditorMode !== 'manager') {
+    if (!rdcHasSalesData()) {
+      rdcNotify('Add verified sales before submitting — use Import sales to load depot orders.', true);
+      rdcSetWizardStep(1);
+      return;
+    }
+    if (!rdcHasCashData()) {
+      rdcNotify('Add actual cash received before submitting.', true);
+      rdcSetWizardStep(2);
+      return;
+    }
+  }
   rdcAutoExpected();
   rdcRecalcClientTotals();
   if (Math.abs(Number(rdcSheet.variance || 0)) > 0) {
@@ -1173,9 +1204,9 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       rdcAddRow(btn.getAttribute('data-rdc-add-row'));
     });
-    document.getElementById('rdcBalStepSales')?.addEventListener('click', () => rdcSetWizardStep(1));
-    document.getElementById('rdcBalStepCash')?.addEventListener('click', () => rdcSetWizardStep(2));
-    document.getElementById('rdcBalStepSubmit')?.addEventListener('click', () => rdcSetWizardStep(3));
+    document.getElementById('rdcBalStepSales')?.addEventListener('click', () => rdcJumpToStep(1));
+    document.getElementById('rdcBalStepCash')?.addEventListener('click', () => rdcJumpToStep(2));
+    document.getElementById('rdcBalStepSubmit')?.addEventListener('click', () => rdcJumpToStep(3));
   }
 });
 
