@@ -113,22 +113,57 @@ function report_accountant_readiness(string $date): array
     $activeStmt->execute([$date]);
     $activeTrips = (int) $activeStmt->fetchColumn();
 
+    $dispatchedStmt = $pdo->prepare(
+        "SELECT COUNT(*) FROM delivery_trips
+         WHERE DATE(dispatched_at) = ?
+           AND (cadet_id IS NOT NULL OR driver_id IS NOT NULL)"
+    );
+    $dispatchedStmt->execute([$date]);
+    $dispatchedToday = (int) $dispatchedStmt->fetchColumn();
+
     $sheetStmt = $pdo->prepare('SELECT status, variance FROM rdc_daily_sheets WHERE balance_date = ? LIMIT 1');
     $sheetStmt->execute([$date]);
     $sheet = $sheetStmt->fetch() ?: null;
     $sheetSubmitted = $sheet && in_array((string) $sheet['status'], ['submitted', 'under_review', 'approved'], true);
 
+    $reportCount = count($reportTrips);
+    $noTripActivity = $reportCount === 0 && $dispatchedToday === 0;
+
     $items = [
-        ['key' => 'field_eod', 'label' => 'Field EOD reports archived', 'ready' => $eodPackets === count($reportTrips), 'status' => $eodPackets . ' of ' . count($reportTrips) . ' reports', 'page' => 'accountant-rdc'],
-        ['key' => 'cash_confirmed', 'label' => 'Cadet cash handovers confirmed', 'ready' => $pendingCash === 0, 'status' => $pendingCash === 0 ? 'All confirmed' : $pendingCash . ' pending', 'page' => 'accountant-cash'],
-        ['key' => 'routes_closed', 'label' => 'Today\'s assigned trips closed', 'ready' => $activeTrips === 0, 'status' => $activeTrips === 0 ? 'All closed' : $activeTrips . ' still active', 'page' => 'accountant-rdc-hub'],
-        ['key' => 'rdc_submitted', 'label' => 'RDC daily balancing submitted', 'ready' => (bool) $sheetSubmitted, 'status' => $sheet ? ucfirst(str_replace('_', ' ', (string) $sheet['status'])) : 'No sheet', 'page' => 'accountant-rdc'],
+        [
+            'key' => 'field_eod', 'label' => 'Field EOD reports archived',
+            'ready' => $eodPackets === $reportCount,
+            'noop' => $reportCount === 0,
+            'status' => $reportCount === 0 ? 'No activity today' : $eodPackets . ' of ' . $reportCount . ' reports',
+            'page' => 'accountant-rdc',
+        ],
+        [
+            'key' => 'cash_confirmed', 'label' => 'Cadet cash handovers confirmed',
+            'ready' => $pendingCash === 0,
+            'noop' => $reportCount === 0,
+            'status' => $reportCount === 0 ? 'No activity today' : ($pendingCash === 0 ? 'All confirmed' : $pendingCash . ' pending'),
+            'page' => 'accountant-cash',
+        ],
+        [
+            'key' => 'routes_closed', 'label' => 'Today\'s assigned trips closed',
+            'ready' => $activeTrips === 0,
+            'noop' => $noTripActivity,
+            'status' => $noTripActivity ? 'No activity today' : ($activeTrips === 0 ? 'All closed' : $activeTrips . ' still active'),
+            'page' => 'accountant-rdc-hub',
+        ],
+        [
+            'key' => 'rdc_submitted', 'label' => 'RDC daily balancing submitted',
+            'ready' => (bool) $sheetSubmitted,
+            'noop' => false,
+            'status' => $sheet ? ucfirst(str_replace('_', ' ', (string) $sheet['status'])) : 'No sheet',
+            'page' => 'accountant-rdc',
+        ],
     ];
 
     return [
         'report_date' => $date,
         'ready' => count(array_filter($items, static fn(array $item): bool => !$item['ready'])) === 0,
-        'completed' => count(array_filter($items, static fn(array $item): bool => $item['ready'])),
+        'completed' => count(array_filter($items, static fn(array $item): bool => $item['ready'] && !$item['noop'])),
         'total' => count($items),
         'items' => $items,
     ];

@@ -79,12 +79,19 @@
     setText('rdcHubTodayLabel', fmtTodayLabel());
   }
 
-  function renderProgress(wf) {
+  function renderProgress(wf, ctx) {
     const seg = (id, done, active) => {
       const el = document.getElementById(id);
       if (!el) return;
       el.className = 'rdc-hub-progress-seg' + (done ? ' done' : active ? ' active' : '');
     };
+    const byKey = (key) => (ctx.readiness?.items || []).find((i) => i.key === key);
+    const eod = byKey('field_eod');
+    const cash = byKey('cash_confirmed');
+    const routes = byKey('routes_closed');
+    seg('rdcHubProgEod', !!eod?.ready && !eod?.noop, !eod?.ready && !eod?.noop);
+    seg('rdcHubProgCash', !!cash?.ready && !cash?.noop, !cash?.ready && !cash?.noop);
+    seg('rdcHubProgRoutes', !!routes?.ready && !routes?.noop, !routes?.ready && !routes?.noop);
     seg('rdcHubProgBal', wf.balDone, wf.balActive);
     seg('rdcHubProgPack', wf.packDone, wf.packActive);
   }
@@ -127,10 +134,27 @@
     if (!root) return;
     const balBadge = ctx.sheetLoaded && ctx.sheetStatus !== 'draft' ? ' ' + statusBadge(ctx.sheetStatus) : '';
     const packSub = wf.packDone ? 'Sent today' : 'One tap to send PDF to manager';
-    root.innerHTML = [
-      checklistItem(1, 'Daily balancing', balChecklistSub(ctx), wf.balDone ? 'done' : wf.balActive || !ctx.sheetLoaded ? 'active' : '', 'accountant-rdc', balBadge),
-      checklistItem(2, 'Manager pack', packSub, wf.packDone ? 'done' : wf.packActive ? 'active' : '', 'report-exchange'),
-    ].join('');
+    const gateItems = (ctx.readiness && ctx.readiness.items && ctx.readiness.items.length)
+      ? ctx.readiness.items.map((item, index) => checklistItem(
+          index + 1,
+          item.label,
+          item.noop ? 'No activity today' : (item.status || (item.ready ? 'Done' : 'Not done yet')),
+          item.noop ? 'noop' : item.ready ? 'done' : 'active',
+          item.page,
+          item.noop ? '' : item.ready ? ' <span class="badge bs">Done</span>' : ''
+        ))
+      : [
+          checklistItem(1, 'Daily balancing', balChecklistSub(ctx), wf.balDone ? 'done' : wf.balActive || !ctx.sheetLoaded ? 'active' : '', 'accountant-rdc', balBadge),
+        ];
+    gateItems.push(checklistItem(
+      gateItems.length + 1,
+      'Manager pack',
+      packSub,
+      wf.packDone ? 'done' : wf.packActive ? 'active' : '',
+      'report-exchange',
+      wf.packDone ? ' <span class="badge bs">Done</span>' : ''
+    ));
+    root.innerHTML = gateItems.join('');
   }
 
   function renderPackView(ctx) {
@@ -206,7 +230,7 @@
     }
     const n = ctx.cashPending;
     if (title) title.textContent = `${n} trip${n === 1 ? '' : 's'} need cash confirm`;
-    if (sub) sub.textContent = 'Optional — confirm when cadets return. Under More → Cash handover.';
+    if (sub) sub.textContent = 'Confirm when cadets return — required before the manager pack. Under More → Cash handover.';
     box.style.display = 'flex';
   }
 
@@ -257,7 +281,9 @@
     } else if (wf.packActive) {
       page = 'report-exchange';
       headline = 'Send manager pack';
-      detail = 'One tap — Outpost builds a PDF for your manager.';
+      detail = ctx.readiness?.ready
+        ? 'One tap — Outpost builds a PDF for your manager.'
+        : 'Finish the checklist above, then send the pack.';
       label = 'Send pack';
     } else if (wf.dayComplete) {
       headline = 'Today\'s close is complete';
@@ -303,7 +329,7 @@
     const rows = [];
 
     if (ctx.cashPending > 0) {
-      rows.push(priorityRow('warn', 'Field cash', `${ctx.cashPending} trip(s) waiting — optional handover.`, 'accountant-cash'));
+      rows.push(priorityRow('warn', 'Field cash', `${ctx.cashPending} trip(s) waiting — confirm before the manager pack.`, 'accountant-cash'));
     }
     if (ctx.exceptionCount > 0) {
       rows.push(priorityRow('alert', 'Depot alerts', `${ctx.exceptionCount} item(s) to review.`, 'admin-exceptions'));
@@ -490,10 +516,11 @@
       receivablesCount: owing.length,
       welfareOpen: welfareRes.summary?.open_count || 0,
       welfareOpenAmount: welfareRes.summary?.open_amount || 0,
+      readiness: exchangeRes.accountant_readiness || null,
     };
     const wf = workflowState(ctx);
 
-    renderProgress(wf);
+    renderProgress(wf, ctx);
     renderChecklist(ctx, wf);
     renderCashNudge(ctx);
     renderCadetNudge(ctx);

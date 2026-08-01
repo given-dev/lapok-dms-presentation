@@ -158,12 +158,12 @@ function renderAccountantPackPage() {
   const readiness = reportExchangeData.accountant_readiness || { ready: false, completed: 0, total: 4, items: [] };
   const reportDate = readiness.report_date || reportSelectedDate || reportTodayIso();
   const sentPack = (reportExchangeData.outbox || []).find((p) => String(p.report_date || '').slice(0, 10) === reportDate);
-  const missing = (readiness.items || []).filter((item) => !item.ready).length;
+  const missing = (readiness.items || []).filter((item) => !item.ready && !item.noop).length;
   const checklist = (readiness.items || []).map((item, index) => `
-    <div class="rdc-hub-check-item ${item.ready ? 'done' : 'active'}">
-      <div class="rdc-hub-check-num">${item.ready ? '&#10003;' : index + 1}</div>
-      <div style="min-width:0;flex:1"><div style="font-weight:700;font-size:13px">${escReport(item.label)}</div><div style="font-size:11px;color:var(--gray-mid);margin-top:2px">${escReport(item.status)}</div></div>
-      ${item.ready ? '<span class="badge bs">Done</span>' : `<button class="btn btn-sm" type="button" onclick="reportOpenRequirement('${escReport(item.page)}')">Complete</button>`}
+    <div class="rdc-hub-check-item ${item.noop ? '' : item.ready ? 'done' : 'active'}">
+      <div class="rdc-hub-check-num">${item.noop ? '&ndash;' : item.ready ? '&#10003;' : index + 1}</div>
+      <div style="min-width:0;flex:1"><div style="font-weight:700;font-size:13px">${escReport(item.label)}</div><div style="font-size:11px;color:var(--gray-mid);margin-top:2px">${escReport(item.noop ? 'No activity today' : item.status)}</div></div>
+      ${item.noop ? '' : item.ready ? '<span class="badge bs">Done</span>' : `<button class="btn btn-sm" type="button" onclick="reportOpenRequirement('${escReport(item.page)}')">Complete</button>`}
     </div>`).join('');
 
   root.innerHTML = `
@@ -178,10 +178,10 @@ function renderAccountantPackPage() {
     <div class="two-col" style="align-items:start">
       <div class="card"><div class="card-header"><span class="card-title">Daily close readiness</span><span class="chip">${readiness.completed || 0}/${readiness.total || 4}</span></div><div class="rdc-hub-checklist">${checklist}</div></div>
       <div>
-        ${sentPack ? `<div class="rdc-hub-primary done" style="display:flex"><div class="rdc-hub-primary-text"><div class="rdc-hub-primary-title">Pack sent for this date</div><div class="rdc-hub-primary-sub">${escReport(sentPack.title || 'Daily pack')} · ${LapokAPI.formatDate(sentPack.sent_at)} ${LapokAPI.formatTime(sentPack.sent_at)}</div></div><button class="btn btn-red" type="button" onclick="reportOpenPdf(${sentPack.id})">View PDF</button></div>` : `<div class="rdc-hub-primary" style="display:flex"><div class="rdc-hub-primary-text"><div class="rdc-hub-primary-title">Send finance pack to manager</div><div class="rdc-hub-primary-sub">Outpost consolidates the verified field, cash, route, and RDC records.</div></div><button class="btn btn-red" type="button" id="acctPackSendBtn" onclick="reportAccountantSendPack()" ${readiness.ready ? '' : 'disabled'}>Send pack now</button></div>`}
-        <div class="card" style="margin-top:1rem"><div class="form-group" style="margin:0"><label>Cover note for manager (optional)</label><textarea class="textarea-inp" id="acctPackNotes" rows="2" placeholder="Explain any variance or decision required"></textarea></div></div>
+        ${sentPack ? `<div class="rdc-hub-primary done" style="display:flex"><div class="rdc-hub-primary-text"><div class="rdc-hub-primary-title">Pack sent for this date</div><div class="rdc-hub-primary-sub">${escReport(sentPack.title || 'Daily pack')} · ${LapokAPI.formatDate(sentPack.sent_at)} ${LapokAPI.formatTime(sentPack.sent_at)}</div></div><button class="btn btn-red" type="button" onclick="reportOpenPdf(${sentPack.id})">View PDF</button></div>` : `<div class="rdc-hub-primary" style="display:flex"><div class="rdc-hub-primary-text"><div class="rdc-hub-primary-title">Send finance pack to manager</div><div class="rdc-hub-primary-sub">Outpost consolidates the verified field, cash, route, and RDC records.</div></div><button class="btn btn-red" type="button" id="acctPackSendBtn" onclick="reportAccountantSendPack()" ${readiness.ready ? '' : 'disabled'} ${readiness.ready ? '' : 'title="Complete the daily close checklist above first"'}>Send pack now</button></div>`}
+        ${sentPack ? '' : `<div class="card" style="margin-top:1rem"><div class="form-group" style="margin:0"><label>Cover note for manager (optional)</label><textarea class="textarea-inp" id="acctPackNotes" rows="2" placeholder="Explain any variance or decision required"></textarea></div></div>
         <input type="hidden" id="reportSendDate" value="${escReport(reportDate)}">
-        <details class="rdc-section" style="margin-top:1rem"><summary>Upload your own PDF instead</summary><div class="rdc-section-body"><form id="reportUploadForm" onsubmit="reportUploadAndSend(event)"><input type="hidden" name="report_date" id="reportUploadDate" value="${escReport(reportDate)}"><div class="form-group"><label>Title</label><input class="input" name="title" required></div><div class="form-group"><label>PDF file</label><input class="input" type="file" name="pdf" accept="application/pdf,.pdf" required></div><button type="submit" class="btn btn-sm" ${readiness.ready ? '' : 'disabled'}>Upload &amp; send</button></form></div></details>
+        <details class="rdc-section" style="margin-top:1rem"><summary>Upload your own PDF instead</summary><div class="rdc-section-body"><form id="reportUploadForm" onsubmit="reportUploadAndSend(event)"><input type="hidden" name="report_date" id="reportUploadDate" value="${escReport(reportDate)}"><div class="form-group"><label>Title</label><input class="input" name="title" required></div><div class="form-group"><label>PDF file</label><input class="input" type="file" name="pdf" accept="application/pdf,.pdf" required></div><button type="submit" class="btn btn-sm" ${readiness.ready ? '' : 'disabled'} ${readiness.ready ? '' : 'title="Complete the daily close checklist above first"'}>Upload &amp; send</button></form></div></details>`}
       </div>
     </div>`;
 }
