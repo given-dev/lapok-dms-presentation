@@ -1652,6 +1652,14 @@ canvas{display:block;width:100%!important}
     </div>
     <button class="btn btn-red btn-sm" type="button" id="cadetDashReportBtn" onclick="showPage('cadet-daily')">Today's report →</button>
   </div>
+  <div class="alert a-info" id="cadetDashAckBanner" style="display:none">
+    <span>📦</span>
+    <div style="flex:1">
+      <div><strong>Dispatch awaiting confirmation</strong></div>
+      <div style="font-size:13px;margin-top:4px">Your manager loaded the vehicle for today's route. Check the load below, then confirm receipt to go on route.</div>
+    </div>
+    <button class="btn btn-sm" type="button" id="cadetDashAckBtn" onclick="confirmDispatchReceive(this)">Confirm load received →</button>
+  </div>
   <div class="alert a-warning" id="deadlineBannerCadet" style="display:none"></div>
   <div class="alert a-warning" id="cadetDashLateBanner" style="display:none"><span>⚠</span><div>After 7:00 PM — submit soon and add a note if cash differs from sales.</div></div>
   <div class="alert a-info" id="cadetDashNoTrip" style="display:none"><span>ℹ</span><div>No active trip. Ask your manager to dispatch your vehicle.</div></div>

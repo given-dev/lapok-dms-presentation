@@ -40,9 +40,11 @@
     const late = document.getElementById('cadetDashLateBanner');
     const noTrip = document.getElementById('cadetDashNoTrip');
     const submitted = document.getElementById('cadetDashSubmitted');
+    const ackBanner = document.getElementById('cadetDashAckBanner');
     if (late) late.style.display = 'none';
     if (noTrip) noTrip.style.display = 'none';
     if (submitted) submitted.style.display = 'none';
+    if (ackBanner) ackBanner.style.display = 'none';
 
     try {
       const data = await LapokAPI.get('/api/cadet/fetch_context.php');
@@ -65,6 +67,10 @@
         const rs = summary.report_status || 'no_trip';
         const cls = rs === 'submitted' ? 'bs' : rs === 'pending' ? 'bw' : 'bg';
         badge.innerHTML = `<span class="badge ${cls}">${statusLabel(rs)}</span>`;
+      }
+
+      if (ackBanner && trip?.status === 'dispatched') {
+        ackBanner.style.display = 'flex';
       }
 
       document.getElementById('cadetDashLoaded').textContent = String(summary.total_loaded ?? 0);
@@ -118,5 +124,24 @@
     }
   }
 
+  async function confirmDispatchReceive(btn) {
+    if (!btn) return;
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Confirming…';
+    try {
+      const res = await LapokAPI.post('/api/trips/confirm_receive.php', {});
+      await loadCadetDashboardPage();
+      if (typeof refreshNotifications === 'function') refreshNotifications();
+      if (typeof adminToast === 'function') adminToast(res.message || 'Load confirmed. On route.');
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = original;
+      if (typeof adminToast === 'function') adminToast(e.message, true);
+      else alert(e.message);
+    }
+  }
+
   window.loadCadetDashboardPage = loadCadetDashboardPage;
+  window.confirmDispatchReceive = confirmDispatchReceive;
 })();

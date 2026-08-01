@@ -46,6 +46,7 @@ json_ok([
         'registration' => $trip['registration'],
         'route_name' => $trip['route_name'] ?? $trip['route_area'],
         'status' => $trip['status'],
+        'acknowledged_at' => $trip['acknowledged_at'],
         'returned_at' => $trip['returned_at'],
         'vehicle_type' => $trip['vehicle_type'] ?? 'truck',
     ] : null,

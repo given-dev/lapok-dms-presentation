@@ -184,6 +184,7 @@ CREATE TABLE delivery_trips (
     route_area      VARCHAR(120) DEFAULT NULL,
     status          ENUM('dispatched','on_route','returned','completed','cancelled') NOT NULL DEFAULT 'dispatched',
     dispatched_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    acknowledged_at DATETIME DEFAULT NULL,
     returned_at     DATETIME DEFAULT NULL,
     odometer_start  INT UNSIGNED DEFAULT NULL,
     odometer_end    INT UNSIGNED DEFAULT NULL,

@@ -288,8 +288,8 @@ Wrong-role pages should bounce home — that is intentional security, not a bug.
 |-------|--------|--------|
 | Done | Manager boards + executive brief | Inventory + OCCD only; **styled** executive stock-book table + **styled companion CCBA boards PDF** (banners/tables) |
 | Done (31 Jul) | Manager daily-ops fixes | Pack-level dispatch load (same packs as cadet list); Daily readiness = 3 items (Accountant pack / RDC sheet / opening stock); executive login restored; vehicles free on trip return; dashboard revenue/crates/MTD + charts from real depot sales |
-| **Next 1** | Cadet receive dispatch | Cadet acknowledges manager dispatch / load before route |
-| **Next 2** | **Accountant (RDC) polish** | **Primary attacking point** — Home → Today's close → cash → manager pack |
+| Done (1 Aug) | Cadet receive dispatch | 📦 banner + **Confirm load received** on `cadet-dashboard`; trip `dispatched → on_route` (`acknowledged_at`, migration 019); manager notified; dispatch log shows confirmation |
+| **Next 1** | **Accountant (RDC) polish** | **Primary attacking point** — Home → Today's close → cash → manager pack |
 
 Track status in `docs/MODULE_TRACKER.md` (**Current build focus**).
 

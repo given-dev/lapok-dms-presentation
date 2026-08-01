@@ -456,12 +456,20 @@ async function loadDispatchLog() {
       trips.map((t) => {
         const crew = [t.driver_name, t.cadet_name].filter(Boolean).join(' / ') || '—';
         const badge = t.vehicle_type === 'truck' ? 'b-truck' : 'b-tuk';
-        const st = t.status === 'on_route' || t.status === 'dispatched' ? 'bs' : 'bg';
+        let st = 'bg';
+        let label = t.status;
+        if (t.status === 'dispatched') {
+          st = 'bw';
+          label = t.acknowledged_at ? 'Dispatched' : 'Awaiting confirm';
+        } else if (t.status === 'on_route') {
+          st = 'bs';
+          label = 'On route';
+        }
         return `<tr><td>${escMgr(t.registration)}</td><td><span class="badge ${badge}">${t.vehicle_type}</span></td>
           <td>${escMgr(crew)}</td><td>${t.dispatched_at ? LapokAPI.formatTime(t.dispatched_at) : '—'}</td>
           <td>${t.load_qty || 0}</td><td>${escMgr(t.route_area || '—')}</td>
           <td>${t.returned_at ? LapokAPI.formatTime(t.returned_at) : '—'}</td>
-          <td><span class="badge ${st}">${t.status}</span></td></tr>`;
+          <td><span class="badge ${st}">${label}${t.acknowledged_at && t.status !== 'dispatched' ? ' ✓' : ''}</span></td></tr>`;
       }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--gray-mid)">No dispatches today</td></tr>';
   } catch (e) {
     console.warn('Dispatch log:', e.message);

@@ -37,6 +37,25 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 
 ## Log
 
+### 2026-08-01 · ~09:30 (Africa/Kampala)
+
+| | |
+|--|--|
+| **Who** | Team |
+| **Push / ref** | Local — cadet dispatch confirmation (`f1f9713` = dashboard-source + vehicle-return WIP committed; this feature uncommitted) |
+| **Area** | Cadet daily ops · Manager dispatch visibility |
+
+**Changes**
+- **Cadet receive dispatch (live):** after the manager dispatches, the cadet dashboard shows a 📦 **Confirm load received** banner above the load table (`assets/cadet-dashboard.js`, `index.html` `#cadetDashAckBanner`). Confirming calls the new `api/trips/confirm_receive.php` which moves the trip `dispatched → on_route`, stamps `acknowledged_at` (migration **019**, applied), writes an audit row, and notifies all active managers/admins.
+- Confirmation is **idempotent** — an already-`on_route` trip returns its original `acknowledged_at` without re-notifying.
+- **Manager dispatch log** now distinguishes **Awaiting confirm** (amber) from **On route ✓** (`api/trips/dispatch_log.php` now selects `acknowledged_at`; `assets/manager-ops.js` `loadDispatchLog`).
+- `api/cadet/fetch_context.php` exposes `acknowledged_at` for the cadet trip.
+- Docs updated: `README.md`, `docs/MODULE_TRACKER.md`, `docs/SYSTEMS_BUILDING_GUIDE.md`.
+
+**Notes**
+- Apply migration **019** to any other environment (`database/migrations/019_cadet_confirm_receive.sql` / hosting `23_019_…`). Hard refresh (**Ctrl+F5**) after JS changes.
+- Verified end-to-end locally: login → confirm → trip on_route with `acknowledged_at` + manager notification (test data cleaned up).
+
 ### 2026-07-31 · ~14:00 (Africa/Kampala)
 
 | | |

@@ -21,8 +21,8 @@ External systems (CCBA, EFRIS, fleet GPS) are manual or deferred in this build.
 
 ### Next shifts (team agreement)
 
-1. **Cadet — receive dispatch** — how cadets see and acknowledge manager dispatch / load before going on route.  
-2. **Accountant (RDC) — primary attack** — deep polish of Home → Today's close → cash → manager pack.
+1. **Accountant (RDC) — primary attack** — deep polish of Home → Today's close → cash → manager pack.
+2. **Cadet — receive dispatch (live)** — cadets now see the manager's dispatch and confirm the load (📦 banner on `cadet-dashboard`) before going on route; the trip moves `dispatched → on_route`, the manager is notified, and the dispatch log shows confirmation.
 
 ---
 
@@ -73,7 +73,7 @@ Initial accounts use password **`password123`** for local setup only. Change eve
 | Dashboard (home) | `cadet-dashboard` | Trip status, load summary, messages from depot |
 | Today's report | `cadet-daily` | All depot products grouped like depot sales book (CSD, ENERGY, JUICE, VAD, WATER, OTHER) |
 | Notifications | Bell icon | Bell shows unread items only; read items remain in Messages history and open in a message-detail popup |
-| Receive dispatch | `cadet-dashboard` | **Next focus** — acknowledge manager dispatch / load before route (planned) |
+| Receive dispatch | `cadet-dashboard` | **Live** — when the manager dispatches, a 📦 banner shows the load with a **Confirm load received** button. Confirming moves the trip `dispatched → on_route`, records `acknowledged_at`, and notifies the manager. |
 
 On submit, sales, expenses, and cash **auto-sync** into the accountant's **Today's close** sheet on the **vehicle column** for the assigned trip. The Cadet Daily returns and stock tables are fully dynamic, reading live stock quantities directly from the database.
 
@@ -209,7 +209,7 @@ From the `lapok-dms-presentation` folder in PowerShell:
 Get-Content database\schema.sql | C:\xampp\mysql\bin\mysql.exe -u root
 Get-Content database\seed.sql | C:\xampp\mysql\bin\mysql.exe -u root lapok_dms
 
-# Apply every migration (001–018). Safe to re-run: most use IF NOT EXISTS / ADD COLUMN IF NOT EXISTS.
+# Apply every migration (001–019). Safe to re-run: most use IF NOT EXISTS / ADD COLUMN IF NOT EXISTS.
 # Both 004 files are separate required migrations (EFRIS and fleet tracking).
 Get-ChildItem database\migrations\*.sql | Sort-Object Name | ForEach-Object {
   Write-Host "Applying $($_.Name)…"
@@ -243,8 +243,9 @@ C:\xampp\php\php.exe scripts\setup_passwords.php --confirm-local-reset
 | **016** | `016_ccba_boards_report_type.sql` | Report type `ccba_boards` (companion PDF to executive brief) |
 | **017** | `017_remove_demo_operational_data.sql` | Remove seeded operations, stock quantities, stale trips, and historical sample packets while preserving accounts and genuine records |
 | **018** | `018_admin_vehicle_route_assignments.sql` | Weekly Admin vehicle / cadet / route assignments (`vehicle_route_assignments`) |
+| **019** | `019_cadet_confirm_receive.sql` | `delivery_trips.acknowledged_at` — cadet confirms dispatch before going on route |
 
-**Required for this build:** apply **001–018**, including both `004_efris_integration.sql` and `004_fleet_tracking.sql`. Migration `017` is the no-demo cleanup and intentionally preserves the six accounts, fleet master, product catalogue, and genuine operational records.
+**Required for this build:** apply **001–019**, including both `004_efris_integration.sql` and `004_fleet_tracking.sql`. Migration `017` is the no-demo cleanup and intentionally preserves the six accounts, fleet master, product catalogue, and genuine operational records.
 
 Verify core tables:
 

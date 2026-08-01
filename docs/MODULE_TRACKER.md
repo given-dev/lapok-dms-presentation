@@ -2,7 +2,7 @@
 
 **Product:** Outpost DMS  
 **Build folder:** `lapok-dms-presentation` (accountant module **live**)  
-**Last updated:** 31 July 2026  
+**Last updated:** 1 August 2026  
 **Purpose:** Single place to track what is live, what is planned, and what we may add next. Update this when modules ship or scope changes.
 
 **Status key**
@@ -23,8 +23,8 @@
 |----------|--------|------|
 | **Done (this shift)** | Manager CCBA boards + executive brief | Boards = Inventory + OCCD only; SKU map / sync = Phase 2. Executive brief = finance + **styled full stock-book table** + sellers. **Companion CCBA boards PDF** = navy banners + bordered tables matching on-screen boards (migration **016**). |
 | **Done (31 Jul)** | Manager daily-ops fixes | Dispatch load list is **pack-level** (300ML RGB, 300PET, …) like the cadet daily list; Daily readiness trimmed to **3 items** (Accountant pack reviewed / RDC sheet approved / Opening stock); executive login restored (`executive@lapok.ug`); vehicles free when trips return (cadet report + field EOD); Revenue today / crates sold / revenue MTD, dashboard charts, **financial & sales reports + CSV export** read **real depot sales** (RDC sheet + cadet trip reports) instead of the orders table. |
-| **Next (1)** | **Cadet — receive dispatch** | How the cadet sees and accepts manager dispatch / load before going on route. Primary UX gap after manager dispatch. |
-| **Next (2) — primary attack** | **Accountant (RDC) account** | Deep polish of the accountant daily close: Home → Today's close → cash → manager pack. This is the main quality target after cadet dispatch receive. |
+| **Done (1 Aug)** | Cadet — receive dispatch | After manager dispatch, the cadet sees a 📦 **Confirm load received** banner on `cadet-dashboard` (load list below it). Confirming moves the trip `dispatched → on_route`, records `acknowledged_at` (migration **019**), and notifies manager/admin. Dispatch log shows **Awaiting confirm → On route ✓**. |
+| **Next (1) — primary attack** | **Accountant (RDC) account** | Deep polish of the accountant daily close: Home → Today's close → cash → manager pack. This is the main quality target now that cadet dispatch receive is live. |
 
 Do **not** reopen CCBA SKU map / Sync warehouse on daily boards until Phase 2 MyCCBA integration is intentionally started (`CCBA_INTEGRATION_BLUEPRINT.md` §0).
 
@@ -196,11 +196,11 @@ Month-end (last 3 days): banner on Home → accountant-improvements
 | Cadet dashboard | `cadet-dashboard` | **Live** | Trip status, load summary, report status |
 | Cadet daily report | `cadet-daily` | **Live** | Submit sales/expenses/cash → RDC vehicle column. Closing the report returns the trip **and frees the vehicle** (same on field-user EOD). |
 | Cadet notifications | Bell | **Live** | Manager / RDC / admin messages |
-| **Receive / acknowledge dispatch** | `cadet-dashboard` (+ load confirm) | **Planned** | **Next shift #1** — clear UX when manager dispatches: see load, confirm receive, then go on route |
+| **Receive / acknowledge dispatch** | `cadet-dashboard` (+ load confirm) | **Live** | 📦 banner after manager dispatch — see load, **Confirm load received** → trip `dispatched → on_route` (`acknowledged_at`, migration **019**); manager notified; dispatch log shows confirmation |
 | Limited field-user dashboard | `manager-dashboard` subset | **Partial** | Field login subset (no dedicated demo seed) |
 
 ---
 
 ## Migrations (local DB)
 
-Catalog and apply-all PowerShell live in [`README.md`](../README.md) § Database setup (**001–016**). Required for this build: **008–014** (plus **003**, **005**, **011** for boards / PDF / bell; **015** catalog seed; **016** for CCBA boards companion PDF type).
+Catalog and apply-all PowerShell live in [`README.md`](../README.md) § Database setup (**001–016**). Required for this build: **008–014** (plus **003**, **005**, **011** for boards / PDF / bell; **015** catalog seed; **016** for CCBA boards companion PDF type; **019** for cadet dispatch confirmation `acknowledged_at`).
