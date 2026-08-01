@@ -67,7 +67,7 @@ $flags = cadet_compute_flags(
     $salesTotal,
     $cashHanded,
     $aux['fuel'],
-    $aux['lunch'] + $aux['discount'] + $aux['shortage'] + $aux['repairs'],
+    cadet_auxiliary_total($aux) - $aux['fuel'],
     $note,
     $salesLines
 );

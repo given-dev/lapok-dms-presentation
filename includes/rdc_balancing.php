@@ -499,6 +499,11 @@ function rdc_apply_cadet_report_to_sheet(array &$sheet, int $vehicleId, array $r
         'DISCOUNT' => $aux['discount'],
         'SHORTAGE/EXCESS' => $aux['shortage'],
         'REPAIR' => $aux['repairs'],
+        'PARKING' => $aux['parking'],
+        'TRANSPORT' => $aux['transport'],
+        'PAPER ROLL' => $aux['paper_roll'],
+        'PROMOTION' => $aux['promotion'],
+        'OTHER' => $aux['misc'],
     ];
     if (!isset($sheet['expenses']) || !is_array($sheet['expenses'])) {
         $sheet['expenses'] = [];

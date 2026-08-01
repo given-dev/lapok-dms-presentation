@@ -25,7 +25,7 @@ $stmt = db()->prepare(
      JOIN vehicles v ON v.id = dt.vehicle_id
      LEFT JOIN routes r ON r.id = dt.route_id
      WHERE (dt.cadet_id = ? OR dt.driver_id = ?)
-       AND dt.status = 'returned'
+       AND dt.status IN ('returned', 'completed')
        AND dt.returned_at >= ?
        AND dt.returned_at < ?
        AND dt.notes LIKE '%[CADET_REPORT]%'

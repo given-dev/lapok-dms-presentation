@@ -138,7 +138,7 @@ html,body{height:100%;font-family:'Inter',system-ui,-apple-system,sans-serif;bac
 .rdc-hub-greeting{font-size:20px;font-weight:700;letter-spacing:-.02em}
 .rdc-hub-date{font-size:13px;color:var(--gray-mid);margin-top:2px}
 .rdc-hub-hero-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.rdc-hub-progress{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-bottom:1rem}
+.rdc-hub-progress{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:1rem}
 .rdc-hub-progress-seg{height:6px;border-radius:99px;background:var(--gray-light);overflow:hidden;position:relative}
 .rdc-hub-progress-seg span{position:absolute;inset:0;font-size:0}
 .rdc-hub-progress-seg.done{background:#22c55e}
@@ -792,6 +792,9 @@ canvas{display:block;width:100%!important}
   </div>
 
   <div class="rdc-hub-progress" id="rdcHubProgress" aria-hidden="true">
+    <div class="rdc-hub-progress-seg" id="rdcHubProgEod"><span>Field EOD</span></div>
+    <div class="rdc-hub-progress-seg" id="rdcHubProgCash"><span>Cash</span></div>
+    <div class="rdc-hub-progress-seg" id="rdcHubProgRoutes"><span>Trips</span></div>
     <div class="rdc-hub-progress-seg" id="rdcHubProgBal"><span>Balancing</span></div>
     <div class="rdc-hub-progress-seg" id="rdcHubProgPack"><span>Pack</span></div>
   </div>
@@ -811,7 +814,7 @@ canvas{display:block;width:100%!important}
   <div class="rdc-hub-cash-nudge" id="rdcHubCashNudge" style="display:none">
     <div class="rdc-hub-cash-nudge-text">
       <strong id="rdcHubCashNudgeTitle">Field cash pending</strong>
-      <span id="rdcHubCashNudgeSub">Confirm trip cash when cadets return — not part of today&apos;s close.</span>
+      <span id="rdcHubCashNudgeSub">Confirm trip cash when cadets return — required before the manager pack.</span>
     </div>
     <button class="btn btn-sm" type="button" onclick="showPage('accountant-cash')">Confirm cash</button>
   </div>
@@ -1056,7 +1059,7 @@ canvas{display:block;width:100%!important}
   <div class="alert a-warning" id="cashLoadError" style="display:none"></div>
 
   <div class="card" id="cashPendingCard">
-    <div class="card-header"><span class="card-title">Confirm field cash</span><span class="badge bg" id="cashPendingBadge">—</span></div>
+    <div class="card-header"><span class="card-title">Confirm field cash</span><span class="badge bg" id="cashPendingBadge">—</span><button class="btn btn-sm" type="button" id="cashMatchAllBtn" onclick="cashMatchAll()" style="margin-left:auto;display:none">Match all to reported</button></div>
     <p style="font-size:12px;color:var(--gray-mid);margin:0 0 1rem">Enter what you physically received. Use <strong>Match</strong> if it equals the reported amount.</p>
     <div class="tbl-wrap"><table id="cashConfirmTable"><tr><th>Trip</th><th>Cadet</th><th>Route</th><th>Returned</th><th>Reported</th><th>Received</th><th>Variance</th><th></th></tr><tr><td colspan="8" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
   </div>
@@ -1697,7 +1700,7 @@ canvas{display:block;width:100%!important}
         <div class="recon-row" style="margin-top:.6rem"><span>Sales total</span><strong id="cadetSalesTotalDisplay">UGX 0</strong></div>
       </div>
       <div class="form-section" style="margin-top:.4rem">Auxiliary information</div>
-      <p style="font-size:12px;color:var(--gray-mid);margin:-0.2rem 0 .8rem">Matches LAPOK book page 2 for your vehicle — fuel, lunch, discount, shortage, and repairs.</p>
+      <p style="font-size:12px;color:var(--gray-mid);margin:-0.2rem 0 .8rem">Matches LAPOK book page 2 for your vehicle — fuel, lunch, discount, shortage, repairs, parking, transport, paper roll, promotion, and other.</p>
       <div class="form-row">
         <div class="form-group"><label>Fuel (UGX)</label><input class="input" id="cadetAuxFuel" type="number" min="0" step="1000" value="0"></div>
         <div class="form-group"><label>Lunch (UGX)</label><input class="input" id="cadetAuxLunch" type="number" min="0" step="1000" value="0"></div>
@@ -1706,7 +1709,18 @@ canvas{display:block;width:100%!important}
         <div class="form-group"><label>Discount (UGX)</label><input class="input" id="cadetAuxDiscount" type="number" min="0" step="1000" value="0"></div>
         <div class="form-group"><label>Shortage (UGX)</label><input class="input" id="cadetAuxShortage" type="number" min="0" step="1000" value="0"></div>
       </div>
-      <div class="form-group"><label>Repairs (UGX)</label><input class="input" id="cadetAuxRepairs" type="number" min="0" step="1000" value="0"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Repairs (UGX)</label><input class="input" id="cadetAuxRepairs" type="number" min="0" step="1000" value="0"></div>
+        <div class="form-group"><label>Parking (UGX)</label><input class="input" id="cadetAuxParking" type="number" min="0" step="1000" value="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Transport (UGX)</label><input class="input" id="cadetAuxTransport" type="number" min="0" step="1000" value="0"></div>
+        <div class="form-group"><label>Paper roll (UGX)</label><input class="input" id="cadetAuxPaperRoll" type="number" min="0" step="1000" value="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Promotion (UGX)</label><input class="input" id="cadetAuxPromotion" type="number" min="0" step="1000" value="0"></div>
+        <div class="form-group"><label>Other / misc (UGX)</label><input class="input" id="cadetAuxMisc" type="number" min="0" step="1000" value="0"></div>
+      </div>
       <div class="form-group"><label>Banking / amount collected (UGX)</label><input class="input" id="cadetCashHanded" type="number" min="0" step="1000" placeholder="Cash you are banking"></div>
       <div class="form-group"><label>Note (required if cash ≠ sales)</label><textarea class="textarea-inp" id="cadetDailyNote" rows="2" placeholder="Short explanation for any mismatch"></textarea></div>
       <p id="cadetDailyFlagsPreview" style="font-size:12px;color:var(--gray-mid);margin-bottom:.8rem"></p>

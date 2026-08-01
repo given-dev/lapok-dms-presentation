@@ -47,6 +47,11 @@
       discount: parseNum(document.getElementById('cadetAuxDiscount')?.value),
       shortage: parseNum(document.getElementById('cadetAuxShortage')?.value),
       repairs: parseNum(document.getElementById('cadetAuxRepairs')?.value),
+      parking: parseNum(document.getElementById('cadetAuxParking')?.value),
+      transport: parseNum(document.getElementById('cadetAuxTransport')?.value),
+      paper_roll: parseNum(document.getElementById('cadetAuxPaperRoll')?.value),
+      promotion: parseNum(document.getElementById('cadetAuxPromotion')?.value),
+      misc: parseNum(document.getElementById('cadetAuxMisc')?.value),
     };
   }
 
@@ -63,6 +68,11 @@
         discount: Number(aux.discount || 0),
         shortage: Number(aux.shortage || 0),
         repairs: Number(aux.repairs || 0),
+        parking: Number(aux.parking || 0),
+        transport: Number(aux.transport || 0),
+        paper_roll: Number(aux.paper_roll || 0),
+        promotion: Number(aux.promotion || 0),
+        misc: Number(aux.misc || 0),
       };
     }
     return {
@@ -70,7 +80,12 @@
       lunch: Number(report?.lunch_expense || 0),
       discount: Number(report?.discount || 0),
       shortage: Number(report?.shortage || 0),
-      repairs: Number(report?.repairs_expense || report?.other_expense || 0),
+      repairs: Number(report?.repairs_expense || 0),
+      parking: Number(report?.parking_expense || 0),
+      transport: Number(report?.transport_expense || 0),
+      paper_roll: Number(report?.paper_roll_expense || 0),
+      promotion: Number(report?.promotion_expense || 0),
+      misc: Number(report?.misc_expense || report?.other_expense || 0),
     };
   }
 
@@ -209,6 +224,11 @@
       ['cadetAuxDiscount', aux.discount],
       ['cadetAuxShortage', aux.shortage],
       ['cadetAuxRepairs', aux.repairs],
+      ['cadetAuxParking', aux.parking],
+      ['cadetAuxTransport', aux.transport],
+      ['cadetAuxPaperRoll', aux.paper_roll],
+      ['cadetAuxPromotion', aux.promotion],
+      ['cadetAuxMisc', aux.misc],
     ];
     auxIds.forEach(([id, val]) => {
       const el = document.getElementById(id);
@@ -313,6 +333,11 @@
         ['Discount', aux.discount],
         ['Shortage', aux.shortage],
         ['Repairs', aux.repairs],
+        ['Parking', aux.parking],
+        ['Transport', aux.transport],
+        ['Paper roll', aux.paper_roll],
+        ['Promotion', aux.promotion],
+        ['Other / misc', aux.misc],
       ];
       auxTable.innerHTML = '<tr><th>Item</th><th>Amount (UGX)</th></tr>' + rows.map(([label, amount]) =>
         `<tr><td>${esc(label)}</td><td>${ugx(amount || 0)}</td></tr>`
@@ -448,6 +473,11 @@
         discount: aux.discount,
         shortage: aux.shortage,
         repairs_expense: aux.repairs,
+        parking_expense: aux.parking,
+        transport_expense: aux.transport,
+        paper_roll_expense: aux.paper_roll,
+        promotion_expense: aux.promotion,
+        misc_expense: aux.misc,
         cash_handed: parseNum(document.getElementById('cadetCashHanded')?.value),
         note,
       });
@@ -460,7 +490,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    ['cadetAuxFuel', 'cadetAuxLunch', 'cadetAuxDiscount', 'cadetAuxShortage', 'cadetAuxRepairs', 'cadetCashHanded', 'cadetDailyNote'].forEach((id) => {
+    ['cadetAuxFuel', 'cadetAuxLunch', 'cadetAuxDiscount', 'cadetAuxShortage', 'cadetAuxRepairs', 'cadetAuxParking', 'cadetAuxTransport', 'cadetAuxPaperRoll', 'cadetAuxPromotion', 'cadetAuxMisc', 'cadetCashHanded', 'cadetDailyNote'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('input', previewFlags);
     });

@@ -10,12 +10,17 @@ function cadet_auxiliary_defaults(): array
         'discount' => 0.0,
         'shortage' => 0.0,
         'repairs' => 0.0,
+        'parking' => 0.0,
+        'transport' => 0.0,
+        'paper_roll' => 0.0,
+        'promotion' => 0.0,
+        'misc' => 0.0,
     ];
 }
 
 /**
  * @param array<string, mixed> $input
- * @return array{fuel: float, lunch: float, discount: float, shortage: float, repairs: float}
+ * @return array{fuel: float, lunch: float, discount: float, shortage: float, repairs: float, parking: float, transport: float, paper_roll: float, promotion: float, misc: float}
  */
 function cadet_normalize_auxiliary(array $input): array
 {
@@ -30,11 +35,16 @@ function cadet_normalize_auxiliary(array $input): array
     $aux['lunch'] = max(0.0, (float) ($input['lunch_expense'] ?? 0));
     $aux['discount'] = max(0.0, (float) ($input['discount'] ?? 0));
     $aux['shortage'] = max(0.0, (float) ($input['shortage'] ?? 0));
-    $aux['repairs'] = max(0.0, (float) ($input['repairs_expense'] ?? $input['other_expense'] ?? 0));
+    $aux['repairs'] = max(0.0, (float) ($input['repairs_expense'] ?? 0));
+    $aux['parking'] = max(0.0, (float) ($input['parking_expense'] ?? 0));
+    $aux['transport'] = max(0.0, (float) ($input['transport_expense'] ?? 0));
+    $aux['paper_roll'] = max(0.0, (float) ($input['paper_roll_expense'] ?? 0));
+    $aux['promotion'] = max(0.0, (float) ($input['promotion_expense'] ?? 0));
+    $aux['misc'] = max(0.0, (float) ($input['misc_expense'] ?? $input['other_expense'] ?? 0));
     return $aux;
 }
 
-/** @param array{fuel: float, lunch: float, discount: float, shortage: float, repairs: float} $aux */
+/** @param array{fuel: float, lunch: float, discount: float, shortage: float, repairs: float, parking: float, transport: float, paper_roll: float, promotion: float, misc: float} $aux */
 function cadet_auxiliary_total(array $aux): float
 {
     return round(array_sum(array_map('floatval', $aux)), 2);
@@ -49,7 +59,12 @@ function cadet_attach_auxiliary(array $report, array $aux): array
     $report['discount'] = $aux['discount'];
     $report['shortage'] = $aux['shortage'];
     $report['repairs_expense'] = $aux['repairs'];
-    $report['other_expense'] = round($aux['lunch'] + $aux['discount'] + $aux['shortage'] + $aux['repairs'], 2);
+    $report['parking_expense'] = $aux['parking'];
+    $report['transport_expense'] = $aux['transport'];
+    $report['paper_roll_expense'] = $aux['paper_roll'];
+    $report['promotion_expense'] = $aux['promotion'];
+    $report['misc_expense'] = $aux['misc'];
+    $report['other_expense'] = round(cadet_auxiliary_total($aux) - $aux['fuel'], 2);
     return $report;
 }
 
