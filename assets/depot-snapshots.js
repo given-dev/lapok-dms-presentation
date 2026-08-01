@@ -368,6 +368,10 @@
         base.purchase = Number(l.purchase || 0);
         base.sales = Number(l.sales || 0);
         base.closing = Number(l.closing || 0);
+        // Read-only views (RDC depot stock status) show today's calculated stock:
+        // closing = warehouse ledger + cadet returns, which at start of day is
+        // exactly yesterday's closing (= today's opening).
+        if (!isOpening && readOnly) base.qty = base.closing;
         return base;
       });
       snapshotCache.template = suggested.map((l) => ({ ...l }));

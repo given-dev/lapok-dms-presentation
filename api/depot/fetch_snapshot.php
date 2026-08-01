@@ -25,20 +25,54 @@ $warehouseLines = depot_stock_lines_from_warehouse($date, $type === 'closing');
 // Sales come from cadet reports (trip sales), never typed into the stock book.
 $warehouseLines = depot_apply_cadet_sales_from_trips($warehouseLines, $date);
 
-// Opening stock carries over the previous day's closing stock (counts carry forward).
+// Opening stock = yesterday's CLOSING stock, which is calculated automatically as
+// warehouse ledger + cadet returns (it is never stored until the manager saves closing).
+// So carry the live ledger forward, including returns from the previous evening.
 if ($type === 'opening' && (!$snapshot || empty($snapshot['lines']))) {
     $prevDate = date('Y-m-d', strtotime($date . ' -1 day'));
-    $prevClosing = depot_snapshot_fetch($prevDate, 'closing');
-    if ($prevClosing && !empty($prevClosing['lines'])) {
-        $carry = depot_merge_snapshot_onto_catalog($prevClosing['lines']);
-        foreach ($carry as &$line) {
-            $line['opening'] = (int) ($line['closing'] ?? $line['qty'] ?? 0);
-            $line['qty'] = 0;
-            $line['sales'] = 0;
+    $returns = depot_cadet_returns_for_date($prevDate);
+    $ledgerTotal = 0;
+    foreach ($warehouseLines as &$line) {
+        $carried = (int) ($line['qty'] ?? 0) + (int) ($returns[(int) ($line['product_id'] ?? 0)] ?? 0);
+        $ledgerTotal += $carried;
+        $line['opening'] = $carried;
+        $line['qty'] = 0;
+        $line['sales'] = 0;
+    }
+    unset($line);
+
+    // If the warehouse ledger is empty (fresh install), fall back to the most recent
+    // saved closing/opening snapshot so quantities keep picking up automatically.
+    if ($ledgerTotal <= 0) {
+        $carryFrom = null;
+        for ($i = 1; $i <= 7; $i++) {
+            $cand = date('Y-m-d', strtotime($date . " -{$i} day"));
+            foreach (['closing', 'opening'] as $t) {
+                $prev = depot_snapshot_fetch($cand, $t);
+                if ($prev && !empty($prev['lines'])) {
+                    $carryFrom = $prev['lines'];
+                    break 2;
+                }
+            }
         }
-        unset($line);
-        $warehouseLines = depot_apply_purchases_from_deliveries($carry, $date);
-        $warehouseLines = depot_apply_cadet_sales_from_trips($warehouseLines, $date);
+        if ($carryFrom) {
+            $carry = depot_merge_snapshot_onto_catalog($carryFrom);
+            foreach ($carry as &$line) {
+                $carried = (int) ($line['closing'] ?? 0);
+                if ($carried <= 0) {
+                    $carried = (int) ($line['opening'] ?? 0);
+                }
+                if ($carried <= 0) {
+                    $carried = (int) ($line['qty'] ?? 0);
+                }
+                $line['opening'] = $carried;
+                $line['qty'] = 0;
+                $line['sales'] = 0;
+            }
+            unset($line);
+            $warehouseLines = depot_apply_purchases_from_deliveries($carry, $date);
+            $warehouseLines = depot_apply_cadet_sales_from_trips($warehouseLines, $date);
+        }
     }
 }
 

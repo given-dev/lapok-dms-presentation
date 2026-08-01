@@ -37,6 +37,90 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 
 ## Log
 
+### 2026-08-01 · evening (Africa/Kampala) — depot stock carries forward; RDC stock status shows real quantities
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | Manager stock · RDC/accountant dashboard |
+
+**Changes**
+- `api/depot/fetch_snapshot.php` — opening stock now carries yesterday's **calculated** closing (warehouse ledger + previous day's cadet returns), instead of only searching for saved snapshots. Closing is computed, never stored, so the ledger is the source of truth; saved closing/opening snapshots remain a fallback only when the ledger is empty.
+- `assets/depot-snapshots.js` — read-only closing view (RDC "Depot stock status") was zeroing every row's qty in `loadDepotSnapshotEditor`; it now renders the calculated closing (warehouse + returns), which at start of day equals yesterday's closing (= today's opening). Manager editors unchanged.
+
+**Notes**
+- Verified live: today's opening pre-fills COKE 300 = 370 (yesterday's computed closing), 500 ML X 24 = 2096 (2092 ledger + 4 returned); accountant closing view returns COKE 300 qty 370 instead of 0.
+
+### 2026-08-01 · afternoon (Africa/Kampala) — accountant dashboard "no activity" fix
+
+| | |
+|--|--|
+| **Who** | Team |
+| **Push / ref** | Local — readiness honesty fix |
+| **Area** | Accountant (RDC) Home checklist · manager pack prep page |
+
+**Changes**
+- **Tasks no longer show "Done" when nothing was done.** `report_accountant_readiness()` (`includes/report_packets.php`) reported Field EOD / Cash handovers / Trips closed as ready on empty days because their checks were vacuously true (`0 of 0 reports`, `All confirmed`, `All closed`). Each item now carries a `noop` flag plus a `No activity today` status when there were no trips (returned reports or dispatched trips) for the date, and top-level `completed` counts only items that were actually worked.
+- RDC Home checklist + progress bar (`assets/rdc-hub.js`) and the manager-pack readiness page (`assets/report-exchange.js`) render `noop` items as neutral (no green `✓`/Done badge, no "Complete" button), while `ready` semantics are unchanged — so the manager-pack gate still passes on a no-activity day once the (empty) balancing sheet is submitted.
+- Verified live: 2026-08-01 → `completed 0/4`, three items `No activity today`, sheet `Draft`; 2026-07-31 (real trip) → `completed 4/4`, all items genuinely done.
+
+**Notes**
+- Server gate (`report_require_accountant_ready`) untouched — `noop` items are still vacuously ready there on purpose.
+
+### 2026-08-01 · afternoon (Africa/Kampala)
+
+| | |
+|--|--|
+| **Who** | Team |
+| **Push / ref** | Local — 3 cadet/manager fixes (on top of RDC polish) |
+| **Area** | Cadet daily report · history calendar · manager login |
+
+**Changes**
+- **Manager credentials fixed (live DB).** `manager@lapok.ug` (Sarah Nakato, `password123`) was missing from the local database — only 4 users existed. Added user id 5 with the same bcrypt hash as `database/seed.sql`; login + role now verified via `api/auth/login.php`.
+- **Cadet history calendar now keeps records.** `api/cadet/history.php` only queried trips `status = 'returned'`, but `api/trips/cash_confirm.php` flips trips to `'completed'` on cash confirmation — so confirmed trips vanished from the calendar. Filter is now `status IN ('returned','completed')`; trip #47 (2026-07-31) now appears.
+- **Cadet expense slots expanded from 5 to 10.** Cadets can now enter Fuel, Lunch, Discount, Shortage, Repairs, **Parking, Transport, Paper roll, Promotion, and Other/misc** on the daily report (`index.html` auxiliary section, `assets/cadet-daily.js`).
+- The new categories flow end-to-end: stored in `[CADET_REPORT]` note via `cadet_auxiliary_defaults`/`normalize`/`attach` (`includes/cadet_reports.php`), mapped to the matching RDC expense lines **PARKING / TRANSPORT / PAPER ROLL / PROMOTION / OTHER** per vehicle in `rdc_apply_cadet_report_to_sheet()` (`includes/rdc_balancing.php`), shown in the cadet history detail table, and included in the "high expenses vs sales" flag (`api/cadet/submit_report.php` now passes total non-fuel expenses). Verified: PHP unit run mapped all categories into a sheet and history returns the full 10-key auxiliary object.
+- `other_expense` (legacy daily-report PDF field) now means "all non-fuel expenses" (was lunch+discount+shortage+repairs).
+
+**Notes**
+- No DB schema or migration changes — expenses live inside the report JSON note, not columns. Old reports still parse (new keys default to 0).
+
+### 2026-08-01 · ~11:30 (Africa/Kampala)
+
+| | |
+|--|--|
+| **Who** | Team |
+| **Push / ref** | Local — multi-branch design (docs only, nothing implemented) |
+| **Area** | Cross-cutting — future multi-branch architecture |
+
+**Changes**
+- New **`docs/MULTI_BRANCH_BLUEPRINT.md`** — the working reference for multi-branch (no code). Documents that the system is single-depot today (no `branches` table; `rdc_daily_sheets` unique on `balance_date` alone; `report_packets` routes by `to_role` only; readiness gates + notifications are branch-blind), the target shape (shared executives, per-branch managers/RDCs/cadets), the concrete `branch_id` data-model changes, per-branch reporting chain (executive brief per branch, optional consolidation), row-level permission scoping, a module-by-module impact table, and a phased plan (Phase 0 "insurance" vs Phase 1 full scope).
+- Open decisions recorded: near-term need vs insurance-only; executive per-branch briefs vs consolidated view; whether a head-office layer exists.
+- `docs/MODULE_TRACKER.md` → Cross-cutting / integrations: one status line pointing to the blueprint.
+
+**Notes**
+- Design only — no migrations, no schema or UI changes. Nothing to test in the browser.
+
+### 2026-08-01 · ~11:00 (Africa/Kampala)
+
+| | |
+|--|--|
+| **Who** | Team |
+| **Push / ref** | Local — RDC accountant polish (on top of commit `50706f2` cadet receive) |
+| **Area** | Accountant (RDC) daily close — Home · Today's close · cash · manager pack |
+
+**Changes**
+- **RDC Home checklist now mirrors the real manager-pack gate.** The Home previously showed 2 steps (Daily balancing / Manager pack) while the pack page blocked on 4 requirements. It now renders the exact `accountant_readiness` items from `api/reports/exchange_list.php` (Field EOD archived / Cash handovers confirmed / Trips closed / Balancing submitted) plus Manager pack, and the progress bar grew from 2 to 5 segments (`index.html`, `assets/rdc-hub.js`).
+- **Cash handover is no longer labelled "optional".** It gates the manager pack, so the Home nudge, priority row, and static placeholder now say "required before the manager pack".
+- **Today's close wizard guards step-tab jumps.** Clicking the Cash or Submit step tabs now enforces data presence via new `rdcJumpToStep` (previously tabs bypassed `rdcWizardNext` validation), and `rdcSubmitSheet` refuses to submit without sales or cash data (`assets/rdc-balancing.js`).
+- **Cash handover UX:** new **Match all to reported** bulk button (shown when >1 pending), and the sticky bar now advances contextually — "← Home" while anything is pending, "Manager pack →" when all handovers are confirmed (`assets/cash-handover.js`, `index.html`).
+- **Manager pack page:** disabled "Send pack now" / "Upload & send" buttons carry a tooltip explaining the missing checklist items, and the cover-note + upload panels are hidden once a pack was already sent for that date (`assets/report-exchange.js`).
+
+**Notes**
+- Frontend-only changes (no migration). Hard refresh (**Ctrl+F5**) after load.
+- Verified the Home's data source live: `accountant_readiness` returns the 4 gate items with `ready`/`status`/`page` for the accountant role.
+
 ### 2026-08-01 · ~09:30 (Africa/Kampala)
 
 | | |
