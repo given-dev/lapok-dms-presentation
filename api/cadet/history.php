@@ -25,13 +25,22 @@ $stmt = db()->prepare(
      JOIN vehicles v ON v.id = dt.vehicle_id
      LEFT JOIN routes r ON r.id = dt.route_id
      WHERE (dt.cadet_id = ? OR dt.driver_id = ?)
-       AND dt.status = 'returned'
+       AND dt.status IN ('returned', 'completed')
        AND dt.returned_at >= ?
        AND dt.returned_at < ?
        AND dt.notes LIKE '%[CADET_REPORT]%'
      ORDER BY dt.returned_at DESC, dt.id DESC"
 );
 $stmt->execute([(int) $user['id'], (int) $user['id'], $start, $end]);
+
+$sheetMap = [];
+$sheetStmt = db()->prepare(
+    'SELECT balance_date, status, variance FROM rdc_daily_sheets WHERE balance_date >= ? AND balance_date < ?'
+);
+$sheetStmt->execute([$start, $end]);
+foreach ($sheetStmt->fetchAll() as $sheetRow) {
+    $sheetMap[$sheetRow['balance_date']] = $sheetRow;
+}
 
 $reports = [];
 foreach ($stmt->fetchAll() as $row) {
@@ -53,10 +62,16 @@ foreach ($stmt->fetchAll() as $row) {
 
     $returnedAt = (string) ($row['returned_at'] ?? '');
     $aux = cadet_normalize_auxiliary($report);
+    $flags = array_values(array_map('strval', $report['flags'] ?? []));
+    $date = $returnedAt !== '' ? date('Y-m-d', strtotime($returnedAt)) : null;
+    $sheet = $date !== null ? ($sheetMap[$date] ?? null) : null;
+    $balanced = $sheet !== null
+        ? (float) ($sheet['variance'] ?? 0) === 0.0
+        : count($flags) === 0;
     $reports[] = [
         'trip_id' => (int) $row['id'],
         'vehicle_id' => (int) $row['vehicle_id'],
-        'date' => $returnedAt !== '' ? date('Y-m-d', strtotime($returnedAt)) : null,
+        'date' => $date,
         'returned_at' => $returnedAt,
         'vehicle' => (string) ($row['registration'] ?? 'Vehicle'),
         'route' => (string) ($row['route_name'] ?? $row['route_area'] ?? 'Route'),
@@ -70,11 +85,14 @@ foreach ($stmt->fetchAll() as $row) {
         'repairs_expense' => $aux['repairs'],
         'other_expense' => (float) ($report['other_expense'] ?? 0),
         'note' => (string) ($report['note'] ?? ''),
-        'flags' => array_values(array_map('strval', $report['flags'] ?? [])),
+        'flags' => $flags,
         'sales_lines' => $salesLines,
         'locked' => true,
         'corrected_at' => $report['corrected_at'] ?? null,
         'corrected_by_name' => $report['corrected_by_name'] ?? null,
+        'balanced' => $balanced,
+        'rdc_status' => $sheet !== null ? (string) $sheet['status'] : null,
+        'rdc_variance' => $sheet !== null ? (float) $sheet['variance'] : null,
     ];
 }
 

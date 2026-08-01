@@ -60,8 +60,8 @@ try {
     $pdo->prepare('DELETE FROM ccba_order_items WHERE ccba_order_id = ?')->execute([$orderId]);
 
     $itemStmt = $pdo->prepare(
-        'INSERT INTO ccba_order_items (ccba_order_id, product_id, ccba_sku_code, qty_requested, unit_cost_estimate)
-         VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO ccba_order_items (ccba_order_id, product_id, ccba_sku_code, qty_requested)
+         VALUES (?, ?, ?, ?)'
     );
 
     foreach ($items as $line) {
@@ -77,14 +77,7 @@ try {
             $mapped = $map->fetch();
             $ccbaSku = $mapped['ccba_sku_code'] ?? null;
         }
-        $unitCost = (float) ($line['unit_cost_estimate'] ?? 0);
-        if ($unitCost <= 0) {
-            $p = $pdo->prepare('SELECT unit_price FROM products WHERE id = ?');
-            $p->execute([$productId]);
-            $prod = $p->fetch();
-            $unitCost = $prod ? (float) $prod['unit_price'] * 0.6 : 0;
-        }
-        $itemStmt->execute([$orderId, $productId, $ccbaSku ?: null, $qty, $unitCost]);
+        $itemStmt->execute([$orderId, $productId, $ccbaSku ?: null, $qty]);
     }
 
     $count = (int) $pdo->query(

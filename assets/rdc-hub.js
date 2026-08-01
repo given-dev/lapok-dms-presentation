@@ -1,8 +1,8 @@
 /**
- * RDC Home &mdash; accountant daily command desk
+ * RDC Home — accountant daily command desk
  */
 (function () {
-  const RECEIVABLES_HIGH_UGX = 8000000;
+  let rdcHubSheets = [];
 
   function todayIso() {
     const d = new Date();
@@ -26,10 +26,6 @@
       : '';
     const sal = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
     return name ? `${sal}, ${name}` : sal;
-  }
-
-  function fmtUgx(n) {
-    return LapokAPI.formatUgx(n);
   }
 
   function statusBadge(status) {
@@ -58,9 +54,11 @@
     const submitted = list.filter((s) => !['draft'].includes(String(s.status || 'draft'))).length;
     const pendingReview = list.filter((s) => ['submitted', 'under_review', 'reopened'].includes(String(s.status))).length;
     const approved = list.filter((s) => s.status === 'approved').length;
+    const balanced = list.filter((s) => rdcSheetBalanced(s) === true).length;
     let label = `${submitted}/${list.length} submitted this month`;
-    if (pendingReview > 0) label += ` &middot; ${pendingReview} awaiting review`;
-    else if (approved > 0) label += ` &middot; ${approved} approved`;
+    if (pendingReview > 0) label += ` · ${pendingReview} awaiting review`;
+    else if (approved > 0) label += ` · ${approved} approved`;
+    label += ` · ${balanced} balanced`;
     return label;
   }
 
@@ -79,27 +77,34 @@
     setText('rdcHubTodayLabel', fmtTodayLabel());
   }
 
-  function renderProgress(wf) {
+  function renderProgress(wf, ctx) {
     const seg = (id, done, active) => {
       const el = document.getElementById(id);
       if (!el) return;
       el.className = 'rdc-hub-progress-seg' + (done ? ' done' : active ? ' active' : '');
     };
+    const byKey = (key) => (ctx.readiness?.items || []).find((i) => i.key === key);
+    const eod = byKey('field_eod');
+    const cash = byKey('cash_confirmed');
+    const routes = byKey('routes_closed');
+    seg('rdcHubProgEod', !!eod?.ready && !eod?.noop, !eod?.ready && !eod?.noop);
+    seg('rdcHubProgCash', !!cash?.ready && !cash?.noop, !cash?.ready && !cash?.noop);
+    seg('rdcHubProgRoutes', !!routes?.ready && !routes?.noop, !routes?.ready && !routes?.noop);
     seg('rdcHubProgBal', wf.balDone, wf.balActive);
     seg('rdcHubProgPack', wf.packDone, wf.packActive);
   }
 
   function renderStepStates(wf) {
-    /* step cards removed &mdash; progress bar only */
+    /* step cards removed — progress bar only */
   }
 
   function balChecklistSub(ctx) {
-    if (!ctx.sheetLoaded) return 'Could not load &mdash; tap to retry';
+    if (!ctx.sheetLoaded) return 'Could not load — tap to retry';
     const s = ctx.sheetStatus;
-    if (s === 'rejected') return 'Manager rejected &mdash; fix and resubmit';
+    if (s === 'rejected') return 'Manager rejected — fix and resubmit';
     if (s === 'reopened') return 'Reopened for correction';
     if (s === 'under_review') return 'Manager reviewing your sheet';
-    if (s === 'submitted') return 'Submitted &mdash; awaiting manager review';
+    if (s === 'submitted') return 'Submitted — awaiting manager review';
     if (s === 'approved') return 'Approved by manager';
     return 'Sales, expenses & cash';
   }
@@ -127,10 +132,27 @@
     if (!root) return;
     const balBadge = ctx.sheetLoaded && ctx.sheetStatus !== 'draft' ? ' ' + statusBadge(ctx.sheetStatus) : '';
     const packSub = wf.packDone ? 'Sent today' : 'One tap to send PDF to manager';
-    root.innerHTML = [
-      checklistItem(1, 'Daily balancing', balChecklistSub(ctx), wf.balDone ? 'done' : wf.balActive || !ctx.sheetLoaded ? 'active' : '', 'accountant-rdc', balBadge),
-      checklistItem(2, 'Manager pack', packSub, wf.packDone ? 'done' : wf.packActive ? 'active' : '', 'report-exchange'),
-    ].join('');
+    const gateItems = (ctx.readiness && ctx.readiness.items && ctx.readiness.items.length)
+      ? ctx.readiness.items.map((item, index) => checklistItem(
+          index + 1,
+          item.label,
+          item.noop ? 'No activity today' : (item.status || (item.ready ? 'Done' : 'Not done yet')),
+          item.noop ? 'noop' : item.ready ? 'done' : 'active',
+          item.page,
+          item.noop ? '' : item.ready ? ' <span class="badge bs">Done</span>' : ''
+        ))
+      : [
+          checklistItem(1, 'Daily balancing', balChecklistSub(ctx), wf.balDone ? 'done' : wf.balActive || !ctx.sheetLoaded ? 'active' : '', 'accountant-rdc', balBadge),
+        ];
+    gateItems.push(checklistItem(
+      gateItems.length + 1,
+      'Manager pack',
+      packSub,
+      wf.packDone ? 'done' : wf.packActive ? 'active' : '',
+      'report-exchange',
+      wf.packDone ? ' <span class="badge bs">Done</span>' : ''
+    ));
+    root.innerHTML = gateItems.join('');
   }
 
   function renderPackView(ctx) {
@@ -160,7 +182,7 @@
     if (ctx.cadetReportCount) {
       const n = ctx.cadetReportCount;
       if (title) title.textContent = `${n} cadet report${n === 1 ? '' : 's'} ready to review`;
-      if (sub) sub.textContent = 'Open Today\'s close &mdash; Cadet reports received is at the top with Edit.';
+      if (sub) sub.textContent = 'Open Today\'s close — Cadet reports received is at the top with Edit.';
       box.style.display = 'flex';
       return;
     }
@@ -178,7 +200,7 @@
     }
     const n = ctx.exceptionCount;
     if (title) title.textContent = `${n} depot alert${n === 1 ? '' : 's'}`;
-    if (sub) sub.textContent = 'Optional &mdash; review stock and depot issues when you have time.';
+    if (sub) sub.textContent = 'Optional — review stock and depot issues when you have time.';
     box.style.display = 'flex';
   }
 
@@ -206,23 +228,7 @@
     }
     const n = ctx.cashPending;
     if (title) title.textContent = `${n} trip${n === 1 ? '' : 's'} need cash confirm`;
-    if (sub) sub.textContent = 'Optional &mdash; confirm when cadets return. Under More → Cash handover.';
-    box.style.display = 'flex';
-  }
-
-  function renderRecvNudge(ctx) {
-    const box = document.getElementById('rdcHubRecvNudge');
-    const title = document.getElementById('rdcHubRecvNudgeTitle');
-    const sub = document.getElementById('rdcHubRecvNudgeSub');
-    if (!box) return;
-    if (!ctx.receivablesLoaded || ctx.totalReceivables < RECEIVABLES_HIGH_UGX) {
-      box.style.display = 'none';
-      return;
-    }
-    if (title) title.textContent = `High receivables &mdash; ${fmtUgx(ctx.totalReceivables)}`;
-    if (sub) {
-      sub.textContent = `${ctx.receivablesCount} customer${ctx.receivablesCount === 1 ? '' : 's'} owing. Collections are managed by your manager &mdash; not part of today's close.`;
-    }
+    if (sub) sub.textContent = 'Confirm when cadets return — required before the manager pack. Under More → Cash handover.';
     box.style.display = 'flex';
   }
 
@@ -249,15 +255,22 @@
       detail = ctx.reviewNote || 'Update the sheet and resubmit.';
       label = 'Fix and resubmit';
       resumeWizard = true;
+    } else if (wf.cashPending) {
+      page = 'accountant-cash';
+      headline = 'Confirm field cash';
+      detail = `${ctx.cashPending} trip(s) waiting — confirm handovers before balancing and the manager pack.`;
+      label = 'Confirm cash';
     } else if (wf.balActive) {
       headline = 'Continue daily balancing';
-      detail = 'Step 1 &mdash; enter sales, expenses, and cash.';
+      detail = 'Step 1 — enter sales, expenses, and cash.';
       label = 'Continue balancing';
       resumeWizard = true;
     } else if (wf.packActive) {
       page = 'report-exchange';
       headline = 'Send manager pack';
-      detail = 'One tap &mdash; Outpost builds a PDF for your manager.';
+      detail = ctx.readiness?.ready
+        ? 'One tap — Outpost builds a PDF for your manager.'
+        : 'Finish the checklist above, then send the pack.';
       label = 'Send pack';
     } else if (wf.dayComplete) {
       headline = 'Today\'s close is complete';
@@ -303,13 +316,13 @@
     const rows = [];
 
     if (ctx.cashPending > 0) {
-      rows.push(priorityRow('warn', 'Field cash', `${ctx.cashPending} trip(s) waiting &mdash; optional handover.`, 'accountant-cash'));
+      rows.push(priorityRow('warn', 'Field cash', `${ctx.cashPending} trip(s) waiting — confirm before the manager pack.`, 'accountant-cash'));
     }
     if (ctx.exceptionCount > 0) {
       rows.push(priorityRow('alert', 'Depot alerts', `${ctx.exceptionCount} item(s) to review.`, 'admin-exceptions'));
     }
     if (ctx.welfareOpen > 0) {
-      rows.push(priorityRow('warn', 'Staff welfare', `${ctx.welfareOpen} open request(s) &mdash; UGX ${Number(ctx.welfareOpenAmount || 0).toLocaleString()}.`, 'accountant-welfare'));
+      rows.push(priorityRow('warn', 'Staff welfare', `${ctx.welfareOpen} open request(s) — UGX ${Number(ctx.welfareOpenAmount || 0).toLocaleString()}.`, 'accountant-welfare'));
     }
     if (!ctx.sheetLoaded) {
       rows.push(priorityRow('alert', 'Sheet not loaded', 'Check connection and refresh.', 'accountant-rdc'));
@@ -325,7 +338,16 @@
   }
 
   function renderStepLabels() {
-    /* removed &mdash; checklist handles labels */
+    /* removed — checklist handles labels */
+  }
+
+  function rdcSheetBalanced(s) {
+    const hasActivity = Number(s.grand_total || 0) > 0
+      || Number(s.expected_amount || 0) > 0
+      || Number(s.actual_total || 0) > 0
+      || Number(s.recovery_total || 0) > 0;
+    if (!hasActivity) return null;
+    return Number(s.variance || 0) === 0;
   }
 
   function renderRecentSheets(sheets, today) {
@@ -334,17 +356,73 @@
     const recent = (sheets || []).slice(0, 5);
     const rows = recent.map((s) => {
       const variance = Number(s.variance || 0);
+      const balanced = rdcSheetBalanced(s);
       const varCls = variance === 0 ? '' : variance > 0 ? 'surplus' : 'deficit';
       const isToday = s.balance_date === today;
+      const tick = balanced === null
+        ? '<span style="color:var(--gray-mid);font-size:12px">—</span>'
+        : `<span class="cal-tick ${balanced ? 'ok' : 'bad'} flat" title="${balanced ? 'Balanced' : 'Not balanced'}">${balanced ? '✓' : '✗'}</span>`;
       return `<tr class="${isToday ? 'rdc-hub-today' : ''}">
         <td>${isToday ? 'Today' : s.balance_date}</td>
+        <td>${tick}</td>
         <td>${statusBadge(s.status)}</td>
         <td class="${varCls}">${variance === 0 ? '0' : variance.toLocaleString()}</td>
         <td><button class="btn btn-sm" onclick="openRdcSheetDate('${s.balance_date}')">Open</button></td>
       </tr>`;
     }).join('');
-    table.innerHTML = '<tr><th>Date</th><th>Status</th><th>Variance</th><th></th></tr>' +
-      (rows || '<tr><td colspan="4" style="color:var(--gray-mid)">No sheets this month yet &mdash; start with Step 1.</td></tr>');
+    table.innerHTML = '<tr><th>Date</th><th>Balanced</th><th>Status</th><th>Variance</th><th></th></tr>' +
+      (rows || '<tr><td colspan="5" style="color:var(--gray-mid)">No sheets this month yet — start with Step 1.</td></tr>');
+  }
+
+  function renderRdcCalendar(month, sheets) {
+    const grid = document.getElementById('rdcHubCalGrid');
+    if (!grid) return;
+    const byDate = {};
+    (sheets || []).forEach((s) => { if (s.balance_date) byDate[s.balance_date] = s; });
+    const [year, mon] = month.split('-').map(Number);
+    const daysInMonth = new Date(year, mon, 0).getDate();
+    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const firstDay = new Date(year, mon - 1, 1).getDay();
+    const offset = (firstDay + 6) % 7;
+
+    let html = labels.map((label) =>
+      `<div style="font-size:11px;color:var(--gray-mid);font-weight:700;text-align:center;padding:4px 0">${label}</div>`
+    ).join('');
+    for (let i = 0; i < offset; i += 1) {
+      html += '<div></div>';
+    }
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const iso = `${month}-${String(day).padStart(2, '0')}`;
+      const s = byDate[iso];
+      let cls = 'none';
+      let tick = '';
+      if (s) {
+        const b = rdcSheetBalanced(s);
+        if (b !== null) {
+          cls = b ? 'ok' : 'bad';
+          tick = `<span class="cal-tick ${b ? 'ok' : 'bad'}">${b ? '✓' : '✗'}</span>`;
+        }
+      }
+      html += `<button type="button" class="cal-cell ${cls}" ${s ? '' : 'disabled'} onclick="openRdcSheetDate('${iso}')">
+        <div class="cal-day">${day}</div>${tick}
+      </button>`;
+    }
+    grid.innerHTML = html;
+  }
+
+  async function loadRdcHubMonth(month) {
+    const input = document.getElementById('rdcHubCalMonth');
+    if (input && input.value !== month) input.value = month;
+    const listRes = await hubFetch('/api/rdc/list_sheets.php?month=' + encodeURIComponent(month), 'Recent sheets');
+    if (!listRes.ok) {
+      const grid = document.getElementById('rdcHubCalGrid');
+      if (grid) grid.innerHTML = `<div style="color:var(--red);font-size:12px">${listRes.error}</div>`;
+      return;
+    }
+    rdcHubSheets = listRes.data.sheets || [];
+    renderMonthChip(rdcHubSheets);
+    renderRecentSheets(rdcHubSheets, todayIso());
+    renderRdcCalendar(month, rdcHubSheets);
   }
 
   function renderHubAlert(ctx) {
@@ -352,7 +430,7 @@
     if (!el) return;
     const msgs = [];
     if (ctx.sheetStatus === 'rejected') {
-      msgs.push('Today\'s balancing was rejected &mdash; review the manager note and resubmit.');
+      msgs.push('Today\'s balancing was rejected — review the manager note and resubmit.');
       el.className = 'alert a-danger';
     } else if (ctx.sheetStatus === 'reopened') {
       msgs.push('Today\'s sheet was reopened for correction.');
@@ -361,7 +439,7 @@
       msgs.push('Manager approved today\'s balancing sheet.');
       el.className = 'alert a-success';
     } else if (ctx.sheetStatus === 'submitted') {
-      msgs.push('Balancing submitted &mdash; waiting for manager review.');
+      msgs.push('Balancing submitted — waiting for manager review.');
       el.className = 'alert a-info';
     } else if (ctx.sheetStatus === 'under_review') {
       msgs.push('Manager is reviewing your submitted sheet.');
@@ -432,7 +510,6 @@
       hubFetch('/api/exceptions/fetch.php', 'Depot alerts'),
       hubFetch('/api/rdc/list_sheets.php?month=' + encodeURIComponent(month), 'Recent sheets'),
       hubFetch('/api/reports/exchange_list.php', 'Manager pack'),
-      hubFetch('/api/customers/fetch_customers.php', 'Receivables'),
       hubFetch('/api/welfare/fetch.php?status=open&limit=5', 'Staff welfare'),
     ]);
 
@@ -449,12 +526,7 @@
     const excRes = results[3].ok ? results[3].data : {};
     const listRes = results[4].ok ? results[4].data : {};
     const exchangeRes = results[5].ok ? results[5].data : {};
-    const customersRes = results[6].ok ? results[6].data : {};
-    const welfareRes = results[7].ok ? results[7].data : {};
-    const customers = customersRes.customers || [];
-    const owing = customers.filter((c) => Number(c.credit_balance) > 0);
-    const totalReceivables = owing.reduce((s, c) => s + Number(c.credit_balance || 0), 0);
-
+    const welfareRes = results[6].ok ? results[6].data : {};
     const sheet = sheetRes.sheet || {};
     const sheetStatus = String(sheet.status || 'draft');
     const variance = Number(sheet.variance || 0);
@@ -474,6 +546,10 @@
 
     renderVarianceCard();
     renderMonthChip(monthSheets);
+    rdcHubSheets = monthSheets;
+    const calInput = document.getElementById('rdcHubCalMonth');
+    if (calInput) calInput.value = month;
+    renderRdcCalendar(month, rdcHubSheets);
 
     const ctx = {
       sheetLoaded: results[1].ok,
@@ -485,19 +561,16 @@
       exceptionCount,
       packSentToday,
       packTodayId: packToday?.id || null,
-      receivablesLoaded: results[6].ok,
-      totalReceivables,
-      receivablesCount: owing.length,
       welfareOpen: welfareRes.summary?.open_count || 0,
       welfareOpenAmount: welfareRes.summary?.open_amount || 0,
+      readiness: exchangeRes.accountant_readiness || null,
     };
     const wf = workflowState(ctx);
 
-    renderProgress(wf);
+    renderProgress(wf, ctx);
     renderChecklist(ctx, wf);
     renderCashNudge(ctx);
     renderCadetNudge(ctx);
-    renderRecvNudge(ctx);
     renderDepotNudge(ctx);
     renderMonthEndBanner();
     renderPackView(ctx);
@@ -521,7 +594,12 @@
 
   function renderMonthChip(sheets) {
     const chip = document.getElementById('rdcHubMonthChip');
-    if (chip) chip.textContent = monthProgressLabel(sheets);
+    if (!chip) return;
+    chip.textContent = monthProgressLabel(sheets);
+    const withActivity = (sheets || []).filter((s) => rdcSheetBalanced(s) !== null);
+    chip.style.color = withActivity.length
+      ? withActivity.every((s) => rdcSheetBalanced(s) === true) ? 'var(--green)' : 'var(--red)'
+      : '';
   }
 
   window.loadRdcHubPage = loadRdcHubPage;
@@ -532,4 +610,9 @@
     if (typeof openRdcSheetDate === 'function') openRdcSheetDate(picked);
     else showPage('accountant-rdc');
   };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const monthEl = document.getElementById('rdcHubCalMonth');
+    if (monthEl) monthEl.addEventListener('change', () => loadRdcHubMonth(monthEl.value));
+  });
 })();

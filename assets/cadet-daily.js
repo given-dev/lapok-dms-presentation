@@ -47,6 +47,11 @@
       discount: parseNum(document.getElementById('cadetAuxDiscount')?.value),
       shortage: parseNum(document.getElementById('cadetAuxShortage')?.value),
       repairs: parseNum(document.getElementById('cadetAuxRepairs')?.value),
+      parking: parseNum(document.getElementById('cadetAuxParking')?.value),
+      transport: parseNum(document.getElementById('cadetAuxTransport')?.value),
+      paper_roll: parseNum(document.getElementById('cadetAuxPaperRoll')?.value),
+      promotion: parseNum(document.getElementById('cadetAuxPromotion')?.value),
+      misc: parseNum(document.getElementById('cadetAuxMisc')?.value),
     };
   }
 
@@ -63,6 +68,11 @@
         discount: Number(aux.discount || 0),
         shortage: Number(aux.shortage || 0),
         repairs: Number(aux.repairs || 0),
+        parking: Number(aux.parking || 0),
+        transport: Number(aux.transport || 0),
+        paper_roll: Number(aux.paper_roll || 0),
+        promotion: Number(aux.promotion || 0),
+        misc: Number(aux.misc || 0),
       };
     }
     return {
@@ -70,7 +80,12 @@
       lunch: Number(report?.lunch_expense || 0),
       discount: Number(report?.discount || 0),
       shortage: Number(report?.shortage || 0),
-      repairs: Number(report?.repairs_expense || report?.other_expense || 0),
+      repairs: Number(report?.repairs_expense || 0),
+      parking: Number(report?.parking_expense || 0),
+      transport: Number(report?.transport_expense || 0),
+      paper_roll: Number(report?.paper_roll_expense || 0),
+      promotion: Number(report?.promotion_expense || 0),
+      misc: Number(report?.misc_expense || report?.other_expense || 0),
     };
   }
 
@@ -209,6 +224,11 @@
       ['cadetAuxDiscount', aux.discount],
       ['cadetAuxShortage', aux.shortage],
       ['cadetAuxRepairs', aux.repairs],
+      ['cadetAuxParking', aux.parking],
+      ['cadetAuxTransport', aux.transport],
+      ['cadetAuxPaperRoll', aux.paper_roll],
+      ['cadetAuxPromotion', aux.promotion],
+      ['cadetAuxMisc', aux.misc],
     ];
     auxIds.forEach(([id, val]) => {
       const el = document.getElementById(id);
@@ -261,7 +281,9 @@
     const firstDay = new Date(year, mon - 1, 1).getDay();
     const offset = (firstDay + 6) % 7;
 
-    summary.innerHTML = `<span>Reports this month</span><strong>${reports.length}</strong>`;
+    const balancedCount = reports.filter((r) => r.balanced).length;
+    const notBalancedCount = reports.length - balancedCount;
+    summary.innerHTML = `<span>Reports this month</span><strong>${reports.length} · ✓ ${balancedCount} · ✗ ${notBalancedCount}</strong>`;
     empty.style.display = reports.length ? 'none' : 'flex';
 
     let html = labels.map((label) =>
@@ -274,12 +296,19 @@
       const iso = `${month}-${String(day).padStart(2, '0')}`;
       const entry = byDate[iso];
       const active = cadetHistorySelectedDate === iso;
-      const bg = active ? '#fee2e2' : entry ? '#f8fafc' : '#fff';
-      const border = active ? '#ef4444' : entry ? 'rgba(15,23,42,.18)' : 'rgba(15,23,42,.08)';
-      const marker = entry ? `<div style="font-size:10px;color:${entry.flags?.length ? 'var(--amber)' : 'var(--green)'}">${entry.flags?.length ? 'Flagged' : 'Sent'}</div>` : '';
-      html += `<button type="button" onclick="selectCadetHistoryDate('${escAttr(iso)}')" style="min-height:62px;border:1px solid ${border};border-radius:10px;background:${bg};padding:8px 4px;text-align:center;cursor:${entry ? 'pointer' : 'default'}" ${entry ? '' : 'disabled'}>
-        <div style="font-weight:700;color:var(--dark)">${day}</div>
-        ${marker}
+      let cellClass = 'none';
+      if (entry) {
+        cellClass = entry.balanced ? 'ok' : 'bad';
+        if (active) cellClass += ' active';
+      } else if (active) {
+        cellClass = 'active';
+      }
+      const tick = entry
+        ? `<span class="cal-tick ${entry.balanced ? 'ok' : 'bad'}">${entry.balanced ? '✓' : '✗'}</span>`
+        : '';
+      html += `<button type="button" onclick="selectCadetHistoryDate('${escAttr(iso)}')" class="cal-cell ${cellClass}" ${entry ? '' : 'disabled'}>
+        <div class="cal-day">${day}</div>
+        ${tick}
       </button>`;
     }
     host.innerHTML = html;
@@ -305,6 +334,16 @@
     document.getElementById('cadetHistoryDetailSales').textContent = ugx(entry.sales_total || 0);
     document.getElementById('cadetHistoryDetailCash').textContent = ugx(entry.cash_handed || 0);
     document.getElementById('cadetHistoryDetailExpenses').textContent = ugx(expenseTotal);
+    const balanceEl = document.getElementById('cadetHistoryDetailBalance');
+    if (balanceEl) {
+      const variance = Number(entry.rdc_variance);
+      const hasSheet = entry.rdc_status !== null && entry.rdc_status !== undefined;
+      balanceEl.innerHTML = entry.balanced
+        ? `<span style="color:var(--green)">✓ Balanced</span>`
+        : hasSheet && !Number.isNaN(variance)
+          ? `<span style="color:var(--red)">✗ Not balanced${Math.abs(variance) > 0 ? ` (variance ${ugx(Math.abs(variance))})` : ''}</span>`
+          : `<span style="color:var(--red)">✗ Not balanced (flagged report)</span>`;
+    }
     const auxTable = document.getElementById('cadetHistoryAuxTable');
     if (auxTable) {
       const rows = [
@@ -313,6 +352,11 @@
         ['Discount', aux.discount],
         ['Shortage', aux.shortage],
         ['Repairs', aux.repairs],
+        ['Parking', aux.parking],
+        ['Transport', aux.transport],
+        ['Paper roll', aux.paper_roll],
+        ['Promotion', aux.promotion],
+        ['Other / misc', aux.misc],
       ];
       auxTable.innerHTML = '<tr><th>Item</th><th>Amount (UGX)</th></tr>' + rows.map(([label, amount]) =>
         `<tr><td>${esc(label)}</td><td>${ugx(amount || 0)}</td></tr>`
@@ -448,6 +492,11 @@
         discount: aux.discount,
         shortage: aux.shortage,
         repairs_expense: aux.repairs,
+        parking_expense: aux.parking,
+        transport_expense: aux.transport,
+        paper_roll_expense: aux.paper_roll,
+        promotion_expense: aux.promotion,
+        misc_expense: aux.misc,
         cash_handed: parseNum(document.getElementById('cadetCashHanded')?.value),
         note,
       });
@@ -460,7 +509,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    ['cadetAuxFuel', 'cadetAuxLunch', 'cadetAuxDiscount', 'cadetAuxShortage', 'cadetAuxRepairs', 'cadetCashHanded', 'cadetDailyNote'].forEach((id) => {
+    ['cadetAuxFuel', 'cadetAuxLunch', 'cadetAuxDiscount', 'cadetAuxShortage', 'cadetAuxRepairs', 'cadetAuxParking', 'cadetAuxTransport', 'cadetAuxPaperRoll', 'cadetAuxPromotion', 'cadetAuxMisc', 'cadetCashHanded', 'cadetDailyNote'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('input', previewFlags);
     });

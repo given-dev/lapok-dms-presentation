@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/stock.php';
+require_once dirname(__DIR__, 2) . '/includes/depot_catalog.php';
 require_once dirname(__DIR__, 2) . '/includes/vehicle_assignments.php';
 
 $user = require_roles(['admin', 'manager']);
@@ -73,33 +74,57 @@ try {
 
     $totalLoad = 0;
     foreach ($loadItems as $item) {
-        $productId = (int) ($item['product_id'] ?? 0);
+        $rdcKey = trim((string) ($item['rdc_key'] ?? ''));
         $qty = (int) ($item['qty'] ?? 0);
-        if ($productId <= 0 || $qty <= 0) {
-            throw new RuntimeException('Each load item needs product_id and qty');
+
+        if ($rdcKey !== '') {
+            if ($qty <= 0) {
+                throw new RuntimeException("Each load item needs rdc_key and qty");
+            }
+            if ($qty > 100000) {
+                throw new RuntimeException('Load quantity is unreasonably high');
+            }
+            $parts = depot_split_pack_qty($rdcKey, $qty);
+            if (count($parts) === 0) {
+                throw new RuntimeException("No warehouse stock for pack '{$rdcKey}'");
+            }
+        } else {
+            $productId = (int) ($item['product_id'] ?? 0);
+            if ($productId <= 0 || $qty <= 0) {
+                throw new RuntimeException('Each load item needs rdc_key or product_id, and qty');
+            }
+            if ($qty > 100000) {
+                throw new RuntimeException('Load quantity is unreasonably high');
+            }
+            $parts = [['product_id' => $productId, 'qty' => $qty]];
         }
-        if ($qty > 100000) {
-            throw new RuntimeException('Load quantity is unreasonably high');
+
+        foreach ($parts as $part) {
+            $productId = (int) $part['product_id'];
+            $partQty = (int) $part['qty'];
+            if ($partQty <= 0) {
+                continue;
+            }
+
+            deduct_warehouse_stock($productId, $partQty, $user['id'], 'trip', $tripId);
+
+            $batchStmt = $pdo->prepare(
+                'SELECT id, qty_warehouse FROM batches WHERE product_id = ? AND qty_warehouse >= 0 ORDER BY expiry_date ASC LIMIT 1'
+            );
+            $batchStmt->execute([$productId]);
+            $batch = $batchStmt->fetch();
+
+            if ($batch) {
+                $pdo->prepare('UPDATE batches SET qty_on_vehicles = qty_on_vehicles + ? WHERE id = ?')
+                    ->execute([$partQty, $batch['id']]);
+            }
+
+            $pdo->prepare(
+                'INSERT INTO trip_load_items (trip_id, product_id, batch_id, qty_loaded) VALUES (?, ?, ?, ?)'
+            )->execute([$tripId, $productId, $batch['id'] ?? null, $partQty]);
+
+            $totalLoad += $partQty;
         }
-
-        deduct_warehouse_stock($productId, $qty, $user['id'], 'trip', $tripId);
-
-        $batchStmt = $pdo->prepare(
-            'SELECT id, qty_warehouse FROM batches WHERE product_id = ? AND qty_warehouse >= 0 ORDER BY expiry_date ASC LIMIT 1'
-        );
-        $batchStmt->execute([$productId]);
-        $batch = $batchStmt->fetch();
-
-        if ($batch) {
-            $pdo->prepare('UPDATE batches SET qty_on_vehicles = qty_on_vehicles + ? WHERE id = ?')
-                ->execute([$qty, $batch['id']]);
-        }
-
-        $pdo->prepare(
-            'INSERT INTO trip_load_items (trip_id, product_id, batch_id, qty_loaded) VALUES (?, ?, ?, ?)'
-        )->execute([$tripId, $productId, $batch['id'] ?? null, $qty]);
-
-        $totalLoad += $qty;
     }
 
     $pdo->prepare('UPDATE vehicles SET status = ?, current_route = ?, driver_id = ?, cadet_id = ? WHERE id = ?')

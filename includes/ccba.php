@@ -60,7 +60,6 @@ function ccba_suggest_order_lines(): array
             continue;
         }
         $suggested = max($min - $warehouse, (int) ceil($min * 0.5));
-        $unitCost = (float) $row['unit_price'] * 0.6;
 
         $mapStmt = db()->prepare('SELECT ccba_sku_code FROM ccba_product_map WHERE product_id = ? AND is_active = 1 LIMIT 1');
         $mapStmt->execute([(int) $row['product_id']]);
@@ -73,7 +72,6 @@ function ccba_suggest_order_lines(): array
             'warehouse_qty' => $warehouse,
             'min_stock' => $min,
             'qty_requested' => $suggested,
-            'unit_cost_estimate' => $unitCost,
             'ccba_sku_code' => $map['ccba_sku_code'] ?? null,
         ];
     }
@@ -103,7 +101,19 @@ function ccba_fetch_order(int $orderId): ?array
          ORDER BY p.name'
     );
     $items->execute([$orderId]);
-    $order['items'] = $items->fetchAll();
+    $itemRows = $items->fetchAll();
+
+    $summaryMap = [];
+    foreach (db()->query(stock_summary_query())->fetchAll() as $s) {
+        $summaryMap[(int) $s['product_id']] = $s;
+    }
+    foreach ($itemRows as &$item) {
+        $live = $summaryMap[(int) $item['product_id']] ?? null;
+        $item['warehouse_qty'] = $live ? (int) $live['warehouse_qty'] : 0;
+        $item['min_stock'] = $live ? (int) $live['min_stock'] : 0;
+    }
+    unset($item);
+    $order['items'] = $itemRows;
 
     $events = db()->prepare(
         'SELECT e.*, u.full_name AS recorded_by_name

@@ -9,30 +9,32 @@ const ROLE_PERMISSIONS = [
     'executive' => [
         'dashboard', 'stock_view', 'reports', 'reports_financial',
         'reports_sales', 'customers_balance', 'exceptions_view',
-        'ccba_view', 'efris_view',
+        'ccba_view', 'efris_view', 'cashouts_view',
     ],
     'manager' => [
         'dashboard', 'stock', 'stock_view', 'delivery', 'dispatch', 'orders',
         'orders_confirm', 'edit_requests', 'customers', 'customers_write',
         'routes', 'routes_write', 'vehicles', 'vehicles_write', 'reports',
         'reports_sales', 'users_view', 'rdc_view', 'rdc_review', 'exceptions_view',
-        'ccba_view', 'efris_view',
+        'ccba_view', 'efris_view', 'cashouts_view',
     ],
     'accountant' => [
         'dashboard', 'stock_view', 'reports', 'reports_financial',
         'reports_sales', 'cash_confirm', 'customers_balance', 'rdc_balancing',
-        'exceptions_view',
+        'exceptions_view', 'cashouts_view',
     ],
     'cadet' => [
         'dashboard_own', 'orders_own', 'orders_create', 'edit_requests_own',
-        'customers_route', 'route_own', 'eod', 'receipt',
+        'customers_route', 'customers_write_own', 'route_own', 'eod', 'receipt',
+        'cashouts',
     ],
     'driver' => [
         'dashboard_own', 'route_own', 'eod',
     ],
     'field_user' => [
         'dashboard_own', 'orders_own', 'orders_create', 'edit_requests_own',
-        'customers_route', 'route_own', 'eod', 'receipt',
+        'customers_route', 'customers_write_own', 'route_own', 'eod', 'receipt',
+        'cashouts',
     ],
 ];
 

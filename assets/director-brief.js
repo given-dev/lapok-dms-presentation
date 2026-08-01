@@ -1,5 +1,5 @@
 /**
- * Director / executive daily P&L brief &mdash; revenue, expenses, shortages, 7pm readiness.
+ * Director / executive daily P&L brief — revenue, expenses, shortages, 7pm readiness.
  */
 (function () {
   function ugx(n) {
@@ -25,9 +25,9 @@
       on_track: 'On track',
       opening_missing: 'Opening stock missing',
       due: '7pm close due now',
-      late: 'Late &mdash; past 7:30pm',
+      late: 'Late — past 7:30pm',
     };
-    return map[code] || code || '&mdash;';
+    return map[code] || code || '—';
   }
 
   function directorBriefSetDate(offsetDays) {
@@ -57,7 +57,7 @@
       setText('dirRdcVariance', ugx(d.shortages?.rdc_variance_ugx || 0));
       setText('dirOpeningStatus', d.controls?.opening_submitted ? 'Submitted' : 'Missing');
       setText('dirClosingStatus', d.controls?.closing_submitted ? 'Submitted' : 'Pending');
-      setText('dirRdcStatus', d.controls?.rdc_status || '&mdash;');
+      setText('dirRdcStatus', d.controls?.rdc_status || '—');
       setText('dirReadiness', readinessLabel(d.controls?.readiness));
       setText('dirTripsReturned', String(d.controls?.trips_returned || 0));
       setText('dirTripsOut', String(d.controls?.trips_out || 0));
@@ -144,14 +144,31 @@
       : document.getElementById('directorBriefWidget');
     if (!box) return;
     try {
-      const d = await LapokAPI.get('/api/reports/director_snapshot.php');
-      box.innerHTML = `
-        <div class="recon-row"><span>Revenue</span><strong>${ugx(d.revenue?.used || 0)}</strong></div>
-        <div class="recon-row"><span>Expenses (var + fixed/day)</span><strong>${ugx(d.expenses?.total || 0)}</strong></div>
-        <div class="recon-row"><span>Net operating</span><strong>${ugx(d.profit?.net_operating || 0)}</strong></div>
-        <div class="recon-row"><span>Shortages flagged</span><strong>${ugx(d.shortages?.total_flag_ugx || 0)}</strong></div>
-        <div class="recon-row"><span>7pm readiness</span><strong>${readinessLabel(d.controls?.readiness)}</strong></div>
-      `;
+      const isMonthly = currentUser.role !== 'accountant';
+      const url = isMonthly
+        ? '/api/reports/director_snapshot.php?month=' + encodeURIComponent((typeof execKpiMonth !== 'undefined' && execKpiMonth) || LapokAPI.monthIso())
+        : '/api/reports/director_snapshot.php';
+      const d = await LapokAPI.get(url);
+      if (isMonthly) {
+        const month = (typeof execKpiMonth !== 'undefined' && execKpiMonth) || LapokAPI.monthIso();
+        const [y, m] = (month || '').split('-');
+        const monNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthLabel = monNames[(Number(m) || 1) - 1] + '-' + String(y || '').slice(2);
+        box.innerHTML = `
+          <div class="recon-row"><span>Revenue (${monthLabel})</span><strong>${ugx(d.revenue?.used || 0)}</strong></div>
+          <div class="recon-row"><span>Expenses (var + fixed)</span><strong>${ugx(d.expenses?.total || 0)}</strong></div>
+          <div class="recon-row"><span>Net operating</span><strong>${ugx(d.profit?.net_operating || 0)}</strong></div>
+          <div class="recon-row"><span>Shortages flagged</span><strong>${ugx(d.shortages?.total_flag_ugx || 0)}</strong></div>
+        `;
+      } else {
+        box.innerHTML = `
+          <div class="recon-row"><span>Revenue</span><strong>${ugx(d.revenue?.used || 0)}</strong></div>
+          <div class="recon-row"><span>Expenses (var + fixed/day)</span><strong>${ugx(d.expenses?.total || 0)}</strong></div>
+          <div class="recon-row"><span>Net operating</span><strong>${ugx(d.profit?.net_operating || 0)}</strong></div>
+          <div class="recon-row"><span>Shortages flagged</span><strong>${ugx(d.shortages?.total_flag_ugx || 0)}</strong></div>
+          <div class="recon-row"><span>7pm readiness</span><strong>${readinessLabel(d.controls?.readiness)}</strong></div>
+        `;
+      }
     } catch (_) {
       box.innerHTML = '<p style="font-size:12px;color:var(--gray-mid)">Director brief loads after migration 010.</p>';
     }

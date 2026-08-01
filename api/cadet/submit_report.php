@@ -67,7 +67,7 @@ $flags = cadet_compute_flags(
     $salesTotal,
     $cashHanded,
     $aux['fuel'],
-    $aux['lunch'] + $aux['discount'] + $aux['shortage'] + $aux['repairs'],
+    cadet_auxiliary_total($aux) - $aux['fuel'],
     $note,
     $salesLines
 );
@@ -96,6 +96,12 @@ try {
          SET fuel_cost = ?, cash_reported = ?, notes = ?, status = ?, returned_at = NOW()
          WHERE id = ?'
     )->execute([cadet_auxiliary_total($aux), $cashHanded, $notes, 'returned', $tripId]);
+
+    if (($tripRow['vehicle_id'] ?? 0) > 0) {
+        $pdo->prepare(
+            'UPDATE vehicles SET status = ?, driver_id = NULL, cadet_id = NULL WHERE id = ?'
+        )->execute(['available', (int) $tripRow['vehicle_id']]);
+    }
 
     cadet_apply_trip_sales($pdo, $tripId, $salesLines);
 

@@ -1,5 +1,5 @@
 /**
- * Accountant &mdash; field cash handover confirmation
+ * Accountant — field cash handover confirmation
  */
 (function () {
   function todayIso() {
@@ -50,20 +50,22 @@
     if (!table) return;
     const badge = document.getElementById('cashPendingBadge');
     if (badge) badge.textContent = pending.length ? pending.length + ' pending' : 'All clear';
+    const matchAll = document.getElementById('cashMatchAllBtn');
+    if (matchAll) matchAll.style.display = pending.length > 1 ? 'inline-flex' : 'none';
 
     if (!pending.length) {
       table.innerHTML = `<tr><th>Trip</th><th>Cadet</th><th>Route</th><th>Returned</th><th>Reported</th><th>Received</th><th>Variance</th><th></th></tr>
-        <tr><td colspan="8" style="text-align:center;padding:1.5rem;color:var(--gray-mid)">No pending handovers &mdash; continue to manager pack.</td></tr>`;
+        <tr><td colspan="8" style="text-align:center;padding:1.5rem;color:var(--gray-mid)">No pending handovers — continue to manager pack.</td></tr>`;
       return;
     }
 
     const rows = pending.map((t) => {
       const reported = parseFloat(t.cash_reported) || 0;
-      const returned = t.returned_at ? LapokAPI.formatTime(t.returned_at) : '&mdash;';
+      const returned = t.returned_at ? LapokAPI.formatTime(t.returned_at) : '—';
       return `<tr>
         <td>#${t.id}</td>
-        <td>${t.cadet_name || '&mdash;'}<div style="font-size:11px;color:var(--gray-mid)">${t.vehicle_reg || ''}</div></td>
-        <td>${t.route_area || '&mdash;'}</td>
+        <td>${t.cadet_name || '—'}<div style="font-size:11px;color:var(--gray-mid)">${t.vehicle_reg || ''}</div></td>
+        <td>${t.route_area || '—'}</td>
         <td>${returned}</td>
         <td>${LapokAPI.formatUgx(reported)}</td>
         <td><input class="qty-inp" type="number" min="0" step="1" id="cash-${t.id}" data-cash-trip="${t.id}" data-reported="${reported}" value="${reported}" style="width:110px"></td>
@@ -91,7 +93,7 @@
       const cls = v === 0 ? 'cash-var ok' : 'cash-var warn';
       return `<tr>
         <td>#${t.id}</td>
-        <td>${t.cadet_name || '&mdash;'}</td>
+        <td>${t.cadet_name || '—'}</td>
         <td>${LapokAPI.formatUgx(t.cash_reported)}</td>
         <td>${LapokAPI.formatUgx(t.cash_collected)}</td>
         <td class="${cls}">${fmtVariance(v)}</td>
@@ -115,24 +117,30 @@
 
       setText('cashPageChip', pending.length
         ? `${pending.length} trip${pending.length === 1 ? '' : 's'} to confirm`
-        : 'Cash handover &mdash; all clear');
+        : 'Cash handover — all clear');
 
       renderPendingTable(pending);
       renderConfirmedToday(confirmedToday);
 
       const sticky = document.getElementById('cashStickyHint');
       const nextBtn = document.getElementById('cashNextBtn');
+      const role = (typeof currentUser !== 'undefined' && currentUser?.role) || 'accountant';
+      const home = (typeof LapokAPI !== 'undefined' && LapokAPI.roleHomePage?.[role]) || 'accountant-rdc-hub';
       if (sticky) {
         sticky.textContent = pending.length
-          ? 'Confirm each trip &mdash; use Match if received equals reported'
-          : 'No pending handovers';
+          ? pending.length + ' trip' + (pending.length === 1 ? '' : 's') + ' to confirm — Match fills the reported amount'
+          : 'All handovers confirmed — the manager pack is ready';
       }
       if (nextBtn) {
-        const role = (typeof currentUser !== 'undefined' && currentUser?.role) || 'accountant';
-        const home = (typeof LapokAPI !== 'undefined' && LapokAPI.roleHomePage?.[role]) || 'accountant-rdc-hub';
-        nextBtn.textContent = '← Home';
-        nextBtn.className = 'btn btn-sm';
-        nextBtn.onclick = () => showPage(home);
+        if (pending.length) {
+          nextBtn.textContent = '← Home';
+          nextBtn.className = 'btn btn-sm';
+          nextBtn.onclick = () => showPage(home);
+        } else {
+          nextBtn.textContent = 'Manager pack →';
+          nextBtn.className = 'btn btn-sm btn-red';
+          nextBtn.onclick = () => showPage('report-exchange');
+        }
       }
     } catch (e) {
       if (errEl) {
@@ -148,6 +156,13 @@
     if (!inp) return;
     inp.value = inp.getAttribute('data-reported') || inp.value;
     inp.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function cashMatchAll() {
+    document.querySelectorAll('#cashConfirmTable [data-cash-trip]').forEach((inp) => {
+      inp.value = inp.getAttribute('data-reported') || inp.value;
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+    });
   }
 
   async function confirmCash(tripId) {
@@ -169,4 +184,5 @@
   window.loadPendingCash = loadCashHandoverPage;
   window.confirmCash = confirmCash;
   window.cashMatchReported = cashMatchReported;
+  window.cashMatchAll = cashMatchAll;
 })();

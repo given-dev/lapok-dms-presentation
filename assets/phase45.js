@@ -1,5 +1,5 @@
 /**
- * LAPOK DMS &mdash; Phases 4 & 5 UI wiring
+ * LAPOK DMS — Phases 4 & 5 UI wiring
  */
 
 let liveChartData = null;
@@ -29,6 +29,254 @@ function setText(id, value) {
   if (el) el.textContent = value;
 }
 
+function execMonthLabel(ym) {
+  if (!ym) return 'MTD';
+  const [y, m] = String(ym).split('-');
+  const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${names[Number(m) - 1]}-${String(y).slice(2)}`;
+}
+
+let execKpiMonth = '';
+let execMonthbarReady = false;
+
+function execSyncMonthNote() {
+  const note = document.getElementById('execMonthNote');
+  if (!note) return;
+  if (execKpiMonth) {
+    note.textContent = `Reviewing ${execMonthLabel(execKpiMonth)} — live "today" cards hidden`;
+    note.style.display = '';
+  } else {
+    note.textContent = '';
+    note.style.display = 'none';
+  }
+}
+
+function execSetMonth(ym) {
+  const cur = LapokAPI.monthIso();
+  execKpiMonth = (ym && ym !== cur) ? ym : '';
+  const pick = document.getElementById('execMonthPick');
+  if (pick) pick.value = ym || cur;
+  execSyncMonthNote();
+  loadAdminDashboard();
+  if (typeof loadLiveCharts === 'function') loadLiveCharts();
+}
+window.execSetMonth = execSetMonth;
+
+function execMonthbarInit() {
+  if (!currentUser || currentUser.role !== 'executive') return;
+  const bar = document.getElementById('execMonthbar');
+  const pick = document.getElementById('execMonthPick');
+  if (!bar || !pick) return;
+  bar.style.display = '';
+  if (!execMonthbarReady) {
+    const now = new Date();
+    let opts = '';
+    for (let i = 0; i < 13; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      opts += `<option value="${ym}">${execMonthLabel(ym)}</option>`;
+    }
+    pick.innerHTML = opts;
+    execMonthbarReady = true;
+  }
+  pick.value = execKpiMonth || LapokAPI.monthIso();
+  execSyncMonthNote();
+}
+window.execMonthbarInit = execMonthbarInit;
+
+function execMetricCard(index, label, value, sub) {  const card = document.querySelector(`#page-admin-dashboard .metric-grid .metric-card:nth-child(${index})`);
+  if (!card) return;
+  const lbl = card.querySelector('.metric-label');
+  const val = card.querySelector('.metric-value');
+  const subEl = card.querySelector('.metric-sub');
+  if (lbl) lbl.textContent = label;
+  if (val) val.textContent = value;
+  if (subEl) subEl.textContent = sub || '';
+}
+
+function execEscHtml(v) {
+  return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function execPctBadge(p) {
+  const n = Number(p || 0);
+  return `<span class="badge ${n >= 100 ? 'bs' : 'bw'}">${n.toFixed(1)}%</span>`;
+}
+
+function renderExecutiveCso(d) {
+  const card = document.getElementById('execCsoCard');
+  const body = document.getElementById('execCsoBody');
+  if (!card || !body) return;
+  const cf = d.cash_flow || {};
+  const history = Array.isArray(cf.cso_history) ? cf.cso_history : [];
+  if (!history.length) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+  const fmt = (n) => LapokAPI.formatUgx(n);
+  const fmtMonth = (m) => execMonthLabel(m);
+  const summary = document.getElementById('execCsoSummary');
+  if (summary) {
+    const chips = [];
+    if (Number(cf.cash_out_mtd || 0) > 0) chips.push(`<span class="chip" style="background:var(--red-light);color:var(--red-dark)">Cash out MTD: ${fmt(cf.cash_out_mtd)}</span>`);
+    if (Number(cf.recovery_mtd || 0) > 0) chips.push(`<span class="chip" style="background:var(--green-light);color:#166534">Recovered MTD: ${fmt(cf.recovery_mtd)}</span>`);
+    if (!chips.length) chips.push('<span style="font-size:12px;color:var(--gray-mid)">No cash-outs recorded this month.</span>');
+    summary.innerHTML = chips.join('');
+  }
+  const rows = history.map((h, i) => {
+    const prev = i > 0 ? Number(history[i - 1].cso || 0) : null;
+    const cur = Number(h.cso || 0);
+    let vs = '<span style="color:var(--gray-mid)">—</span>';
+    if (prev !== null) {
+      const delta = cur - prev;
+      const cls = delta > 0 ? 'color:var(--red)' : 'color:var(--green)';
+      vs = `<span style="${cls};font-weight:600">${delta > 0 ? '▲' : delta < 0 ? '▼' : '—'} ${LapokAPI.formatUgx(Math.abs(delta))}</span>`;
+    }
+    return `<tr><td>${fmtMonth(h.month)}</td><td class="right" style="font-weight:600">${fmt(cur)}</td><td>${vs}</td></tr>`;
+  }).join('');
+  body.innerHTML = rows || '<tr><td colspan="3" class="skel">No cash-out history yet.</td></tr>';
+}
+
+async function loadExecutiveTargets(cached) {
+  const card = document.getElementById('execTargetsCard');
+  const body = document.getElementById('execTargetsBody');
+  if (!card || !body) return;
+  card.style.display = '';
+  let d = cached;
+  if (!d) {
+    try { d = await LapokAPI.get('/api/dashboard/executive.php' + (execKpiMonth ? `?kpi_month=${execKpiMonth}` : '')); }
+    catch (e) { body.innerHTML = `<p class="skel">Failed to load targets: ${execEscHtml(e.message)}</p>`; return; }
+  }
+  const ss = d.sales_split || {};
+  const title = document.getElementById('execTargetsTitle');
+  if (title) title.textContent = execMonthLabel(d.kpi_month);
+  const fmtN = (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 });
+  const hasTargets = Number(ss.soda_target || 0) + Number(ss.water_target || 0) > 0;
+
+  let banner = '';
+  if (!hasTargets) {
+    banner = `<div class="alert a-info" style="margin:0 0 .8rem"><span>ℹ</span><div><strong>No targets entered for ${execEscHtml(execMonthLabel(d.kpi_month))} yet.</strong> Sales are still tracked per cadet below — once the Manager sets the SODA / WATER targets on the <strong>Monthly targets</strong> page, the target columns sync in automatically.</div></div>`;
+  }
+
+  const overall = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem">
+      <div style="flex:1;min-width:200px;padding:12px 14px;border:1px solid var(--gray-light);border-radius:10px;background:rgba(0,0,0,.02)">
+        <div style="font-size:11px;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.4px">Overall SODA ${hasTargets ? 'target' : 'sold'}</div>
+        <div style="font-size:22px;font-weight:700;color:var(--black)">${fmtN(hasTargets ? ss.soda_target : ss.soda_units)} crates</div>
+        <div style="font-size:12px;color:var(--gray-mid);margin-top:4px">${hasTargets ? `sold ${fmtN(ss.soda_units)} · ${execPctBadge(ss.soda_pct)}` : 'target not set yet'}</div>
+      </div>
+      <div style="flex:1;min-width:200px;padding:12px 14px;border:1px solid var(--gray-light);border-radius:10px;background:rgba(0,0,0,.02)">
+        <div style="font-size:11px;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.4px">Overall WATER ${hasTargets ? 'target' : 'sold'}</div>
+        <div style="font-size:22px;font-weight:700;color:var(--black)">${fmtN(hasTargets ? ss.water_target : ss.water_units)} crates</div>
+        <div style="font-size:12px;color:var(--gray-mid);margin-top:4px">${hasTargets ? `sold ${fmtN(ss.water_units)} · ${execPctBadge(ss.water_pct)}` : 'target not set yet'}</div>
+      </div>
+    </div>`;
+
+  const units = Array.isArray(ss.by_unit) ? ss.by_unit : [];
+  const cellT = (n) => Number(n || 0) > 0 ? fmtN(n) : '<span style="color:var(--gray-mid)">—</span>';
+  const cellPct = (a, tg) => Number(tg || 0) > 0 ? execPctBadge((Number(a || 0) / Number(tg)) * 100) : '<span class="badge bg">—</span>';
+  const rows = units.map((u) => {
+    const type = u.is_depot ? 'DEPOT' : (u.vehicle_type === 'truck' ? 'TRUCK' : 'TUK-TUK');
+    const sodaT = Number(u.soda_target || 0);
+    const waterT = Number(u.water_target || 0);
+    return `<tr>
+      <td>${execEscHtml(u.label)}${u.is_depot ? ' <span class="badge bg">depot</span>' : ''}</td>
+      <td>${type}</td>
+      <td class="right">${cellT(u.soda_target)}</td>
+      <td class="right" style="font-weight:600">${fmtN(u.soda_units)}</td>
+      <td class="right">${cellPct(u.soda_units, sodaT)}</td>
+      <td class="right">${cellT(u.water_target)}</td>
+      <td class="right" style="font-weight:600">${fmtN(u.water_units)}</td>
+      <td class="right">${cellPct(u.water_units, waterT)}</td>
+      <td class="right">${cellPct(Number(u.soda_units) + Number(u.water_units), sodaT + waterT)}</td>
+    </tr>`;
+  }).join('');
+  const tot = units.reduce((a, u) => {
+    a.sodaT += Number(u.soda_target || 0);
+    a.waterT += Number(u.water_target || 0);
+    a.sodaU += Number(u.soda_units || 0);
+    a.waterU += Number(u.water_units || 0);
+    return a;
+  }, { sodaT: 0, waterT: 0, sodaU: 0, waterU: 0 });
+  const totalRow = units.length
+    ? `<tr style="border-top:2px solid var(--black);background:rgba(38,74,37,.06);font-weight:700">
+        <td>Overall depot</td>
+        <td><span class="badge bg">DEPOT + all vehicles</span></td>
+        <td class="right">${cellT(tot.sodaT)}</td>
+        <td class="right">${fmtN(tot.sodaU)}</td>
+        <td class="right">${cellPct(tot.sodaU, tot.sodaT)}</td>
+        <td class="right">${cellT(tot.waterT)}</td>
+        <td class="right">${fmtN(tot.waterU)}</td>
+        <td class="right">${cellPct(tot.waterU, tot.waterT)}</td>
+        <td class="right">${cellPct(tot.sodaU + tot.waterU, tot.sodaT + tot.waterT)}</td>
+      </tr>`
+    : '';
+
+  body.innerHTML = banner + overall + `<div class="tbl-wrap"><table>
+    <tr><th>Sales unit</th><th>Type</th>
+      <th>SODA target</th><th>SODA sold</th><th>SODA %</th>
+      <th>WATER target</th><th>WATER sold</th><th>WATER %</th><th>Total %</th></tr>
+    ${rows || '<tr><td colspan="9" class="skel">No sales units configured.</td></tr>'}
+    ${totalRow}
+  </table></div>`;
+}
+
+async function loadManagerTargetsPage() {
+  const monthInput = document.getElementById('mgrTargetsMonth');
+  if (!monthInput) return;
+  const month = monthInput.value || LapokAPI.monthIso();
+  monthInput.value = month;
+  const label = document.getElementById('mgrTargetsMonthLabel');
+  if (label) label.textContent = execMonthLabel(month);
+  const body = document.getElementById('mgrTargetsBody');
+  const status = document.getElementById('mgrTargetsStatus');
+  if (!body) return;
+  body.innerHTML = '<tr><td colspan="5" class="skel">Loading…</td></tr>';
+  if (status) status.textContent = '';
+  try {
+    const d = await LapokAPI.get('/api/targets/get.php?month=' + encodeURIComponent(month));
+    const rows = (d.units || []).map((u) => {
+      const cadet = u.is_depot ? '—' : execEscHtml(u.cadet_name || '');
+      const type = u.is_depot ? 'DEPOT' : (u.vehicle_type === 'truck' ? 'TRUCK' : 'TUK-TUK');
+      return `<tr data-key="${execEscHtml(u.key)}">
+        <td>${execEscHtml(u.label)}${u.is_depot ? ' <span class="badge bg">depot</span>' : ''}</td>
+        <td>${cadet}</td>
+        <td>${type}</td>
+        <td><input class="qty-inp" type="number" min="0" step="any" value="${u.soda_units}" data-cat="soda" aria-label="SODA target ${execEscHtml(u.label)}"></td>
+        <td><input class="qty-inp" type="number" min="0" step="any" value="${u.water_units}" data-cat="water" aria-label="WATER target ${execEscHtml(u.label)}"></td>
+      </tr>`;
+    }).join('');
+    body.innerHTML = rows || '<tr><td colspan="5" class="skel">No active vehicles.</td></tr>';
+  } catch (e) {
+    body.innerHTML = `<tr><td colspan="5" class="skel">Failed to load: ${execEscHtml(e.message)}</td></tr>`;
+  }
+}
+
+async function saveManagerTargets() {
+  const monthInput = document.getElementById('mgrTargetsMonth');
+  const body = document.getElementById('mgrTargetsBody');
+  const status = document.getElementById('mgrTargetsStatus');
+  const month = monthInput ? monthInput.value : '';
+  if (!month) { if (status) status.textContent = 'Pick a month first.'; return; }
+  if (!body) return;
+  const units = [];
+  body.querySelectorAll('tr[data-key]').forEach((tr) => {
+    const q = (cat) => Number(tr.querySelector(`input[data-cat="${cat}"]`)?.value || 0);
+    units.push({ key: tr.dataset.key, soda_units: q('soda'), water_units: q('water') });
+  });
+  if (status) status.textContent = 'Saving…';
+  try {
+    await LapokAPI.post('/api/targets/save.php', { month, units });
+    if (status) status.textContent = 'Saved targets for ' + execMonthLabel(month) + '.';
+    if (typeof adminToast === 'function') adminToast('Monthly targets saved');
+    loadManagerTargetsPage();
+  } catch (e) {
+    if (status) status.textContent = 'Error: ' + e.message;
+    if (typeof adminToast === 'function') adminToast('Save failed: ' + e.message, true);
+  }
+}
+
 function getAdminReportFilters() {
   return {
     from: document.getElementById('reportFrom')?.value || '',
@@ -52,7 +300,7 @@ async function loadAdminDashboard() {
   if (!currentUser || !['admin', 'executive', 'manager', 'accountant'].includes(currentUser.role)) return;
   try {
     const dashboardPath = currentUser.role === 'executive'
-      ? '/api/dashboard/executive.php'
+      ? '/api/dashboard/executive.php' + (execKpiMonth ? `?kpi_month=${execKpiMonth}` : '')
       : '/api/dashboard/admin.php';
     const d = await LapokAPI.get(dashboardPath);
     const set = (sel, v) => { const el = document.querySelector(sel); if (el) el.textContent = v; };
@@ -82,11 +330,51 @@ async function loadAdminDashboard() {
     set('#page-manager-dashboard .metric-grid .metric-card:nth-child(2) .metric-sub', LapokAPI.formatUgx(d.revenue_today));
     set('#page-manager-dashboard .metric-grid .metric-card:nth-child(4) .metric-value', d.pending_requests);
     if (currentUser.role === 'executive') {
-      setTrend(2, d.revenue_today_delta_pct, 'vs yesterday');
-      setTrend(3, d.cartons_today_delta_pct, 'vs yesterday');
-      setTrend(4, d.revenue_mtd_delta_pct, 'vs same days last month');
-      set('#page-admin-dashboard .metric-grid .metric-card:nth-child(6) .metric-sub', `${d.pending_orders} sales pending`);
-      loadExecutiveHomeExtras(d);
+      const isCurrentMonth = !execKpiMonth || d.kpi_month === LapokAPI.monthIso();
+      // Live "today" cards (warehouse, revenue today, crates today) and live charts only
+      // make sense for the current month — hide them when reviewing a past month.
+      document.querySelectorAll('#page-admin-dashboard .metric-grid .metric-card').forEach((cardEl, i) => {
+        if ([1, 2, 3].includes(i + 1)) cardEl.style.display = isCurrentMonth ? '' : 'none';
+      });
+      const execChartsBlock = document.querySelector('#page-admin-dashboard .two-col');
+      const profitCard = document.getElementById('profitChart')?.closest('.card');
+      if (execChartsBlock) execChartsBlock.style.display = isCurrentMonth ? '' : 'none';
+      if (profitCard) profitCard.style.display = isCurrentMonth ? '' : 'none';
+      const c4lbl = document.querySelector('#page-admin-dashboard .metric-card:nth-child(4) .metric-label');
+      const c4sub = document.querySelector('#page-admin-dashboard .metric-card:nth-child(4) .metric-sub');
+      if (c4lbl) c4lbl.textContent = isCurrentMonth ? 'Revenue MTD' : `Revenue (${execMonthLabel(d.kpi_month)})`;
+      if (c4sub) c4sub.textContent = isCurrentMonth ? 'UGX' : 'month total';
+      if (isCurrentMonth) {
+        setTrend(2, d.revenue_today_delta_pct, 'vs yesterday');
+        setTrend(3, d.cartons_today_delta_pct, 'vs yesterday');
+      }
+      setTrend(4, d.revenue_mtd_delta_pct, isCurrentMonth ? 'vs same days last month' : 'vs previous month');
+      const ss = d.sales_split || {};
+      const cf = d.cash_flow || {};
+      const fmtN = (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 });
+      const hasTargets = Number(ss.soda_target || 0) + Number(ss.water_target || 0) > 0;
+      const card7 = document.querySelector('#page-admin-dashboard .metric-grid .metric-card:nth-child(7)');
+      if (card7) card7.style.display = '';
+      if (hasTargets) {
+        execMetricCard(5, 'SODA target', fmtN(ss.soda_target), `sold ${fmtN(ss.soda_units)} · ${ss.soda_pct ?? 0}%`);
+        execMetricCard(6, 'WATER target', fmtN(ss.water_target), `sold ${fmtN(ss.water_units)} · ${ss.water_pct ?? 0}%`);
+      } else {
+        execMetricCard(5, 'SODA sold', fmtN(ss.soda_units), 'target not set');
+        execMetricCard(6, 'WATER sold', fmtN(ss.water_units), 'target not set');
+      }
+      execMetricCard(7, 'Cash still out', LapokAPI.formatUgx(cf.cso_cumulative ?? 0), `open ${LapokAPI.formatUgx(cf.cso_open ?? 0)}`);
+      const execChk = document.getElementById('execDailyChecklist');
+      if (execChk) execChk.style.display = '';
+      if (isCurrentMonth) {
+        loadExecutiveHomeExtras(d);
+      } else {
+        const execBody = document.getElementById('execChecklistBody');
+        if (execBody) execBody.innerHTML =
+          `<tr><td colspan="4"><span style="font-size:12px;color:var(--gray-mid)">The daily checklist applies to today only — you are reviewing ${execMonthLabel(d.kpi_month)}. Use <strong>Monthly sales targets</strong> and <strong>Cash still out</strong> below for that month.</span></td></tr>`;
+        if (typeof loadDirectorBriefWidget === 'function') loadDirectorBriefWidget();
+      }
+      loadExecutiveTargets(d);
+      renderExecutiveCso(d);
     }
     if (currentUser.role === 'admin') {
       loadAdminHomeExtras(d);
@@ -143,7 +431,7 @@ async function loadAdminHomeExtras(cachedDashboard = null) {
       <tr>
         <td>3</td><td>Exception center</td>
         <td><span class="badge ${exc ? 'bw' : 'bs'}">${exc} open</span>
-          <span style="font-size:11px;color:var(--gray-mid)"> &middot; ${low} low stock</span></td>
+          <span style="font-size:11px;color:var(--gray-mid)"> · ${low} low stock</span></td>
         <td><button class="btn btn-sm ${exc ? 'btn-red' : ''}" onclick="showPage('admin-exceptions')">Open</button></td>
       </tr>
       <tr>
@@ -161,8 +449,7 @@ async function loadAdminHomeExtras(cachedDashboard = null) {
       <tr>
         <td>6</td><td>Welfare / month-end</td>
         <td><span class="badge ${welfare ? 'bw' : 'bs'}">${welfare} welfare open</span></td>
-        <td><button class="btn btn-sm" onclick="showPage('accountant-welfare')">Welfare</button>
-          <button class="btn btn-sm" onclick="showPage('accountant-improvements')">Month-end</button></td>
+        <td><button class="btn btn-sm" onclick="showPage('accountant-welfare')">Welfare</button></td>
       </tr>`;
   } catch (e) {
     console.warn('Admin extras:', e.message);
@@ -183,6 +470,12 @@ function execBriefBadge(status) {
 
 async function loadExecutiveHomeExtras(cachedDashboard = null) {
   if (!currentUser || currentUser.role !== 'executive') return;
+  // When reviewing a past month, the today-based checklist doesn't apply.
+  if (execKpiMonth && execKpiMonth !== LapokAPI.monthIso()) {
+    const chk = document.getElementById('execDailyChecklist');
+    if (chk) chk.style.display = 'none';
+    return;
+  }
   const checklist = document.getElementById('execDailyChecklist');
   const body = document.getElementById('execChecklistBody');
   const actionCard = document.getElementById('adminActionCenterCard');
@@ -200,11 +493,11 @@ async function loadExecutiveHomeExtras(cachedDashboard = null) {
     const brief = d.latest_brief;
     const unread = Number(d.unread_briefs || 0);
     const exc = Number(d.exception_count || 0);
-    const recvN = Number(d.receivables_count || 0);
-    const recvT = Number(d.receivables_total || 0);
     const welfare = Number(d.welfare_open_count || 0);
     const dir = d.director || {};
-    const readiness = dir.readiness || '&mdash;';
+    const ss = d.sales_split || {};
+    const cf = d.cash_flow || {};
+    const readiness = dir.readiness || '—';
     const readinessOk = readiness === 'on_track';
     const readinessLabel = ({
       on_track: 'On track',
@@ -212,8 +505,15 @@ async function loadExecutiveHomeExtras(cachedDashboard = null) {
       due: 'Close due',
       late: 'Late',
     })[readiness] || readiness;
-    const netOp = dir.net_operating != null ? LapokAPI.formatUgx(dir.net_operating) : '&mdash;';
-    const rdcSt = dir.rdc_status ? String(dir.rdc_status).replace(/_/g, ' ') : '&mdash;';
+    const netOp = dir.net_operating != null ? LapokAPI.formatUgx(dir.net_operating) : '—';
+    const rdcSt = dir.rdc_status ? String(dir.rdc_status).replace(/_/g, ' ') : '—';
+    const targetPct = ss.total_pct != null ? ss.total_pct : 0;
+    const hasTargets = Number(ss.soda_target || 0) + Number(ss.water_target || 0) > 0;
+    const fmtN = (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 });
+    const targetCell = hasTargets
+      ? `<span class="badge ${targetPct >= 100 ? 'bs' : 'bw'}">${targetPct}%</span>
+         <span style="font-size:11px;color:var(--gray-mid)"> · Soda ${fmtN(ss.soda_units)}/${fmtN(ss.soda_target)} (${ss.soda_pct ?? 0}%) · Water ${fmtN(ss.water_units)}/${fmtN(ss.water_target)} (${ss.water_pct ?? 0}%)</span>`
+      : '<span class="badge bg">Targets not set</span>';
 
     const briefStatus = brief
       ? execBriefBadge(brief.status) + (brief.packet_ref ? ` <span style="font-size:11px;color:var(--gray-mid)">${brief.packet_ref}</span>` : '')
@@ -224,32 +524,30 @@ async function loadExecutiveHomeExtras(cachedDashboard = null) {
 
     body.innerHTML = `
       <tr>
-        <td>1</td><td>Director brief (today P&amp;L)</td>
+        <td>1</td><td>Sales vs target (${execMonthLabel(d.kpi_month)})</td>
+        <td>${targetCell}</td>
+        <td><button class="btn btn-sm" onclick="showPage('admin-reports')">Reports</button></td>
+      </tr>
+      <tr>
+        <td>2</td><td>Director brief (today P&amp;L)</td>
         <td><span class="badge ${readinessOk ? 'bs' : 'bw'}">${readinessLabel}</span>
-          <span style="font-size:11px;color:var(--gray-mid)"> &middot; Net ${netOp} &middot; RDC ${rdcSt}</span></td>
+          <span style="font-size:11px;color:var(--gray-mid)"> · Net ${netOp} · RDC ${rdcSt}</span></td>
         <td><button class="btn btn-sm btn-red" onclick="showPage('director-brief')">Open brief</button></td>
       </tr>
       <tr>
-        <td>2</td><td>Manager PDF pack${unread ? ` <span class="badge bd">${unread} open</span>` : ''}</td>
+        <td>3</td><td>Manager PDF pack${unread ? ` <span class="badge bd">${unread} open</span>` : ''}</td>
         <td>${briefStatus}</td>
         <td>${briefAction}</td>
       </tr>
       <tr>
-        <td>3</td><td>Exception radar</td>
+        <td>4</td><td>Exception radar</td>
         <td><span class="badge ${exc ? 'bw' : 'bs'}">${exc} open</span></td>
         <td><button class="btn btn-sm" onclick="showPage('admin-exceptions')">Monitor</button></td>
       </tr>
       <tr>
-        <td>4</td><td>Receivables overview</td>
-        <td><span class="badge ${recvN ? 'bw' : 'bs'}">${recvN} accounts</span>
-          <span style="font-size:11px;color:var(--gray-mid)"> &middot; ${LapokAPI.formatUgx(recvT)}</span></td>
-        <td><button class="btn btn-sm" onclick="showPage('admin-customers')">Open</button></td>
-      </tr>
-      <tr>
         <td>5</td><td>Staff welfare / month-end</td>
         <td><span class="badge ${welfare ? 'bw' : 'bs'}">${welfare} welfare open</span></td>
-        <td><button class="btn btn-sm" onclick="showPage('accountant-welfare')">Welfare</button>
-          <button class="btn btn-sm" onclick="showPage('accountant-improvements')">Month-end</button></td>
+        <td><button class="btn btn-sm" onclick="showPage('accountant-welfare')">Welfare</button></td>
       </tr>`;
     if (typeof loadDirectorBriefWidget === 'function') loadDirectorBriefWidget();
   } catch (e) {
@@ -266,15 +564,12 @@ async function loadAdminActionCenter(cachedDashboard = null) {
   if (!tbody) return;
   try {
     const d = cachedDashboard || await LapokAPI.get('/api/dashboard/admin.php');
-    const recvCount = Number(d.receivables_count || 0);
-    const recvTotal = Number(d.receivables_total || 0);
     const rows = [
       ['High', 'Pending edit requests', d.pending_requests || 0, "showPage('admin-editreqs')"],
       ['High', 'Exception queue items', d.exception_count || 0, "showPage('admin-exceptions')"],
       ['Medium', 'Low stock alerts', d.low_stock_count ?? (d.low_stock || []).length, "showPage('admin-exceptions')"],
       ['Medium', 'RDC sheets pending review', d.rdc_pending_review || 0, "showPage('manager-rdc-review')"],
       ['Medium', 'Vehicles out now', `${d.vehicles_out || 0}/${d.vehicles_total || 0}`, "showPage('admin-exceptions')"],
-      ['Low', 'Receivables (accounts owing)', `${recvCount} &middot; ${LapokAPI.formatM(recvTotal)}`, "showPage('admin-customers')"],
       ['Low', 'Executive packs awaiting ack', d.exec_briefs_open || 0, "showPage('report-exchange')"],
     ];
     tbody.innerHTML = rows.map((r) =>
@@ -293,9 +588,9 @@ async function loadFieldDashboard() {
     const s = d.summary;
     if (trip) {
       document.getElementById('fieldVehicleIcon').textContent = trip.vehicle_type === 'truck' ? '🚛' : '🛺';
-      document.getElementById('fieldVehicleTitle').textContent = trip.registration + ' &mdash; Assigned vehicle';
+      document.getElementById('fieldVehicleTitle').textContent = trip.registration + ' — Assigned vehicle';
       document.getElementById('fieldVehicleDetail').textContent =
-        `Route: ${trip.route_name || trip.route_area || '&mdash;'} &middot; Capacity: ${trip.capacity} cartons`;
+        `Route: ${trip.route_name || trip.route_area || '—'} · Capacity: ${trip.capacity} cartons`;
       document.getElementById('fieldVehicleBadges').innerHTML =
         `<span class="badge bs">${trip.status}</span>`;
       document.getElementById('fieldLoadTotal').textContent = s.total_loaded;
@@ -305,7 +600,7 @@ async function loadFieldDashboard() {
     document.getElementById('fmRevenue').textContent = LapokAPI.formatUgx(s.revenue_today);
     document.getElementById('fmRemaining').textContent = s.total_remaining;
     document.getElementById('fmReceipts').textContent = s.receipts_today;
-    document.getElementById('fmStops').textContent = s.stops_total ? `0/${s.stops_total}` : '&mdash;';
+    document.getElementById('fmStops').textContent = s.stops_total ? `0/${s.stops_total}` : '—';
 
     const lt = document.getElementById('fieldLoadTable');
     if (lt) {
@@ -319,7 +614,7 @@ async function loadFieldDashboard() {
     if (ot) {
       ot.innerHTML = '<tr><th>Time</th><th>Customer</th><th>Amount</th><th>Status</th></tr>' +
         (d.orders_today || []).map((o) =>
-          `<tr><td>${LapokAPI.formatTime(o.created_at)}</td><td>${o.customer_name || '&mdash;'}</td><td>${Number(o.amount_total).toLocaleString()}</td><td><span class="badge ${o.status === 'confirmed' ? 'bs' : 'bw'}">${o.status}</span></td></tr>`
+          `<tr><td>${LapokAPI.formatTime(o.created_at)}</td><td>${o.customer_name || '—'}</td><td>${Number(o.amount_total).toLocaleString()}</td><td><span class="badge ${o.status === 'confirmed' ? 'bs' : 'bw'}">${o.status}</span></td></tr>`
         ).join('');
     }
     if (trip && typeof startFieldLocationPing === 'function') startFieldLocationPing();
@@ -335,7 +630,7 @@ async function loadMyRoute() {
       if (alert) alert.innerHTML = '<span>ℹ</span>No route assigned.';
       return;
     }
-    if (alert) alert.innerHTML = `<span>ℹ</span>Today's route: <strong>${d.route.name}</strong> &mdash; ${d.stops.length} stops.` + (d.trip ? ` Vehicle: ${d.trip.vehicle_reg}` : '');
+    if (alert) alert.innerHTML = `<span>ℹ</span>Today's route: <strong>${d.route.name}</strong> — ${d.stops.length} stops.` + (d.trip ? ` Vehicle: ${d.trip.vehicle_reg}` : '');
     if (d.trip) document.getElementById('routeVehicleChip').textContent = d.trip.vehicle_reg;
     document.getElementById('rsStops').textContent = d.stops.length;
 
@@ -343,49 +638,15 @@ async function loadMyRoute() {
       const done = st.last_order_status === 'confirmed' || st.last_order_status === 'delivered';
       const dot = done ? 'done' : (i === 0 ? 'active' : 'pending');
       const badge = st.last_amount
-        ? `<span class="badge ${done ? 'bs' : 'bw'}">${done ? 'Done' : 'Pending'} &mdash; ${Number(st.last_amount).toLocaleString()}</span>`
+        ? `<span class="badge ${done ? 'bs' : 'bw'}">${done ? 'Done' : 'Pending'} — ${Number(st.last_amount).toLocaleString()}</span>`
         : '';
       return `<div class="stop"><div class="stop-dot ${dot}"></div><div>
         <div style="font-size:13px;font-weight:600">${st.stop_order}. ${st.name}</div>
-        <div style="font-size:12px;color:var(--gray-mid)">${st.location || '&mdash;'}</div>
+        <div style="font-size:12px;color:var(--gray-mid)">${st.location || '—'}</div>
         <div style="margin-top:4px">${badge}</div>
       </div></div>`;
     }).join('');
   } catch (e) { console.warn('Route:', e.message); }
-}
-
-async function loadAdminCustomers(q = '') {
-  const table = document.getElementById('adminCustomerTable');
-  if (!table) return;
-  try {
-    const path = '/api/customers/fetch_customers.php' + (q ? '?search=' + encodeURIComponent(q) : '');
-    const d = await LapokAPI.get(path);
-    const customers = d.customers || [];
-
-    if (!q) {
-      const owing = customers.filter((c) => Number(c.credit_balance) > 0);
-      const total = owing.reduce((s, c) => s + Number(c.credit_balance || 0), 0);
-      const totalEl = document.getElementById('recvTotalValue');
-      const totalSub = document.getElementById('recvTotalSub');
-      const countEl = document.getElementById('recvCountValue');
-      const totalCard = document.getElementById('recvTotalCard');
-      if (totalEl) totalEl.textContent = LapokAPI.formatM(total);
-      if (totalSub) {
-        totalSub.textContent = total >= 8000000
-          ? 'Above 8M UGX &mdash; prioritize collections'
-          : 'UGX ' + total.toLocaleString();
-      }
-      if (countEl) countEl.textContent = String(owing.length);
-      if (totalCard) totalCard.classList.toggle('rdc-variance-warn', total >= 8000000);
-    }
-
-    const rows = customers.map((c) => {
-      const bal = Number(c.credit_balance);
-      const balCell = bal > 0 ? `<span class="badge bd">${bal.toLocaleString()}</span>` : '0';
-      return `<tr><td>${c.name}</td><td>${c.phone || '&mdash;'}</td><td>${c.location || '&mdash;'}</td><td><span class="badge bg">${c.category}</span></td><td>${balCell}</td><td><button class="btn btn-sm" onclick="viewCustomerHistory(${c.id},'${c.name.replace(/'/g, "\\'")}')">History</button></td></tr>`;
-    }).join('');
-    table.innerHTML = '<tr><th>Name</th><th>Phone</th><th>Location</th><th>Category</th><th>Balance (UGX)</th><th>Actions</th></tr>' + (rows || '<tr><td colspan="6">No customers</td></tr>');
-  } catch (e) { console.warn('Customers:', e.message); }
 }
 
 async function loadUserCustomers() {
@@ -395,28 +656,15 @@ async function loadUserCustomers() {
     const d = await LapokAPI.get('/api/customers/fetch_customers.php');
     list.innerHTML = (d.customers || []).map((c) => {
       const bal = Number(c.credit_balance);
-      const balNote = bal > 0 ? ` &middot; Balance: ${LapokAPI.formatUgx(bal)}` : '';
+      const balNote = bal > 0 ? ` · Balance: ${LapokAPI.formatUgx(bal)}` : '';
       return `<div class="cust-card" onclick="selectCustomer(this,'${c.name.replace(/'/g, "\\'")}','${(c.phone || '').replace(/'/g, "\\'")}','${(c.location || '').replace(/'/g, "\\'")}',${c.id})">
         <div style="display:flex;justify-content:space-between;gap:8px"><div>
           <div class="cust-name">${c.name}</div>
-          <div class="cust-detail">${c.phone || '&mdash;'} &middot; ${c.location || '&mdash;'}</div>
+          <div class="cust-detail">${c.phone || '—'} · ${c.location || '—'}</div>
           <div class="cust-detail" style="margin-top:3px">Total: ${LapokAPI.formatUgx(c.lifetime_total)}${balNote}</div>
         </div><span class="badge bs">${c.category}</span></div></div>`;
     }).join('') || '<p style="color:var(--gray-mid)">No customers on your route.</p>';
   } catch (e) { console.warn('User customers:', e.message); }
-}
-
-async function viewCustomerHistory(id, name) {
-  try {
-    const d = await LapokAPI.get('/api/customers/history.php?customer_id=' + id);
-    const rows = (d.orders || []).map((o) =>
-      `<tr><td>${o.order_ref}</td><td>${o.status}</td><td>${Number(o.amount_total).toLocaleString()}</td><td>${LapokAPI.formatDate(o.created_at)}</td></tr>`
-    ).join('');
-    document.getElementById('reportsDetailBody').innerHTML =
-      `<h4 style="margin-bottom:.8rem">${name} &mdash; Balance: ${LapokAPI.formatUgx(d.customer.credit_balance)}</h4>
-      <table><tr><th>Ref</th><th>Status</th><th>Amount</th><th>Date</th></tr>${rows || '<tr><td colspan="4">No orders</td></tr>'}</table>`;
-    showPage('admin-reports');
-  } catch (e) { adminToast(e.message, true); }
 }
 
 async function loadRoutes() {
@@ -426,10 +674,10 @@ async function loadRoutes() {
     const d = await LapokAPI.get('/api/routes/fetch_routes.php');
     el.innerHTML = (d.routes || []).map((r) => `
       <div class="card" style="margin-bottom:.8rem">
-        <div class="card-header"><span class="card-title">${r.name}</span><span class="chip">${r.zone || '&mdash;'} &middot; ${r.stop_count} stops</span></div>
+        <div class="card-header"><span class="card-title">${r.name}</span><span class="chip">${r.zone || '—'} · ${r.stop_count} stops</span></div>
         <p style="font-size:12px;color:var(--gray-mid);margin-bottom:.6rem">${r.description || ''}</p>
         <div class="tbl-wrap"><table><tr><th>#</th><th>Customer</th><th>Location</th></tr>
-        ${(r.stops || []).map((s) => `<tr><td>${s.stop_order}</td><td>${s.customer_name}</td><td>${s.location || '&mdash;'}</td></tr>`).join('') || '<tr><td colspan="3">No stops assigned</td></tr>'}
+        ${(r.stops || []).map((s) => `<tr><td>${s.stop_order}</td><td>${s.customer_name}</td><td>${s.location || '—'}</td></tr>`).join('') || '<tr><td colspan="3">No stops assigned</td></tr>'}
         </table></div>
       </div>`).join('') || '<p>No routes yet.</p>';
   } catch (e) { console.warn('Routes:', e.message); }
@@ -451,14 +699,14 @@ async function loadAuditLog() {
   if (user) params.set('user', user);
   if (from) params.set('from', from);
   if (to) params.set('to', to);
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" class="skel" style="text-align:center">Loading…</td></tr>';
   try {
     const d = await LapokAPI.get('/api/audit/fetch_log.php?' + params.toString());
     adminAuditCache = d.entries || [];
     setText('auditCountChip', `${adminAuditCache.length} entries`);
     const rows = adminAuditCache.map((e, idx) => {
       const when = LapokAPI.formatDate(e.created_at) + ' ' + LapokAPI.formatTime(e.created_at);
-      const ch = e.new_values ? JSON.stringify(e.new_values).slice(0, 120) : (e.old_values ? JSON.stringify(e.old_values).slice(0, 120) : '&mdash;');
+      const ch = e.new_values ? JSON.stringify(e.new_values).slice(0, 120) : (e.old_values ? JSON.stringify(e.old_values).slice(0, 120) : '—');
       return `<tr>
         <td>${when}</td>
         <td>${e.user_name || 'System'}</td>
@@ -718,7 +966,7 @@ function openEditUserModal(id) {
   document.getElementById('editUserPassword').value = '';
   const idField = document.getElementById('editUserVehicleId');
   if (idField) idField.value = u.vehicle_id || '';
-  setText('editUserTitle', `Edit user &mdash; ${u.full_name || 'User'}`);
+  setText('editUserTitle', `Edit user — ${u.full_name || 'User'}`);
   const err = document.getElementById('editUserErr');
   if (err) err.style.display = 'none';
   openModal('editUserModal');
@@ -834,7 +1082,7 @@ async function loadFinancialReports() {
     const body = document.getElementById('reportsDetailBody');
     if (body) {
       const recv = (d.receivables || []).map((r) =>
-        `<tr><td>${r.name}</td><td>${r.phone || '&mdash;'}</td><td class="deficit">${Number(r.credit_balance).toLocaleString()}</td></tr>`
+        `<tr><td>${r.name}</td><td>${r.phone || '—'}</td><td class="deficit">${Number(r.credit_balance).toLocaleString()}</td></tr>`
       ).join('');
       body.innerHTML = `<p style="margin-bottom:.8rem"><strong>Total receivables:</strong> ${LapokAPI.formatUgx(d.total_receivables)}</p>
         <table><tr><th>Customer</th><th>Phone</th><th>Balance</th></tr>${recv || '<tr><td colspan="3">None</td></tr>'}</table>`;
@@ -865,7 +1113,7 @@ async function loadSalesReports() {
     }
     const body = document.getElementById('reportsDetailBody');
     if (body) {
-      body.innerHTML = `<p>Total revenue: <strong>${LapokAPI.formatUgx(d.summary?.revenue)}</strong> &middot; Orders: ${d.summary?.orders} &middot; Cartons: ${d.summary?.cartons}</p>`;
+      body.innerHTML = `<p>Total revenue: <strong>${LapokAPI.formatUgx(d.summary?.revenue)}</strong> · Trips: ${d.summary?.trips} · Cartons: ${d.summary?.cartons}</p>`;
     }
   } catch (e) { console.warn('Sales reports:', e.message); }
 }
@@ -942,7 +1190,6 @@ async function saveNewCustomer() {
   try {
     await LapokAPI.post('/api/customers/create_customer.php', { name, phone, location, category });
     closeModal('addCustModal');
-    loadAdminCustomers();
     loadUserCustomers();
     alert('Customer saved.');
   } catch (e) { alert(e.message); }
@@ -1005,7 +1252,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof hook !== 'function') return;
 
   const phase45Pages = {
-    'admin-dashboard': () => { loadAdminDashboard(); loadLiveCharts(); },
+    'admin-dashboard': () => { execMonthbarInit(); loadAdminDashboard(); loadLiveCharts(); },
     'manager-dashboard': () => { loadAdminDashboard(); loadManagerDashboardExtras(); },
     'report-exchange': () => loadReportExchangePage(),
     'user-dashboard': () => loadFieldDashboard(),
@@ -1013,11 +1260,11 @@ document.addEventListener('DOMContentLoaded', () => {
     'cadet-dashboard': () => { if (typeof loadCadetDashboardPage === 'function') loadCadetDashboardPage(); },
     'cadet-daily': () => { if (typeof loadCadetDailyPage === 'function') loadCadetDailyPage(); },
     'user-customers': () => loadUserCustomers(),
-    'admin-customers': () => loadAdminCustomers(),
     'admin-routes': () => loadRoutes(),
     'admin-audit': () => { initAuditFilters(); loadAuditLog(); },
     'admin-reports': () => { initAdminReportFilters(); loadFinancialReports(); loadLiveCharts(); },
     'manager-reports': () => loadSalesReports(),
+    'manager-targets': () => loadManagerTargetsPage(),
     'manager-rdc-review': () => loadRdcReviewPage(),
     'manager-ccba-boards': () => { if (typeof loadManagerOccdBoards === 'function') loadManagerOccdBoards(); },
     'manager-ccba-order': () => { if (typeof loadCcbaPage === 'function') loadCcbaPage(); },

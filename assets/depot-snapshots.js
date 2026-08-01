@@ -6,6 +6,9 @@
 (function () {
   /** Separate caches so opening/closing do not overwrite each other on this page. */
   const snapshotCache = { opening: [], closing: [] };
+  /** Opening stock locks after save; the manager must click Edit to change it again. */
+  let openingHasSaved = false;
+  let openingUnlock = false;
   const CLOSING_OPENS_HOUR = 18;
   const CLOSING_OPENS_MINUTE = 30;
 
@@ -36,9 +39,10 @@
   }
 
   function setClosingCardLocked(locked) {
-    const card = document.getElementById('mgrClosingStockCard');
+    const block = document.getElementById('mgrClosingBlock');
     const btn = document.getElementById('mgrClosingSaveBtn');
     const notes = document.getElementById('mgrClosingNotes');
+    const chip = document.getElementById('mgrClosingLockChip');
     if (btn) {
       btn.disabled = locked;
       btn.title = locked
@@ -51,10 +55,34 @@
       notes.readOnly = locked;
       notes.disabled = locked;
     }
-    if (card) {
-      card.style.opacity = locked ? '0.72' : '';
-      card.classList.toggle('depot-closing-locked', locked);
+    if (block) block.classList.toggle('depot-closing-locked', locked);
+    if (chip) chip.textContent = locked ? `Locked until ${closingWindowLabel()}` : 'Open now';
+  }
+
+  function openingIsLocked() {
+    return openingHasSaved && !openingUnlock;
+  }
+
+  function setOpeningCardLocked(locked) {
+    const saveBtn = document.getElementById('mgrOpeningSaveBtn');
+    const editBtn = document.getElementById('mgrOpeningEditBtn');
+    const notes = document.getElementById('mgrOpeningNotes');
+    if (saveBtn) {
+      saveBtn.style.display = locked ? 'none' : '';
+      saveBtn.disabled = locked;
     }
+    if (editBtn) editBtn.style.display = locked ? '' : 'none';
+    if (notes) {
+      notes.readOnly = locked;
+      notes.disabled = locked;
+    }
+  }
+
+  function editManagerOpeningStock() {
+    if (!confirm('Unlock saved opening stock for corrections? Saving again updates the warehouse live stock.')) return;
+    openingUnlock = true;
+    setOpeningCardLocked(false);
+    renderManagerStockBook();
   }
 
   function depotBrandOrder() {
@@ -148,60 +176,118 @@
     });
   }
 
+  function stockBookBrandTotals() {
+    const totals = {};
+    mergedSnapshotLines().forEach((row) => {
+      const brand = row.brand || row.category || 'OTHER';
+      if (!totals[brand]) totals[brand] = { opening: 0, purchase: 0, sales: 0, closing: 0 };
+      totals[brand].opening += Number(row.openingQty || 0);
+      totals[brand].purchase += Number(row.purchaseQty || 0);
+      totals[brand].sales += Number(row.salesQty || 0);
+      totals[brand].closing += Number(row.closingQty || 0);
+    });
+    return totals;
+  }
+
+  function updateStockBookTotals() {
+    const table = document.getElementById('mgrStockBookTable');
+    if (!table) return;
+    const totals = stockBookBrandTotals();
+    const grand = { opening: 0, purchase: 0, sales: 0, closing: 0 };
+    Object.values(totals).forEach((t) => {
+      grand.opening += t.opening;
+      grand.purchase += t.purchase;
+      grand.sales += t.sales;
+      grand.closing += t.closing;
+    });
+    const setCell = (cell, v) => {
+      const strong = cell.querySelector('strong');
+      if (strong) strong.textContent = String(v);
+      else cell.textContent = String(v);
+    };
+    table.querySelectorAll('tr.stock-book-total').forEach((tr) => {
+      if (!tr.cells) return;
+      if (tr.classList.contains('stock-book-grand-total')) {
+        setCell(tr.cells[1], grand.opening);
+        setCell(tr.cells[2], grand.purchase);
+        setCell(tr.cells[3], grand.sales);
+        setCell(tr.cells[4], grand.closing);
+        return;
+      }
+      const label = (tr.cells[0]?.textContent || '').replace(/\s*TOTAL$/i, '').trim();
+      const t = totals[label];
+      if (!t) return;
+      setCell(tr.cells[1], t.opening);
+      setCell(tr.cells[2], t.purchase);
+      setCell(tr.cells[3], t.sales);
+      setCell(tr.cells[4], t.closing);
+    });
+  }
+
   function renderManagerStockBook() {
     const table = document.getElementById('mgrStockBookTable');
     if (!table) return;
     setStockBookDate();
     const rows = mergedSnapshotLines();
+    const openingLocked = openingIsLocked();
+    const openingTh = openingLocked
+      ? '<th class="qty-col stock-book-th-locked">Opening stock<small>Saved · locked</small></th>'
+      : '<th class="qty-col">Opening stock</th>';
     if (!rows.length) {
-      table.innerHTML = '<tr><th>Brand</th><th>SKUs</th><th>Opening stock</th><th class="stock-book-th-locked">Purchase<small>Locked · from deliveries</small></th><th>Sales</th><th>Closing stock</th></tr><tr><td colspan="6" style="color:var(--gray-mid)">No stock lines.</td></tr>';
+      table.innerHTML = '<tr><th>Brand</th><th>SKUs</th>' + openingTh + '<th class="stock-book-th-locked">Purchase<small>Locked · from deliveries</small></th><th class="stock-book-th-locked">Sales<small>Locked · from cadets</small></th><th>Closing stock</th></tr><tr><td colspan="6" style="color:var(--gray-mid)">No stock lines.</td></tr>';
       return;
     }
 
     const closingLocked = !isClosingStockWindowOpen();
-    let html = '<tr><th>Brand</th><th>SKUs</th><th>Opening stock</th><th class="stock-book-th-locked">Purchase<small>Locked · from deliveries</small></th><th>Sales</th><th>Closing stock</th></tr>';
+    let html = '<tr><th>Brand</th><th>SKUs</th>' + openingTh + '<th class="stock-book-th-locked">Purchase<small>Locked · from deliveries</small></th><th class="stock-book-th-locked">Sales<small>Locked · from cadets</small></th><th>Closing stock</th></tr>';
     let currentBrand = '';
-    const brandTotals = {};
-    rows.forEach((row) => {
-      const brand = row.brand || row.category || 'OTHER';
-      if (!brandTotals[brand]) brandTotals[brand] = { opening: 0, purchase: 0, sales: 0, closing: 0 };
-      brandTotals[brand].opening += Number(row.openingQty || 0);
-      brandTotals[brand].purchase += Number(row.purchaseQty || 0);
-      brandTotals[brand].sales += Number(row.salesQty || 0);
-      brandTotals[brand].closing += Number(row.closingQty || 0);
-    });
+    const brandTotals = stockBookBrandTotals();
 
     rows.forEach((row, idx) => {
       const brand = row.brand || row.category || 'OTHER';
       if (brand !== currentBrand) {
         if (currentBrand && brandTotals[currentBrand]) {
           const t = brandTotals[currentBrand];
-          html += `<tr class="stock-book-total"><td colspan="2"><strong>${currentBrand} TOTAL</strong></td>
+          html += `<tr class="stock-book-total"><td colspan="2" class="stock-book-total-label"><strong>${currentBrand} TOTAL</strong></td>
             <td><strong>${t.opening}</strong></td><td><strong>${t.purchase}</strong></td>
             <td><strong>${t.sales}</strong></td><td><strong>${t.closing}</strong></td></tr>`;
         }
         currentBrand = brand;
         html += `<tr class="cat-row"><td colspan="6">${brand}</td></tr>`;
       }
+      const openingCell = openingLocked
+        ? `<span class="stock-book-purchase${Number(row.openingQty || 0) === 0 ? ' is-zero' : ''}" title="Locked — saved. Use Edit to change." aria-readonly="true">${Number(row.openingQty || 0)}</span>`
+        : `<input class="stock-book-input" data-field="opening" data-product-id="${row.product_id}" type="number" min="0" value="${Number(row.openingQty || 0)}">`;
       html += `<tr data-product-id="${row.product_id}">
         <td>${idx === 0 || rows[idx - 1].brand !== brand ? brand : ''}</td>
         <td>${row.product_name || '—'}</td>
-        <td><input class="stock-book-input" data-field="opening" data-product-id="${row.product_id}" type="number" min="0" value="${Number(row.openingQty || 0)}"></td>
+        <td>${openingCell}</td>
         <td><span class="stock-book-purchase${Number(row.purchaseQty || 0) === 0 ? ' is-zero' : ''}" title="Locked — filled from Coca-Cola deliveries" aria-readonly="true">${Number(row.purchaseQty || 0)}</span></td>
-        <td><input class="stock-book-input" data-field="sales" data-product-id="${row.product_id}" type="number" min="0" value="${Number(row.salesQty || 0)}"></td>
+        <td><span class="stock-book-purchase${Number(row.salesQty || 0) === 0 ? ' is-zero' : ''}" title="Locked — filled from cadet sales reports" aria-readonly="true">${Number(row.salesQty || 0)}</span></td>
         <td><input class="stock-book-input" data-field="closing" data-product-id="${row.product_id}" type="number" min="0" value="${Number(row.closingQty || 0)}" ${closingLocked ? 'disabled' : ''}></td>
       </tr>`;
     });
     if (currentBrand && brandTotals[currentBrand]) {
       const t = brandTotals[currentBrand];
-      html += `<tr class="stock-book-total"><td colspan="2"><strong>${currentBrand} TOTAL</strong></td>
+      html += `<tr class="stock-book-total"><td colspan="2" class="stock-book-total-label"><strong>${currentBrand} TOTAL</strong></td>
         <td><strong>${t.opening}</strong></td><td><strong>${t.purchase}</strong></td>
         <td><strong>${t.sales}</strong></td><td><strong>${t.closing}</strong></td></tr>`;
     }
+    const grand = { opening: 0, purchase: 0, sales: 0, closing: 0 };
+    Object.values(brandTotals).forEach((bt) => {
+      grand.opening += bt.opening;
+      grand.purchase += bt.purchase;
+      grand.sales += bt.sales;
+      grand.closing += bt.closing;
+    });
+    html += `<tr class="stock-book-total stock-book-grand-total"><td colspan="2" class="stock-book-total-label"><strong>GRAND TOTAL</strong></td>
+      <td><strong>${grand.opening}</strong></td><td><strong>${grand.purchase}</strong></td>
+      <td><strong>${grand.sales}</strong></td><td><strong>${grand.closing}</strong></td></tr>`;
     table.innerHTML = html;
     table.querySelectorAll('.stock-book-input').forEach((inp) => {
       inp.addEventListener('input', () => {
         syncCacheField(Number(inp.getAttribute('data-product-id')), inp.getAttribute('data-field'), Number(inp.value || 0));
+        updateStockBookTotals();
       });
     });
   }
@@ -235,8 +321,8 @@
           ? `<td><strong>${qty}</strong></td>`
           : `<td><input class="qty-inp depot-snap-qty" data-type="${type}" data-idx="${idx}" type="number" min="0" value="${qty}"></td>`;
         html += `<tr>
-          <td>${line.product_name || '&mdash;'}</td>
-          <td>${line.sku || '&mdash;'}</td>
+          <td>${line.product_name || '—'}</td>
+          <td>${line.sku || '—'}</td>
           ${qtyCell}
         </tr>`;
       });
@@ -278,9 +364,14 @@
       const suggested = (d.suggested_lines || []).map((l) => {
         const base = { ...l, qty: 0 };
         if (isOpening) base.opening = Number(l.opening || 0);
+        else delete base.opening;
         base.purchase = Number(l.purchase || 0);
         base.sales = Number(l.sales || 0);
         base.closing = Number(l.closing || 0);
+        // Read-only views (RDC depot stock status) show today's calculated stock:
+        // closing = warehouse ledger + cadet returns, which at start of day is
+        // exactly yesterday's closing (= today's opening).
+        if (!isOpening && readOnly) base.qty = base.closing;
         return base;
       });
       snapshotCache.template = suggested.map((l) => ({ ...l }));
@@ -289,6 +380,11 @@
         snapshotCache[type] = d.snapshot.lines.map((l) => ({ ...l }));
       } else {
         snapshotCache[type] = suggested.map((l) => ({ ...l }));
+      }
+      if (type === 'opening') {
+        openingHasSaved = !!(d.snapshot && (d.snapshot.lines || []).length);
+        if (!openingHasSaved) openingUnlock = false;
+        setOpeningCardLocked(openingIsLocked());
       }
       if (tableId === 'mgrOpeningStockTable' || tableId === 'mgrClosingStockTable') {
         renderManagerStockBook();
@@ -301,12 +397,12 @@
           status.textContent = `Submitted ${new Date(d.snapshot.submitted_at).toLocaleTimeString('en-UG', { hour: '2-digit', minute: '2-digit' })} by ${d.snapshot.submitted_by_name || 'manager'}`;
         } else if (readOnly) {
           status.textContent = type === 'opening'
-            ? 'Not submitted yet &mdash; manager enters opening stock at 7:00 AM'
-            : 'Not submitted yet &mdash; manager enters closing stock from 6:30 PM';
+            ? 'Not submitted yet — manager enters opening stock at 7:00 AM'
+            : 'Not submitted yet — manager enters closing stock from 6:30 PM';
         } else if (type === 'closing' && !isClosingStockWindowOpen()) {
-          status.textContent = `Locked until ${closingWindowLabel()} &mdash; then enter and save closing stock (target 7:00 PM)`;
+          status.textContent = `Locked until ${closingWindowLabel()} — then enter and save closing stock (target 7:00 PM)`;
         } else {
-          status.textContent = type === 'opening' ? 'Not submitted &mdash; target 7:00 AM' : 'Open now &mdash; target save by 7:00 PM';
+          status.textContent = type === 'opening' ? 'Not submitted — target 7:00 AM' : 'Open now — target save by 7:00 PM';
         }
       }
       const notes = document.getElementById(notesId);
@@ -353,6 +449,12 @@
         notes: document.getElementById(notesId)?.value?.trim() || '',
       });
       toast(type === 'opening' ? 'Opening stock saved (7am).' : 'Closing stock saved (7pm).');
+      if (type === 'opening') {
+        openingHasSaved = true;
+        openingUnlock = false;
+        setOpeningCardLocked(true);
+        renderManagerStockBook();
+      }
       if (type === 'opening' && typeof loadManagerOccdBoards === 'function'
           && document.getElementById('page-manager-ccba-boards')?.classList.contains('active')) {
         loadManagerOccdBoards();
@@ -439,6 +541,7 @@
   window.loadAccountantClosingStock = loadAccountantClosingStock;
   window.saveManagerOpeningStock = () => saveDepotSnapshot('opening', 'mgrOpeningNotes', loadManagerOpeningStock);
   window.saveManagerClosingStock = () => saveDepotSnapshot('closing', 'mgrClosingNotes', loadManagerClosingStock);
+  window.editManagerOpeningStock = editManagerOpeningStock;
   window.saveAccountantClosingStock = () => toast('Closing stock is entered by the manager only.', true);
   window.loadManagerFixedCosts = loadManagerFixedCosts;
   window.saveManagerFixedCosts = saveManagerFixedCosts;

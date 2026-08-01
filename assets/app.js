@@ -1,5 +1,5 @@
 /**
- * LAPOK DMS &mdash; Frontend ↔ API wiring (Phases 1–3)
+ * LAPOK DMS — Frontend ↔ API wiring (Phases 1–3)
  */
 let currentUser = null;
 let productCatalog = [];
@@ -53,6 +53,13 @@ async function initApp() {
   document.documentElement.classList.remove('auth-pending');
   await refreshDashboardData();
 }
+
+window.addEventListener('hashchange', () => {
+  const wanted = (location.hash || '').startsWith('#page-') ? (location.hash || '').slice(6) : '';
+  if (wanted && currentUser && document.getElementById('page-' + wanted)) {
+    window.showPage(wanted);
+  }
+});
 
 function navToGroups(nav) {
   const groups = [];
@@ -126,7 +133,12 @@ function applyUserSession(user) {
   items.forEach((n) => { LABELS[n.id] = n.l; });
   LABELS['manager-delivery'] = 'Coca-Cola delivery';
   const homePage = LapokAPI.roleHomePage?.[role] || items[0]?.id;
-  if (homePage) {
+  const wanted = (location.hash || '').startsWith('#page-')
+    ? (location.hash || '').slice(6)
+    : '';
+  if (wanted && document.getElementById('page-' + wanted)) {
+    showPage(wanted);
+  } else if (homePage) {
     showPage(homePage);
   }
   applyExecutiveReadOnlyMode();
@@ -178,27 +190,33 @@ async function loadStockTable() {
 }
 
 async function loadLowStockAlerts() {
-  try {
-    const data = await LapokAPI.get('/api/stock/fetch_stock.php?low_only=1');
-    const alerts = data.alerts || [];
-    const el = document.getElementById('admLowStockAlert');
-    if (!el) return;
-    const div = el.querySelector('div');
-    if (!div) return;
-    if (alerts.length) {
-      const preview = alerts.slice(0, 3)
-        .map((a) => `${appEscapeHtml(a.name)} (${Number(a.warehouse_qty).toLocaleString()} cartons)`)
-        .join(', ');
-      const remaining = Math.max(0, alerts.length - 3);
-      const previewText = preview
-        ? ` Examples: ${preview}${remaining ? ` and ${remaining} more` : ''}.`
-        : '';
-      div.innerHTML = `<strong>Low stock:</strong> ${alerts.length} product${alerts.length === 1 ? '' : 's'} below minimum.${previewText} <a href="#" onclick="showPage('admin-exceptions');return false" style="color:var(--red);font-weight:600">View all in Exception Center →</a>`;
-      el.style.display = '';
-    } else {
-      el.style.display = 'none';
+  const el = document.getElementById('admLowStockAlert');
+  if (!el) return;
+  const div = el.querySelector('div');
+  if (!div) return;
+  let alerts;
+  if (productCatalog.length) {
+    alerts = productCatalog.filter((s) => s.low_stock);
+  } else {
+    try {
+      alerts = (await LapokAPI.get('/api/stock/fetch_stock.php?low_only=1')).alerts || [];
+    } catch (_) {
+      return;
     }
-  } catch (_) {}
+  }
+  if (alerts.length) {
+    const preview = alerts.slice(0, 3)
+      .map((a) => `${appEscapeHtml(a.name)} (${Number(a.warehouse_qty).toLocaleString()} cartons)`)
+      .join(', ');
+    const remaining = Math.max(0, alerts.length - 3);
+    const previewText = preview
+      ? ` Examples: ${preview}${remaining ? ` and ${remaining} more` : ''}.`
+      : '';
+    div.innerHTML = `<strong>Low stock:</strong> ${alerts.length} product${alerts.length === 1 ? '' : 's'} below minimum.${previewText} <a href="#" onclick="showPage('admin-exceptions');return false" style="color:var(--red);font-weight:600">View all in Exception Center →</a>`;
+    el.style.display = '';
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 async function loadPendingOrders() {
@@ -214,9 +232,9 @@ async function loadPendingOrders() {
     if (metric) metric.textContent = orders.length;
     const rows = orders.map((o) =>
       `<tr data-order-id="${o.id}">
-        <td>${o.user_name?.split(' ')[0] || '&mdash;'}.</td>
-        <td>${o.vehicle_reg ? `<span class="badge b-tuk">${o.vehicle_reg}</span>` : '&mdash;'}</td>
-        <td>${o.customer_name || '&mdash;'}</td>
+        <td>${o.user_name?.split(' ')[0] || '—'}.</td>
+        <td>${o.vehicle_reg ? `<span class="badge b-tuk">${o.vehicle_reg}</span>` : '—'}</td>
+        <td>${o.customer_name || '—'}</td>
         <td>${Number(o.amount_total).toLocaleString()}</td>
         <td>${LapokAPI.formatTime(o.created_at)}</td>
         <td><button class="btn btn-sm btn-red" onclick="confirmSale(this,${o.id})">Confirm</button></td>
@@ -230,7 +248,7 @@ async function loadPendingOrders() {
 }
 
 async function loadEditRequests() {
-  const pages = ['#page-admin-editreqs table'];
+  if (!document.querySelector('#page-admin-editreqs table')) return;
   try {
     const data = await LapokAPI.get('/api/orders/fetch_requests.php');
     const reqs = data.requests || [];
@@ -238,8 +256,8 @@ async function loadEditRequests() {
       b.textContent = reqs.length + ' pending';
     });
     const rowHtml = (r, full) => full
-      ? `<tr data-request-id="${r.id}"><td style="font-family:monospace;font-size:11px">${r.order_ref}</td><td>${r.user_name?.split(' ')[0] || '&mdash;'}.</td><td><span class="badge ${r.request_type === 'edit' ? 'bw' : 'bd'}">${r.request_type === 'edit' ? 'Edit' : 'Cancel'}</span></td><td>${r.reason}</td><td>${r.details || '&mdash;'}</td><td>${LapokAPI.formatTime(r.created_at)}</td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approve',${r.id})">Approve</button> <button class="btn btn-sm" onclick="approveReq(this,'reject',${r.id})">Reject</button></td></tr>`
-      : `<tr data-request-id="${r.id}"><td style="font-family:monospace;font-size:11px">${r.order_ref}</td><td>${r.user_name?.split(' ')[0] || '&mdash;'}.</td><td><span class="badge ${r.request_type === 'edit' ? 'bw' : 'bd'}">${r.request_type === 'edit' ? 'Edit' : 'Cancel'}</span></td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approve',${r.id})">Approve</button></td></tr>`;
+      ? `<tr data-request-id="${r.id}"><td style="font-family:monospace;font-size:11px">${r.order_ref}</td><td>${r.user_name?.split(' ')[0] || '—'}.</td><td><span class="badge ${r.request_type === 'edit' ? 'bw' : 'bd'}">${r.request_type === 'edit' ? 'Edit' : 'Cancel'}</span></td><td>${r.reason}</td><td>${r.details || '—'}</td><td>${LapokAPI.formatTime(r.created_at)}</td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approve',${r.id})">Approve</button> <button class="btn btn-sm" onclick="approveReq(this,'reject',${r.id})">Reject</button></td></tr>`
+      : `<tr data-request-id="${r.id}"><td style="font-family:monospace;font-size:11px">${r.order_ref}</td><td>${r.user_name?.split(' ')[0] || '—'}.</td><td><span class="badge ${r.request_type === 'edit' ? 'bw' : 'bd'}">${r.request_type === 'edit' ? 'Edit' : 'Cancel'}</span></td><td><button class="btn btn-sm btn-red" onclick="approveReq(this,'approve',${r.id})">Approve</button></td></tr>`;
     const adminTable = document.querySelector('#page-admin-editreqs table');
     if (adminTable) {
       adminTable.innerHTML = '<tr><th>Ref</th><th>User</th><th>Type</th><th>Reason</th><th>Details</th><th>Time</th><th>Action</th></tr>' +
@@ -282,8 +300,8 @@ async function approveReq(btn, action, requestId) {
   const approved = apiAction === 'approve';
 
   if (!id || !apiAction) {
-    if (typeof adminToast === 'function') adminToast('Could not resolve this request &mdash; refresh and try again.', true);
-    else alert('Could not resolve this request &mdash; refresh and try again.');
+    if (typeof adminToast === 'function') adminToast('Could not resolve this request — refresh and try again.', true);
+    else alert('Could not resolve this request — refresh and try again.');
     return;
   }
 
@@ -319,7 +337,7 @@ function resolveAllowedPage(id) {
   const home = LapokAPI.roleHomePage?.[role] || 'manager-dashboard';
   const owner = LapokAPI.rolePageOwner?.[id] || 'another role';
   if (typeof adminToast === 'function') {
-    adminToast(`That module belongs to ${owner} &mdash; opened your home instead.`, true);
+    adminToast(`That module belongs to ${owner} — opened your home instead.`, true);
   }
   return home;
 }

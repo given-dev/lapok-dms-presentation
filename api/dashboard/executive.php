@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/stock.php';
+require_once dirname(__DIR__, 2) . '/includes/depot_finance.php';
 
 $user = require_permission('dashboard');
 if (!in_array($user['role'], ['executive', 'admin'], true)) {
@@ -17,42 +18,38 @@ $warehouse = (int) $pdo->query(
      INNER JOIN products p ON p.id = b.product_id AND p.is_active = 1'
 )->fetchColumn();
 
-$revenueToday = (float) $pdo->query(
-    "SELECT COALESCE(SUM(amount_total), 0) FROM orders
-     WHERE status IN ('confirmed','delivered','dispatched') AND DATE(created_at) = CURDATE()"
-)->fetchColumn();
+$today = date('Y-m-d');
+$yesterday = date('Y-m-d', strtotime('-1 day'));
+$monthStart = date('Y-m-01');
 
-$revenueYesterday = (float) $pdo->query(
-    "SELECT COALESCE(SUM(amount_total), 0) FROM orders
-     WHERE status IN ('confirmed','delivered','dispatched') AND DATE(created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
-)->fetchColumn();
+// KPI month defaults to the CURRENT month. The executive can pass ?kpi_month=YYYY-MM
+// to review a previous month (sales, targets, cash flow). Targets only appear once the
+// manager has entered them — no placeholders or fallback. Future months are rejected.
+$kpiMonth = date('Y-m');
+if (!empty($_GET['kpi_month']) && preg_match('/^\d{4}-\d{2}$/', (string) $_GET['kpi_month']) && $_GET['kpi_month'] <= $kpiMonth) {
+    $kpiMonth = $_GET['kpi_month'];
+}
+$kpiStart = $kpiMonth . '-01';
+$kpiEnd = $kpiMonth === date('Y-m') ? $today : date('Y-m-t', strtotime($kpiStart));
 
-$cartonsToday = (int) $pdo->query(
-    "SELECT COALESCE(SUM(oi.qty), 0) FROM order_items oi
-     JOIN orders o ON o.id = oi.order_id
-     WHERE o.status IN ('confirmed','delivered','dispatched') AND DATE(o.created_at) = CURDATE()"
-)->fetchColumn();
+$revenueByDay = depot_sales_revenue_by_day($monthStart, $today);
+$cartonsByDay = depot_cartons_sold_by_day($monthStart, $today);
+$revenueToday = $revenueByDay[$today] ?? 0.0;
+$revenueYesterday = depot_sales_revenue_by_day($yesterday, $yesterday)[$yesterday] ?? 0.0;
+$cartonsToday = $cartonsByDay[$today] ?? 0;
+$cartonsYesterday = depot_cartons_sold_by_day($yesterday, $yesterday)[$yesterday] ?? 0;
+$revenueMtd = array_sum($kpiMonth === date('Y-m') ? $revenueByDay : depot_sales_revenue_by_day($kpiStart, $kpiEnd));
 
-$cartonsYesterday = (int) $pdo->query(
-    "SELECT COALESCE(SUM(oi.qty), 0) FROM order_items oi
-     JOIN orders o ON o.id = oi.order_id
-     WHERE o.status IN ('confirmed','delivered','dispatched')
-       AND DATE(o.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
-)->fetchColumn();
-
-$revenueMtd = (float) $pdo->query(
-    "SELECT COALESCE(SUM(amount_total), 0) FROM orders
-     WHERE status IN ('confirmed','delivered','dispatched')
-       AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())"
-)->fetchColumn();
-
-$revenuePrevMtd = (float) $pdo->query(
-    "SELECT COALESCE(SUM(amount_total), 0) FROM orders
-     WHERE status IN ('confirmed','delivered','dispatched')
-       AND YEAR(created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
-       AND MONTH(created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
-       AND DAY(created_at) <= DAY(CURDATE())"
-)->fetchColumn();
+// Previous-month comparison: same elapsed days for the current month, full month for a past month.
+$prevStart = date('Y-m-01', strtotime('-1 month', strtotime($kpiStart)));
+$prevEnd = date('Y-m-t', strtotime($prevStart));
+$revenuePrevMtd = 0.0;
+foreach (depot_sales_revenue_by_day($prevStart, $prevEnd) as $day => $rev) {
+    if ($kpiMonth === date('Y-m') && (int) substr($day, 8, 2) > (int) date('d')) {
+        continue;
+    }
+    $revenuePrevMtd += $rev;
+}
 
 $pendingOrders = (int) $pdo->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetchColumn();
 $pendingRequests = (int) $pdo->query("SELECT COUNT(*) FROM edit_requests WHERE status = 'pending'")->fetchColumn();
@@ -111,12 +108,60 @@ try {
 
 $director = null;
 try {
-    require_once dirname(__DIR__, 2) . '/includes/depot_finance.php';
     $director = depot_director_snapshot(date('Y-m-d'));
 } catch (Throwable) {
 }
 
+// — Sales vs target (soda / water) MTD, from RDC sheets + sales_targets —
+$salesSplit = depot_sales_split_mtd($kpiStart, $kpiEnd);
+$targets = ['soda_units' => 0.0, 'water_units' => 0.0];
+try {
+    $stmt = $pdo->prepare('SELECT category, target_units FROM sales_targets WHERE target_month = ?');
+    $stmt->execute([$kpiMonth]);
+    foreach ($stmt->fetchAll() as $t) {
+        $key = $t['category'] === 'SODA' ? 'soda_units' : 'water_units';
+        $targets[$key] += (float) $t['target_units'];
+    }
+} catch (Throwable) {
+}
+
+$achievedPct = static function (float $actual, float $target): float {
+    return $target > 0 ? round(($actual / $target) * 100, 1) : 0.0;
+};
+$sodaPct = $achievedPct($salesSplit['soda_units'], $targets['soda_units']);
+$waterPct = $achievedPct($salesSplit['water_units'], $targets['water_units']);
+$totalUnits = $salesSplit['soda_units'] + $salesSplit['water_units'];
+$totalTarget = $targets['soda_units'] + $targets['water_units'];
+
+// Per-unit breakdown (DEPOT + each cadet/vehicle) — mirrors the per-salesperson rows of the monthly report.
+$breakdown = [];
+try {
+    $breakdown = depot_sales_target_breakdown($kpiStart, $kpiEnd, $kpiMonth);
+} catch (Throwable) {
+}
+
+// — Cash flow: cash out / recovery / cash still out (CSO) —
+// CSO is recurring: it is recomputed from all cash-out + payment history, so previous
+// months roll forward automatically (no manual carry-forward). cso_history keeps the
+// executive updated with the last six months.
+$cashFlow = ['cash_out_mtd' => 0.0, 'recovery_mtd' => 0.0, 'cso_open' => 0.0, 'cso_opening_bf' => 0.0, 'cso_history' => []];
+try {
+    // CSO is recurring: recomputed from the consolidated RDC sheets (cash-out minus recoveries),
+    // so previous months roll forward automatically (the sheet absorbs the cashout ledger via prefill).
+    $csoAsOf = $kpiMonth === date('Y-m') ? $today : $kpiEnd;
+    $cashFlow['cash_out_mtd'] = depot_sheet_json_total('cash_out_json', $kpiStart, $kpiEnd);
+    $cashFlow['recovery_mtd'] = depot_sheet_json_total('recoveries_json', $kpiStart, $kpiEnd);
+    $cashFlow['cso_open'] = depot_cash_still_out_as_of($csoAsOf);
+    $cashFlow['cso_opening_bf'] = depot_cash_still_out_as_of(date('Y-m-t', strtotime('last day of last month', strtotime($kpiStart))));
+    $cashFlow['cso_history'] = depot_cash_still_out_history($csoAsOf, 6);
+} catch (Throwable) {
+}
+$cashFlow['cso_cumulative'] = $cashFlow['cso_open'];
+
+$discountMtd = depot_expense_line_mtd($kpiStart, $kpiEnd, 'DISCOUNT');
+
 json_ok([
+    'kpi_month' => $kpiMonth,
     'warehouse_cartons' => $warehouse,
     'revenue_today' => $revenueToday,
     'revenue_yesterday' => $revenueYesterday,
@@ -138,6 +183,22 @@ json_ok([
     'receivables_total' => $receivablesTotal,
     'receivables_count' => $receivablesCount,
     'welfare_open_count' => $welfareOpen,
+    'sales_split' => [
+        'soda_units' => $salesSplit['soda_units'],
+        'water_units' => $salesSplit['water_units'],
+        'soda_revenue' => round($salesSplit['soda_revenue'], 2),
+        'water_revenue' => round($salesSplit['water_revenue'], 2),
+        'soda_target' => $targets['soda_units'],
+        'water_target' => $targets['water_units'],
+        'soda_pct' => $sodaPct,
+        'water_pct' => $waterPct,
+        'total_units' => round($totalUnits, 1),
+        'total_target' => round($totalTarget, 1),
+        'total_pct' => $achievedPct($totalUnits, $totalTarget),
+        'by_unit' => $breakdown,
+    ],
+    'cash_flow' => $cashFlow,
+    'discount_mtd' => round($discountMtd, 2),
     'director' => $director ? [
         'readiness' => $director['controls']['readiness'] ?? null,
         'opening_submitted' => !empty($director['controls']['opening_submitted']),

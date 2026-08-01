@@ -21,8 +21,8 @@ External systems (CCBA, EFRIS, fleet GPS) are manual or deferred in this build.
 
 ### Next shifts (team agreement)
 
-1. **Cadet — receive dispatch** — how cadets see and acknowledge manager dispatch / load before going on route.  
-2. **Accountant (RDC) — primary attack** — deep polish of Home → Today's close → cash → manager pack.
+1. **Accountant (RDC) — primary attack** — deep polish of Home → Today's close → cash → manager pack.
+2. **Cadet — receive dispatch (live)** — cadets now see the manager's dispatch and confirm the load (📦 banner on `cadet-dashboard`) before going on route; the trip moves `dispatched → on_route`, the manager is notified, and the dispatch log shows confirmation.
 
 ---
 
@@ -73,7 +73,7 @@ Initial accounts use password **`password123`** for local setup only. Change eve
 | Dashboard (home) | `cadet-dashboard` | Trip status, load summary, messages from depot |
 | Today's report | `cadet-daily` | All depot products grouped like depot sales book (CSD, ENERGY, JUICE, VAD, WATER, OTHER) |
 | Notifications | Bell icon | Bell shows unread items only; read items remain in Messages history and open in a message-detail popup |
-| Receive dispatch | `cadet-dashboard` | **Next focus** — acknowledge manager dispatch / load before route (planned) |
+| Receive dispatch | `cadet-dashboard` | **Live** — when the manager dispatches, a 📦 banner shows the load with a **Confirm load received** button. Confirming moves the trip `dispatched → on_route`, records `acknowledged_at`, and notifies the manager. |
 
 On submit, sales, expenses, and cash **auto-sync** into the accountant's **Today's close** sheet on the **vehicle column** for the assigned trip. The Cadet Daily returns and stock tables are fully dynamic, reading live stock quantities directly from the database.
 
@@ -90,7 +90,7 @@ Stock page is daily only: opening/closing counts + delivery confirmation. CCBA b
 
 **Executive brief PDF** (manager → executive) summarises: attention flags, day glance, RDC finance, **styled full stock-book table**, most & least selling products, stock risk. **CCBA Inventory + OCCD** go as a **separate companion PDF** with **navy banners and bordered tables** matching the boards UI. Re-send after code changes to regenerate both. Apply migration **016** for typed `ccba_boards` packets.
 
-**Manager reporting desk:** `report-exchange` is an inbox-first, date-based workflow. The manager must review the Accountant pack, approve the RDC daily sheet, complete opening and closing stock, and submit both Inventory and OCCD boards. Only then can the manager confirm generation and delivery of the two-document executive pack. The same readiness gate is enforced by the generation and upload APIs, so it cannot be bypassed from the browser.
+**Manager reporting desk:** `report-exchange` is an inbox-first, date-based workflow. The manager must review the Accountant pack, approve the RDC daily sheet, and complete opening stock (3 readiness checks). Only then can the manager confirm generation and delivery of the two-document executive pack. Closing stock auto-records its snapshot and the CCBA boards are no longer readiness gates. The same readiness gate is enforced by the generation and upload APIs, so it cannot be bypassed from the browser.
 
 ### Accountant (RDC)
 
@@ -100,7 +100,7 @@ Stock page is daily only: opening/closing counts + delivery confirmation. CCBA b
 | Today's close | `accountant-rdc` | 3-step wizard, products grouped like depot sales book, cadet data by vehicle column, auto-save, and per-vehicle cash reconciliation |
 | Manager pack | `report-exchange` | One-tap send; gated on submitted balancing |
 | Cash handover | `accountant-cash` | Confirm field trip cash |
-| Month-end | `accountant-improvements` | Checklist + monthly notes — **DB sync** across roles |
+| Month-end | `accountant-improvements` | Checklist + monthly notes — **accountant only** (nav + API restricted) |
 | Staff welfare | `accountant-welfare` | Welfare register — **DB sync** across roles |
 | Closing stock (7pm) | `accountant-rdc-hub` | **View only** — manager enters counts on `manager-stock` |
 | Depot alerts | `admin-exceptions` | Live exception queue (see below) |
@@ -120,6 +120,10 @@ Read-only board/MD view. Initial local account: `executive@lapok.ug`; change its
 **Sidebar — Reports:** PDF reports (acknowledge manager brief), Reports & analytics  
 
 **Sidebar — Monitoring:** Exception center (monitor only), Receivables overview, Staff welfare (view), Month-end (view)
+
+The dashboard has a **month picker** (current + any previous month). Picking a past month switches revenue, per-cadet sales, targets, and cash still out to that month and hides live "today" cards and charts. **Per-cadet soda/water sold is always tracked** even before targets are set (they sync in once the Manager saves them on the Monthly targets page), and the "Monthly sales targets" table ends with an **Overall depot** total row (DEPOT + all vehicles) for target / sold / %. **SODA targets** count the CSD packs **300ML, PET-330ML, PET-500ML, PET-1L, PET-2000ML**; **WATER targets** count **RWENZORI 500MLS-BOX, RWENZORI 500MLS-SHRINKS, RWENZORI 1.5MLS-BOX, JUMBO-BIG, JUMBO-SMALL** (energy / juice / empties excluded).
+
+**Director brief widget is monthly** — Revenue, Expenses (var + fixed), Net operating and Shortages flagged capture the whole selected month (migration-verified live for July 2026), while the full Director brief page stays a daily P&L. **Cash still out** reads the approved RDC sheets (`cash_out_json`/`recoveries_json`), e.g. July 2026 Cash out MTD 99,500 / CSO 99,500.
 
 Daily flow: Director brief → acknowledge PDF pack → scan exceptions / receivables / welfare. Admin action center is hidden on this home.
 
@@ -168,7 +172,7 @@ Manager: Stock taking (opening first, closing from 6:30 PM) + delivery confirmat
 
 1. **Field / Cadet:** submitting an end-of-day trip report archives one Field EOD PDF for that trip.
 2. **Accountant / RDC:** the manager finance pack unlocks only when all Field EOD PDFs exist, cadet cash handovers are confirmed, assigned trips are closed, and the RDC sheet is submitted.
-3. **Manager:** the executive pack unlocks only after the Accountant pack is opened, RDC is approved, opening and closing stock exist, and Inventory + OCCD boards are submitted.
+3. **Manager:** the executive pack unlocks only after the Accountant pack is opened, the RDC daily sheet is approved, and opening stock exists (3 readiness checks).
 4. **Executive / Board:** the chain is complete only after both the operations brief and CCBA boards companion are acknowledged.
 
 These readiness rules are enforced by both PDF generation and replacement-upload APIs. The PDF report screens show the same live four-stage status for the selected reporting date.
@@ -209,7 +213,7 @@ From the `lapok-dms-presentation` folder in PowerShell:
 Get-Content database\schema.sql | C:\xampp\mysql\bin\mysql.exe -u root
 Get-Content database\seed.sql | C:\xampp\mysql\bin\mysql.exe -u root lapok_dms
 
-# Apply every migration (001–018). Safe to re-run: most use IF NOT EXISTS / ADD COLUMN IF NOT EXISTS.
+# Apply every migration (001–019). Safe to re-run: most use IF NOT EXISTS / ADD COLUMN IF NOT EXISTS.
 # Both 004 files are separate required migrations (EFRIS and fleet tracking).
 Get-ChildItem database\migrations\*.sql | Sort-Object Name | ForEach-Object {
   Write-Host "Applying $($_.Name)…"
@@ -243,8 +247,11 @@ C:\xampp\php\php.exe scripts\setup_passwords.php --confirm-local-reset
 | **016** | `016_ccba_boards_report_type.sql` | Report type `ccba_boards` (companion PDF to executive brief) |
 | **017** | `017_remove_demo_operational_data.sql` | Remove seeded operations, stock quantities, stale trips, and historical sample packets while preserving accounts and genuine records |
 | **018** | `018_admin_vehicle_route_assignments.sql` | Weekly Admin vehicle / cadet / route assignments (`vehicle_route_assignments`) |
+| **019** | `019_cadet_confirm_receive.sql` | `delivery_trips.acknowledged_at` — cadet confirms dispatch before going on route |
+| **020** | `020_exec_kpi_targets.sql` | `sales_targets` (monthly SODA/WATER targets) + `exec_kpi_config` (CSO opening carry-forward); seeds July 2026 |
+| **021** | `021_sales_targets_per_cadet.sql` | `sales_targets.vehicle_id` — one target row per sales unit (NULL = DEPOT, else cadet vehicle); overall = SUM |
 
-**Required for this build:** apply **001–018**, including both `004_efris_integration.sql` and `004_fleet_tracking.sql`. Migration `017` is the no-demo cleanup and intentionally preserves the six accounts, fleet master, product catalogue, and genuine operational records.
+**Required for this build:** apply **001–021**, including both `004_efris_integration.sql` and `004_fleet_tracking.sql`. Migration `017` is the no-demo cleanup and intentionally preserves the six accounts, fleet master, product catalogue, and genuine operational records.
 
 Verify core tables:
 

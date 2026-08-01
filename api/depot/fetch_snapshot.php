@@ -20,21 +20,56 @@ if (!in_array($type, ['opening', 'closing'], true)) {
 }
 
 $snapshot = depot_snapshot_fetch($date, $type);
-$warehouseLines = depot_stock_lines_from_warehouse($date);
+// Closing stock must count the stock cadets returned this evening (unsold remains).
+$warehouseLines = depot_stock_lines_from_warehouse($date, $type === 'closing');
+// Sales come from cadet reports (trip sales), never typed into the stock book.
+$warehouseLines = depot_apply_cadet_sales_from_trips($warehouseLines, $date);
 
-// Opening stock carries over the previous day's closing stock (counts carry forward).
+// Opening stock = yesterday's CLOSING stock, which is calculated automatically as the
+// warehouse ledger (cadet remainders are restocked in on trip close, so closing = ledger).
 if ($type === 'opening' && (!$snapshot || empty($snapshot['lines']))) {
-    $prevDate = date('Y-m-d', strtotime($date . ' -1 day'));
-    $prevClosing = depot_snapshot_fetch($prevDate, 'closing');
-    if ($prevClosing && !empty($prevClosing['lines'])) {
-        $carry = depot_merge_snapshot_onto_catalog($prevClosing['lines']);
-        foreach ($carry as &$line) {
-            $line['opening'] = (int) ($line['closing'] ?? $line['qty'] ?? 0);
-            $line['qty'] = 0;
-            $line['sales'] = 0;
+    $ledgerTotal = 0;
+    foreach ($warehouseLines as &$line) {
+        $carried = (int) ($line['qty'] ?? 0);
+        $ledgerTotal += $carried;
+        $line['opening'] = $carried;
+        $line['qty'] = 0;
+        $line['sales'] = 0;
+    }
+    unset($line);
+
+    // If the warehouse ledger is empty (fresh install), fall back to the most recent
+    // saved closing/opening snapshot so quantities keep picking up automatically.
+    if ($ledgerTotal <= 0) {
+        $carryFrom = null;
+        for ($i = 1; $i <= 7; $i++) {
+            $cand = date('Y-m-d', strtotime($date . " -{$i} day"));
+            foreach (['closing', 'opening'] as $t) {
+                $prev = depot_snapshot_fetch($cand, $t);
+                if ($prev && !empty($prev['lines'])) {
+                    $carryFrom = $prev['lines'];
+                    break 2;
+                }
+            }
         }
-        unset($line);
-        $warehouseLines = depot_apply_purchases_from_deliveries($carry, $date);
+        if ($carryFrom) {
+            $carry = depot_merge_snapshot_onto_catalog($carryFrom);
+            foreach ($carry as &$line) {
+                $carried = (int) ($line['closing'] ?? 0);
+                if ($carried <= 0) {
+                    $carried = (int) ($line['opening'] ?? 0);
+                }
+                if ($carried <= 0) {
+                    $carried = (int) ($line['qty'] ?? 0);
+                }
+                $line['opening'] = $carried;
+                $line['qty'] = 0;
+                $line['sales'] = 0;
+            }
+            unset($line);
+            $warehouseLines = depot_apply_purchases_from_deliveries($carry, $date);
+            $warehouseLines = depot_apply_cadet_sales_from_trips($warehouseLines, $date);
+        }
     }
 }
 
@@ -43,6 +78,8 @@ if ($snapshot && !empty($snapshot['lines'])) {
     // (PREDATOR GOLD / POWERPLAY) do not appear beside the new ENERGY rows.
     $snapshot['lines'] = depot_merge_snapshot_onto_catalog($snapshot['lines']);
     $snapshot['lines'] = depot_apply_purchases_from_deliveries($snapshot['lines'], $date);
+    // Sales always mirror cadet reports, even on previously saved snapshots.
+    $snapshot['lines'] = depot_apply_cadet_sales_from_trips($snapshot['lines'], $date);
 }
 
 json_ok([

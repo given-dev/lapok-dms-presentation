@@ -56,6 +56,13 @@ if ($locked) {
     json_error('Only the accountant can edit draft RDC sheets', 403);
 }
 
+// Sales are captured automatically from cadet reports and are LOCKED for manager review:
+// a manager correction may adjust expenses/cash, but never the sales figures.
+if ($managerMayEdit && is_array($sales) && $prev) {
+    $prevSales = json_decode((string) ($prev['sales_json'] ?? '[]'), true);
+    $sales = is_array($prevSales) ? $prevSales : [];
+}
+
 // Only admin may change unit prices  -  keep existing / catalog prices for accountants/managers
 if ($role !== 'admin' && is_array($sales)) {
     $lockedByKey = [];

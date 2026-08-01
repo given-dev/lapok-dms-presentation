@@ -152,6 +152,28 @@ function depot_normalize_rdc_key(string $key): string
     return $legacy[$key] ?? $key;
 }
 
+/** SODA / WATER packs counted toward monthly sales targets (manager-defined product list). */
+function depot_target_packs(): array
+{
+    return [
+        'soda' => ['300ml', 'pet_330', 'pet_500', 'pet_1l', 'pet_2000'],
+        'water' => ['rw_500_box', 'rw_500_shrink', 'rw_1500_box', 'jumbo_big', 'jumbo_small'],
+    ];
+}
+
+/** Classify an RDC sheet line as 'soda', 'water' or null (not part of monthly targets). */
+function depot_target_classify(array $line): ?string
+{
+    $key = depot_normalize_rdc_key(strtolower((string) ($line['rdc_key'] ?? '')));
+    if (in_array($key, depot_target_packs()['soda'], true)) {
+        return 'soda';
+    }
+    if (in_array($key, depot_target_packs()['water'], true)) {
+        return 'water';
+    }
+    return null;
+}
+
 /** @return array<string, int> rdc_key => qty_loaded */
 function depot_trip_loaded_by_rdc_key(int $tripId): array
 {
@@ -288,6 +310,123 @@ function depot_manager_warehouse_catalog(): array
         $row('EMPTIES', 'BOTTLES', 'EMPTY-300', 'bottles', 400, 50, 100),
         $row('EMPTIES', 'SHELLS', 'EMPTY-SHELL', 'shell', 6400, 40, 80),
     ];
+}
+
+/**
+ * Dispatch load list — the same pack view cadets see (RDC sales catalog),
+ * with live warehouse availability rolled up per pack.
+ *
+ * @return list<array{category:string, packs:list<array{rdc_key:string, label:string, unit_price:float, category:string, warehouse_qty:int, products:list<array{product_id:int, name:string, sku:string, warehouse_qty:int}>}>}>
+ */
+function depot_dispatch_pack_groups(): array
+{
+    require_once __DIR__ . '/stock.php';
+    $packs = [];
+    foreach (depot_rdc_sales_catalog() as $row) {
+        $packs[$row['key']] = [
+            'rdc_key' => $row['key'],
+            'label' => $row['label'],
+            'unit_price' => (float) $row['price'],
+            'category' => $row['category'],
+            'warehouse_qty' => 0,
+            'products' => [],
+        ];
+    }
+
+    foreach (db()->query(stock_summary_query())->fetchAll() as $r) {
+        $key = depot_map_product_to_rdc_key((string) $r['name'], (string) $r['sku']);
+        if ($key === null || !isset($packs[$key])) {
+            continue;
+        }
+        $packs[$key]['warehouse_qty'] += (int) $r['warehouse_qty'];
+        $packs[$key]['products'][] = [
+            'product_id' => (int) $r['product_id'],
+            'name' => (string) $r['name'],
+            'sku' => (string) $r['sku'],
+            'warehouse_qty' => (int) $r['warehouse_qty'],
+        ];
+    }
+
+    $grouped = [];
+    foreach (depot_category_order() as $cat) {
+        $items = array_values(array_filter($packs, fn($p) => $p['category'] === $cat));
+        if (count($items) > 0) {
+            $grouped[] = ['category' => $cat, 'packs' => $items];
+        }
+    }
+    return $grouped;
+}
+
+/**
+ * Split a pack-level dispatch qty across the pack's SKUs proportionally to
+ * current warehouse stock, so per-SKU stock stays consistent.
+ *
+ * @return list<array{product_id:int, qty:int}>
+ */
+function depot_split_pack_qty(string $rdcKey, int $qty): array
+{
+    require_once __DIR__ . '/stock.php';
+    if ($qty <= 0 || $rdcKey === '') {
+        return [];
+    }
+
+    $products = [];
+    $totalAvailable = 0;
+    foreach (db()->query(stock_summary_query())->fetchAll() as $r) {
+        $key = depot_map_product_to_rdc_key((string) $r['name'], (string) $r['sku']);
+        $w = (int) $r['warehouse_qty'];
+        if ($key !== $rdcKey || $w <= 0) {
+            continue;
+        }
+        $products[] = ['product_id' => (int) $r['product_id'], 'warehouse_qty' => $w];
+        $totalAvailable += $w;
+    }
+
+    if (count($products) === 0) {
+        return [];
+    }
+    if ($qty > $totalAvailable) {
+        throw new RuntimeException("Insufficient warehouse stock for pack {$rdcKey} (available {$totalAvailable})");
+    }
+
+    $alloc = [];
+    foreach ($products as $p) {
+        $alloc[$p['product_id']] = ['max' => $p['warehouse_qty'], 'qty' => 0];
+    }
+    $remaining = $qty;
+    foreach ($products as $p) {
+        $share = (int) floor($qty * $p['warehouse_qty'] / $totalAvailable);
+        $share = min($share, $p['warehouse_qty']);
+        $alloc[$p['product_id']]['qty'] = $share;
+        $remaining -= $share;
+    }
+    while ($remaining > 0) {
+        $bestId = null;
+        $bestRatio = INF;
+        foreach ($alloc as $id => $a) {
+            if ($a['qty'] >= $a['max']) {
+                continue;
+            }
+            $ratio = $a['max'] > 0 ? $a['qty'] / $a['max'] : 1.0;
+            if ($ratio < $bestRatio) {
+                $bestRatio = $ratio;
+                $bestId = $id;
+            }
+        }
+        if ($bestId === null) {
+            break;
+        }
+        $alloc[$bestId]['qty'] += 1;
+        $remaining -= 1;
+    }
+
+    $out = [];
+    foreach ($alloc as $id => $a) {
+        if ($a['qty'] > 0) {
+            $out[] = ['product_id' => $id, 'qty' => $a['qty']];
+        }
+    }
+    return $out;
 }
 
 /** Brand section order on manager stock / dispatch sheet. */

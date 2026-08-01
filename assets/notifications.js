@@ -4,9 +4,6 @@
 (function () {
   let notifState = { items: [], history: [], unread: 0, canSend: false, cadets: null };
 
-  const SEVERITY_CLASS = { info: 'a-info', warning: 'a-warning', danger: 'a-danger' };
-  const SEVERITY_ICON = { info: 'ℹ', warning: '⚠', danger: '⚠' };
-
   function esc(s) {
     return String(s || '').replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
   }
@@ -28,22 +25,24 @@
   }
 
   function renderNotifItem(n) {
-    const cls = SEVERITY_CLASS[n.severity] || 'a-info';
-    const icon = SEVERITY_ICON[n.severity] || 'ℹ';
-    const unread = !n.is_read ? ' style="border-left:3px solid var(--red)"' : '';
-    const link = `<button class="btn btn-sm" type="button" style="margin-top:6px" onclick="openNotificationMessage(${n.id})">Open →</button>`;
-    return `<div class="alert ${cls}"${unread} data-notif-id="${n.id}">
-      <span>${icon}</span>
-      <div><strong>${esc(n.from)}</strong> · <span style="font-size:11px;color:var(--gray-mid)">${formatWhen(n.created_at)}</span>
-        <div style="font-weight:600;margin-top:2px">${esc(n.title)}</div>
-        <div style="font-size:13px;margin-top:2px">${esc(n.body)}</div>${link}</div></div>`;
+    const unread = !n.is_read ? ' unread' : '';
+    const sev = (n.severity === 'warning' || n.severity === 'danger')
+      ? `<span class="notif-sev sev-${n.severity}">${n.severity === 'danger' ? 'Urgent' : 'Alert'}</span>` : '';
+    return `<div class="notif-row${unread}" data-notif-id="${n.id}" onclick="openNotificationMessage(${n.id})">
+      <span class="notif-dot"></span>
+      <div class="notif-main">
+        <div class="notif-meta"><span class="notif-sender">${esc(n.from)}</span><span class="notif-time">${formatWhen(n.created_at)}</span></div>
+        <div class="notif-title">${esc(n.title)}${sev}</div>
+        <div class="notif-body">${esc(n.body)}</div>
+      </div>
+    </div>`;
   }
 
   function renderNotifListHtml(items, emptyText) {
     if (!items.length) {
-      return `<p style="color:var(--gray-mid);font-size:13px">${emptyText || 'No notifications yet.'}</p>`;
+      return `<p style="color:var(--gray-mid);font-size:13px;padding:4px 2px">${emptyText || 'No notifications yet.'}</p>`;
     }
-    return items.map(renderNotifItem).join('');
+    return `<div class="notif-list">${items.map(renderNotifItem).join('')}</div>`;
   }
 
   async function refreshNotifications() {

@@ -1,5 +1,5 @@
 /**
- * Outpost DMS &mdash; Presentation build API client (Admin &middot; Executive &middot; Manager &middot; Accountant)
+ * Outpost DMS — Presentation build API client (Admin · Executive · Manager · Accountant)
  */
 const LapokAPI = (() => {
   const base = '';
@@ -41,7 +41,13 @@ const LapokAPI = (() => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
   }
 
-  async function request(method, path, body) {
+  const inflight = new Map();
+  const dashboardCache = new Map();
+  const DASH_CACHE_TTL = 15000;
+  const isDashboardRead = (key) =>
+    key.includes('/api/dashboard/') || key.includes('/api/reports/dashboard_charts.php');
+
+  async function doFetch(method, path, body) {
     const opts = {
       method,
       credentials: 'include',
@@ -51,20 +57,45 @@ const LapokAPI = (() => {
       opts.headers['Content-Type'] = 'application/json';
       opts.body = JSON.stringify(body);
     }
-    const url = resolvePath(path);
-    const res = await fetch(url, opts);
+    const res = await fetch(resolvePath(path), opts);
     const raw = await res.text();
     let json;
     try {
       json = raw ? JSON.parse(raw) : null;
     } catch {
-      const hint = raw && raw.trim().startsWith('<') ? ' (server returned HTML &mdash; check API URL or PHP errors)' : '';
+      const hint = raw && raw.trim().startsWith('<') ? ' (server returned HTML — check API URL or PHP errors)' : '';
       throw new Error('Invalid server response' + hint);
     }
     if (!json || !json.success) {
       throw new Error(json?.error || `Request failed (${res.status})`);
     }
     return json.data;
+  }
+
+  async function request(method, path, body) {
+    if (method === 'GET') {
+      const key = resolvePath(path);
+      // Share concurrent GETs to the same URL (dedup duplicate page-loads).
+      if (inflight.has(key)) return inflight.get(key);
+      // Short-lived cache for heavy dashboard payloads — back-navigation is instant.
+      if (isDashboardRead(key)) {
+        const hit = dashboardCache.get(key);
+        if (hit && Date.now() - hit.t < DASH_CACHE_TTL) return hit.data;
+      }
+      const p = doFetch(method, path, body)
+        .then((data) => {
+          if (isDashboardRead(key)) dashboardCache.set(key, { t: Date.now(), data });
+          return data;
+        })
+        .finally(() => {
+          inflight.delete(key);
+        });
+      inflight.set(key, p);
+      return p;
+    }
+    // Any mutation invalidates cached dashboards so KPIs stay fresh.
+    dashboardCache.clear();
+    return doFetch(method, path, body);
   }
 
   const navManager = [
@@ -79,11 +110,10 @@ const LapokAPI = (() => {
     { id: 'admin-exceptions', l: 'Exception center', i: 'chart' },
     { id: 'admin-editreqs', l: 'Edit requests', i: 'edit' },
     { section: 'Business' },
-    { id: 'admin-customers', l: 'Customers & receivables', i: 'custs' },
     { id: 'manager-ccba-order', l: 'Order via MyCCBA', i: 'box' },
     { id: 'manager-reports', l: 'Reports & analytics', i: 'chart' },
     { section: 'Monthly' },
-    { id: 'accountant-improvements', l: 'Month-end', i: 'chart' },
+    { id: 'manager-targets', l: 'Monthly targets', i: 'chart' },
     { id: 'accountant-welfare', l: 'Staff welfare', i: 'edit' },
   ];
 
@@ -102,7 +132,7 @@ const LapokAPI = (() => {
     monthStartIso,
     localIsoDate,
     formatUgx: (n) => 'UGX ' + Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 }),
-    /** Full digits with thousand separators &mdash; supports at least 9-digit amounts (e.g. 999,999,999). */
+    /** Full digits with thousand separators — supports at least 9-digit amounts (e.g. 999,999,999). */
     formatM: (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 }),
     formatDigits: (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 }),
     formatDate: (s) => {
@@ -155,7 +185,7 @@ const LapokAPI = (() => {
           const bg = i % 2 === 0 ? '#FFFFFF' : '#F8FAFC';
           const cells = r.map((c) => {
             const n = typeof c === 'number' || (typeof c === 'string' && c !== '' && !Number.isNaN(Number(c)) && !/^0\d+/.test(c));
-            const text = n ? Number(c).toLocaleString('en-UG') : (c == null || c === '' ? '&mdash;' : c);
+            const text = n ? Number(c).toLocaleString('en-UG') : (c == null || c === '' ? '—' : c);
             return `<td style="padding:8px 10px;border:1px solid #E2E8F0;font-family:Calibri,Arial,sans-serif;font-size:11pt;text-align:${n ? 'right' : 'left'}">${esc(text)}</td>`;
           }).join('');
           return `<tr style="background:${bg}">${cells}</tr>`;
@@ -163,7 +193,7 @@ const LapokAPI = (() => {
         : `<tr><td colspan="${Math.max(1, headers.length)}" style="padding:16px;color:#94A3B8;text-align:center;border:1px solid #E2E8F0">No rows for this export.</td></tr>`;
 
       const when = new Date().toLocaleString('en-UG', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>OUTPOST DMS &mdash; ${esc(title)}</title></head>
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>OUTPOST DMS — ${esc(title)}</title></head>
 <body style="margin:0;background:#fff">
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px;font-family:Calibri,Arial,sans-serif">
   <tr><td colspan="2" style="height:6px;background:#E53E3E;font-size:1px">&nbsp;</td></tr>
@@ -181,7 +211,7 @@ const LapokAPI = (() => {
   <tr><td colspan="2" style="padding:6px 16px 14px 16px;background:#F8FAFC"><table style="border-collapse:collapse">${metaHtml}</table></td></tr>
 </table>
 <table style="border-collapse:collapse;width:100%"><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table>
-<p style="margin:16px;font-size:9pt;color:#94A3B8;font-family:Calibri,Arial,sans-serif">Generated by Outpost DMS &middot; ${esc(when)}</p>
+<p style="margin:16px;font-size:9pt;color:#94A3B8;font-family:Calibri,Arial,sans-serif">Generated by Outpost DMS · ${esc(when)}</p>
 </body></html>`;
 
       const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
@@ -200,14 +230,12 @@ const LapokAPI = (() => {
         { id: 'admin-users', l: 'User management', i: 'users' },
         { id: 'admin-audit', l: 'Audit log', i: 'edit' },
         { section: 'Operations' },
-        { id: 'admin-customers', l: 'Customers & receivables', i: 'custs' },
         { id: 'admin-editreqs', l: 'Edit requests', i: 'edit' },
         { id: 'admin-exceptions', l: 'Exception center', i: 'chart' },
         { section: 'Reports' },
         { id: 'report-exchange', l: 'PDF reports', i: 'receipt' },
         { id: 'admin-reports', l: 'Reports & analytics', i: 'chart' },
         { section: 'RDC / depot' },
-        { id: 'accountant-improvements', l: 'Month-end', i: 'chart' },
         { id: 'accountant-welfare', l: 'Staff welfare', i: 'edit' },
       ],
       manager: navManager,
@@ -230,10 +258,8 @@ const LapokAPI = (() => {
         { id: 'admin-reports', l: 'Reports & analytics', i: 'chart' },
         { section: 'Monitoring' },
         { id: 'admin-exceptions', l: 'Exception center', i: 'chart' },
-        { id: 'admin-customers', l: 'Receivables overview', i: 'custs' },
         { id: 'admin-users', l: 'Freeze accounts', i: 'users' },
         { id: 'accountant-welfare', l: 'Staff welfare', i: 'edit' },
-        { id: 'accountant-improvements', l: 'Month-end', i: 'chart' },
       ],
       field_user: [
         { section: 'Access' },
@@ -269,7 +295,7 @@ const LapokAPI = (() => {
     },
     /**
      * Ownership map (see docs/SYSTEMS_BUILDING_GUIDE.md §9).
-     * Wrong-role deep-links bounce home &mdash; intentional security.
+     * Wrong-role deep-links bounce home — intentional security.
      * Managers may still open accountant-rdc to view/edit a sheet during review.
      */
     rolePageOwner: {
@@ -286,32 +312,37 @@ const LapokAPI = (() => {
       'admin-users': 'Admin / Executive',
       'admin-audit': 'Admin',
       'admin-editreqs': 'Manager / Admin',
-      'admin-customers': 'Manager',
+      'accountant-improvements': 'Accountant',
+      'accountant-welfare': 'Accountant',
       'cadet-dashboard': 'Cadet',
       'cadet-daily': 'Cadet',
     },
     roleBlockedPages: {
+      admin: [
+        'accountant-improvements',
+      ],
       cadet: [
         'accountant-rdc-hub', 'accountant-rdc', 'accountant-cash',
         'accountant-improvements', 'accountant-welfare',
         'manager-dashboard', 'manager-stock', 'manager-dispatch', 'manager-delivery', 'manager-rdc-review',
         'manager-ccba-boards', 'manager-ccba-order',
         'admin-dashboard', 'admin-users', 'admin-editreqs', 'admin-exceptions',
-        'admin-customers', 'admin-reports', 'admin-audit',
+        'admin-reports', 'admin-audit',
         'director-brief', 'report-exchange',
       ],
       accountant: [
         'manager-dashboard', 'manager-stock', 'manager-dispatch', 'manager-delivery', 'manager-rdc-review',
         'manager-ccba-boards', 'manager-ccba-order',
-        'admin-users', 'admin-audit', 'admin-editreqs', 'admin-customers',
+        'admin-users', 'admin-audit', 'admin-editreqs',
       ],
       manager: [
-        'accountant-rdc-hub', 'accountant-cash',
+        'accountant-rdc-hub', 'accountant-cash', 'accountant-improvements',
         'admin-users', 'admin-audit',
         'cadet-dashboard', 'cadet-daily',
       ],
       executive: [
         'accountant-rdc-hub', 'accountant-cash', 'accountant-rdc',
+        'accountant-improvements',
         'manager-dashboard', 'manager-stock', 'manager-dispatch', 'manager-delivery', 'manager-rdc-review',
         'manager-ccba-boards', 'manager-ccba-order',
         'admin-editreqs', 'admin-audit',

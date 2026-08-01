@@ -25,6 +25,7 @@ if (!$old) {
 
 $name = trim($body['name'] ?? $old['name']);
 $phone = array_key_exists('phone', $body) ? trim($body['phone'] ?? '') ?: null : $old['phone'];
+$nin = array_key_exists('nin', $body) ? trim($body['nin'] ?? '') ?: null : ($old['nin'] ?? null);
 $location = array_key_exists('location', $body) ? trim($body['location'] ?? '') ?: null : $old['location'];
 $category = $body['category'] ?? $old['category'];
 
@@ -33,10 +34,10 @@ if (!in_array($category, ['occasional', 'regular', 'vip'], true)) {
 }
 
 $upd = db()->prepare(
-    'UPDATE customers SET name = ?, phone = ?, location = ?, category = ? WHERE id = ?'
+    'UPDATE customers SET name = ?, phone = ?, nin = ?, location = ?, category = ? WHERE id = ?'
 );
-$upd->execute([$name, $phone, $location, $category, $id]);
+$upd->execute([$name, $phone, $nin, $location, $category, $id]);
 
-audit_log($user['id'], 'customers', $id, 'update', $old, compact('name', 'phone', 'location', 'category'));
+audit_log($user['id'], 'customers', $id, 'update', $old, compact('name', 'phone', 'nin', 'location', 'category'));
 
 json_ok(['customer_id' => $id]);

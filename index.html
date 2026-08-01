@@ -5,14 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <script>document.documentElement.classList.add('auth-pending');</script>
 <title>Outpost DMS — Depot Management</title>
+<link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/fonts/inter.css?v=20260801">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --red:#E53E3E;--red-dark:#C53030;--red-glow:rgba(229,62,62,.12);--red-light:#FEE2E2;
   --black:#0F172A;--surface:#F9FAFB;--white:#FFFFFF;
   --gray:#64748B;--gray-mid:#94A3B8;--gray-light:#E2E8F0;--gray-dark:#1E293B;
-  --gold:#D97706;--accent:#3B82F6;
+  --gold:#D97706;--accent:#3B82F6;--green:#16A34A;--green-light:#DCFCE7;--amber:#D97706;--amber-light:#FEF3C7;
   --shadow:0 4px 6px rgba(15,23,42,.07),0 10px 24px rgba(15,23,42,.08);
   --shadow-lg:0 10px 30px rgba(13,23,42,.12),0 20px 50px rgba(15,23,42,.1);
   --gradient-primary:linear-gradient(135deg,#E53E3E 0%,#DC2626 100%);
@@ -138,7 +139,7 @@ html,body{height:100%;font-family:'Inter',system-ui,-apple-system,sans-serif;bac
 .rdc-hub-greeting{font-size:20px;font-weight:700;letter-spacing:-.02em}
 .rdc-hub-date{font-size:13px;color:var(--gray-mid);margin-top:2px}
 .rdc-hub-hero-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.rdc-hub-progress{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-bottom:1rem}
+.rdc-hub-progress{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:1rem}
 .rdc-hub-progress-seg{height:6px;border-radius:99px;background:var(--gray-light);overflow:hidden;position:relative}
 .rdc-hub-progress-seg span{position:absolute;inset:0;font-size:0}
 .rdc-hub-progress-seg.done{background:#22c55e}
@@ -162,7 +163,6 @@ html,body{height:100%;font-family:'Inter',system-ui,-apple-system,sans-serif;bac
 .rdc-hub-check-item.done .rdc-hub-check-num{background:#22c55e;color:#fff}
 .rdc-hub-check-item.active .rdc-hub-check-num{background:var(--red);color:#fff}
 .rdc-hub-cash-nudge{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:1rem;padding:12px 14px;border-radius:var(--rl);border:1px solid #fcd34d;background:#fffbeb}
-.rdc-hub-recv-nudge{border-color:#fca5a5;background:#fff5f5}
 .rdc-hub-depot-nudge{border-color:#fdba74;background:#fff7ed}
 .rdc-hub-month-end{margin-bottom:1rem;padding:12px 14px;border-radius:var(--rl);border:1px solid var(--gray-light);background:var(--white);display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
 .rdc-hub-pack-view{margin:0 0 1rem;padding:0;list-style:none}
@@ -194,6 +194,41 @@ tr:hover td{background:rgba(0,0,0,.012)}
 
 /* ── ALERTS ── */
 .alert{padding:12px 16px;border-radius:var(--r);margin-bottom:1rem;font-size:13px;display:flex;align-items:flex-start;gap:12px;line-height:1.6;border:1px solid;transition:var(--transition)}
+.notif-list{display:flex;flex-direction:column}
+.notif-row{display:flex;align-items:flex-start;gap:10px;padding:11px 4px;border-bottom:1px solid var(--gray-light);border-left:3px solid transparent;cursor:pointer;transition:var(--transition)}
+.notif-row:hover{background:var(--surface);padding-left:8px}
+.notif-row:last-child{border-bottom:none}
+.notif-row.unread{border-left-color:var(--red)}
+.notif-dot{width:8px;height:8px;border-radius:50%;background:var(--red);margin-top:7px;flex-shrink:0;box-shadow:0 0 0 3px var(--red-glow)}
+.notif-row:not(.unread) .notif-dot{background:var(--gray-light);box-shadow:none}
+.notif-main{flex:1;min-width:0}
+.notif-meta{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.notif-sender{font-size:12px;font-weight:600;color:var(--gray-dark)}
+.notif-time{font-size:11px;color:var(--gray-mid);white-space:nowrap}
+.notif-title{font-size:13px;font-weight:700;color:var(--black);margin-top:1px}
+.notif-row:not(.unread) .notif-title{font-weight:600}
+.notif-body{font-size:12.5px;color:var(--gray);margin-top:1px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.notif-sev{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:20px;margin-left:6px;vertical-align:2px}
+.sev-warning{background:rgba(217,119,6,.12);color:var(--gold)}
+.sev-danger{background:var(--red-light);color:var(--red-dark)}
+.cal-cell{min-height:62px;border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;font-family:inherit;transition:var(--transition)}
+.cal-cell.none{background:#fff;border:1px solid rgba(15,23,42,.08)}
+.cal-cell:disabled{cursor:default}
+.cal-cell.ok{background:#F0FDF4;border:1px solid #16A34A}
+.cal-cell.bad{background:#FEF2F2;border:1px solid #E53E3E}
+.cal-cell.active{box-shadow:0 0 0 2px #fff,0 0 0 3px rgba(15,23,42,.45)}
+.cal-day{font-weight:700;color:var(--black)}
+.cal-tick{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:13px;font-weight:700;color:#fff;line-height:1;margin-top:6px;flex-shrink:0}
+.cal-tick.ok{background:#16A34A}
+.cal-tick.bad{background:#E53E3E}
+.cal-tick.flat{margin-top:0;width:18px;height:18px;font-size:11px;vertical-align:middle}
+.cal-legend{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:-0.5rem 0 1rem;font-size:11.5px;color:var(--gray)}
+.cal-legend .cal-tick{margin-top:0;width:16px;height:16px;font-size:10px}
+.rdc-datepicker{position:relative}
+.rdc-date-btn{min-height:36px;width:auto;cursor:pointer;text-align:left}
+.rdc-date-btn.btn-active{border-color:var(--gray);box-shadow:0 0 0 2px rgba(15,23,42,.12)}
+.rdc-date-pop{position:absolute;top:calc(100% + 6px);left:0;z-index:60;width:330px;background:#fff;border:1px solid rgba(15,23,42,.1);border-radius:14px;box-shadow:0 14px 40px rgba(15,23,42,.16);padding:.9rem}
+.rdc-date-nav{display:flex;gap:8px;align-items:center;margin-bottom:.7rem}
 .a-danger{background:#FEE2E2;color:#7F1D1D;border-color:#FCA5A5;box-shadow:0 4px 12px rgba(229,62,62,.08)}
 .a-warning{background:#FFFBEB;color:#78350F;border-color:#FCD34D;box-shadow:0 4px 12px rgba(217,119,6,.08)}
 .a-info{background:#EFF6FF;color:#1E3A5F;border-color:#93C5FD;box-shadow:0 4px 12px rgba(59,130,246,.08)}
@@ -236,7 +271,9 @@ tr:hover td{background:rgba(0,0,0,.012)}
 .stock-book-table td:nth-child(1),.stock-book-table td:nth-child(2){text-align:left}
 .stock-book-table td{text-align:center}
 .stock-book-table .cat-row td{background:#f8fafc;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--gray);text-align:left}
-.stock-book-table .stock-book-total td{background:#eef2f7;border-top:1px solid #d8dee8}
+.stock-book-table .stock-book-total td{background:#eef2f7;border-top:1px solid #d8dee8;text-align:center}
+.stock-book-table .stock-book-total .stock-book-total-label{text-align:left}
+.stock-book-table .stock-book-grand-total td{background:#dde5ee}
 
 /* Warehouse stock overview — roomy rows + brand groups */
 .wh-stock-table{font-size:13px}
@@ -259,10 +296,7 @@ tr:hover td{background:rgba(0,0,0,.012)}
 .stock-book-input{width:86px;min-height:38px;padding:7px 8px;text-align:center;border:1.5px solid var(--gray-light);border-radius:8px;font:inherit}
 .stock-book-input:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 3px var(--red-light)}
 .stock-book-input[disabled]{background:#f8fafc;color:var(--gray-mid);cursor:not-allowed}
-.stock-book-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-.stock-book-actions .card{margin-bottom:0}
-.stock-book-actions .card-header{margin-bottom:.6rem}
-@media(max-width:768px){.stock-book-meta,.stock-book-actions{grid-template-columns:1fr}}
+@media(max-width:768px){.stock-book-meta{grid-template-columns:1fr}}
 
 /* ── OCCD DAILY BOARDS ── */
 .occd-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;padding:12px 14px;background:var(--white);border:1px solid var(--gray-light);border-radius:var(--rl);box-shadow:var(--shadow)}
@@ -288,6 +322,7 @@ tr:hover td{background:rgba(0,0,0,.012)}
 .occd-dash-table .occd-num-col .occd-num-inp{width:100%;max-width:96px;margin-left:auto;display:block}
 .occd-inv-table th.occd-num-col small,.occd-dash-table th.occd-num-col small{display:block;font-weight:600;text-transform:none;letter-spacing:0;color:var(--gray-mid);font-size:9px}
 .occd-num-cell{display:inline-block;min-width:2.5rem;text-align:right;font-variant-numeric:tabular-nums}
+.right{text-align:right;font-variant-numeric:tabular-nums}
 .occd-inv-table .occd-total-row td:first-child,
 .occd-inv-table .occd-grand-row td:first-child{letter-spacing:.04em;text-transform:uppercase;font-size:11px}
 .occd-inv-table .occd-total-note{color:var(--gray-mid);font-weight:500;text-align:center}
@@ -383,6 +418,10 @@ tr:hover td{background:rgba(0,0,0,.012)}
 .cadet-sales-table td:nth-child(2),.cadet-sales-table th:nth-child(2){text-align:right;white-space:nowrap}
 .cadet-sales-table td:nth-child(3),.cadet-sales-table th:nth-child(3),
 .cadet-sales-table td:nth-child(4),.cadet-sales-table th:nth-child(4){white-space:nowrap}
+.dispatch-sales-table{width:100%;min-width:480px}
+.dispatch-sales-table .dispatch-qty{width:84px;min-width:84px;text-align:right;font-variant-numeric:tabular-nums}
+.dispatch-sales-table td:nth-child(2),.dispatch-sales-table th:nth-child(2){text-align:right;white-space:nowrap}
+.dispatch-sales-table td:nth-child(3),.dispatch-sales-table th:nth-child(3){white-space:nowrap}
 .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;background:var(--gradient-primary);color:#fff;box-shadow:0 4px 12px rgba(229,62,62,.25);transition:var(--transition)}
 .av-red{background:#fee2e2;color:var(--red)}.av-blk{background:#f3f4f6;color:#374151}
 .toggle{position:relative;display:inline-block;width:50px;height:28px;cursor:pointer;border-radius:14px;background:var(--gray-light);border:none;transition:var(--transition)}
@@ -474,7 +513,62 @@ canvas{display:block;width:100%!important}
 @media(max-width:375px){:root{--r:7px;--rl:10px}html,body{font-size:11.5px}.topbar{padding:0.45rem 0.7rem}.topbar-title{font-size:12px}.menu-btn{padding:6px 8px;min-width:40px}.content{padding:0.65rem}.card{padding:0.75rem;margin-bottom:0.7rem}.card-header{gap:4px}.card-title{font-size:11.5px}.metric-grid{grid-template-columns:repeat(2,1fr);gap:6px}.metric-card{padding:0.75rem}.metric-value{font-size:15px}.metric-label{font-size:8px}.metric-sub{font-size:8.5px}table{min-width:260px;font-size:10px}th{font-size:9px;padding:4px 5px}td{padding:4px 5px}.badge{padding:1px 5px;font-size:9px}.alert{padding:7px 9px;font-size:11px}.btn{padding:5px 9px;font-size:10px;min-height:38px}.btn-sm{padding:4px 8px;font-size:9px;min-height:34px}.input,.select-inp,.textarea-inp{font-size:11px;padding:6px 8px;min-height:38px}.qty-inp{width:50px;padding:5px 6px;min-height:34px;font-size:10px}.form-group label{font-size:10px}.form-section{font-size:9px;margin:10px 0 5px}.vehicle-card{padding:9px;margin-bottom:5px}.vehicle-icon{width:32px;height:32px;font-size:16px}.vehicle-name{font-size:11px}.vehicle-detail{font-size:10px}.modal{padding:1rem}.modal-title{font-size:12px}.btn-group{gap:4px}.two-col,.three-col{gap:0.7rem}.form-row{gap:5px;margin-bottom:7px}.chip{padding:2px 7px;font-size:9px}canvas{height:80px!important}.chart-legend{gap:8px;font-size:9px}.notif-btn{width:40px;height:40px}.avatar{width:28px;height:28px;font-size:10px}.stop{gap:8px}.stop-dot{width:16px;height:16px}.tl-item{padding:0 0 8px 16px}.tl-dot{width:9px;height:9px;left:-5px}.recon-row{font-size:11px;padding:5px 0}.topbar-left{gap:6px}.receipt-box{font-size:10px;padding:0.7rem}}
 
 /* 320px: Small Android Phone */
-@media(max-width:320px){:root{--r:6px;--rl:9px}html,body{font-size:11px}.topbar{padding:0.4rem 0.6rem;gap:4px}.topbar-title{font-size:11px}.menu-btn{padding:5px 6px;min-width:36px;width:36px;height:36px}.notif-btn{width:36px;height:36px}.content{padding:0.6rem}.card{padding:0.7rem;margin-bottom:0.6rem}.card-header{flex-direction:column;align-items:flex-start}.card-title{font-size:11px}.metric-grid{grid-template-columns:1fr;gap:6px}.metric-card{padding:0.7rem}.metric-value{font-size:14px}.metric-label{font-size:7.5px}.metric-sub{font-size:8px}table{min-width:240px;font-size:9px}th{font-size:8px;padding:3px 4px}td{padding:3px 4px}.badge{padding:1px 4px;font-size:8px}.alert{padding:6px 8px;font-size:10px}.btn{padding:5px 8px;font-size:9.5px;min-height:36px}.btn-sm{padding:4px 7px;font-size:8.5px;min-height:32px}.input,.select-inp,.textarea-inp{font-size:10px;padding:6px 7px;min-height:36px}.qty-inp{width:48px;padding:5px 5px;min-height:32px;font-size:9px}.form-group label{font-size:9.5px}.form-section{font-size:8px;margin:8px 0 4px}.vehicle-card{padding:8px;margin-bottom:4px}.vehicle-icon{width:28px;height:28px;font-size:14px}.vehicle-name{font-size:10px}.vehicle-detail{font-size:9px}.modal{padding:0.95rem;border-radius:10px 10px 0 0}.modal-title{font-size:11px}.modal-handle{width:35px;margin-bottom:0.9rem}.btn-group{gap:3px;flex-direction:column}.btn-group .btn{width:100%}.two-col,.three-col{gap:0.6rem}.form-row{gap:4px;margin-bottom:6px;grid-template-columns:1fr}.chip{padding:1px 6px;font-size:8px}.avatar{width:24px;height:24px;font-size:8px}canvas{height:70px!important}.chart-legend{gap:6px;font-size:8px;flex-direction:column}.receipt-box{font-size:9px;padding:0.6rem;line-height:1.6}.stop{gap:6px;margin-bottom:10px}.stop-dot{width:14px;height:14px;border:1.5px}.tl-item{padding:0 0 6px 14px}.tl-dot{width:8px;height:8px;left:-4px}.recon-row{font-size:10px;padding:4px 0}.topbar-left{gap:4px}.tb-chip{font-size:10px;padding:4px 8px}}
+@media(max-width:320px){:root{--r:6px;--rl:9px}html,body{font-size:11px}.topbar{padding:0.4rem 0.6rem;gap:4px}.topbar-title{font-size:11px}.menu-btn{padding:5px 6px;min-width:36px;width:36px;height:36px}.notif-btn{width:36px;height:36px}.content{padding:0.6rem}.card{padding:0.7rem;margin-bottom:0.6rem}.card-header{flex-direction:column;align-items:flex-start}.card-title{font-size:11px}.metric-grid{grid-template-columns:1fr;gap:6px}.metric-card{padding:0.7rem}.metric-value{font-size:14px}.metric-label{font-size:7.5px}.metric-sub{font-size:8px}table{min-width:240px;font-size:9px}th{font-size:8px;padding:3px 4px}td{padding:3px 4px}.badge{padding:1px 4px;font-size:8px}.alert{padding:6px 8px;font-size:10px}.btn{padding:5px 8px;font-size:9.5px;min-height:36px}.btn-sm{padding:4px 7px;font-size:8.5px;min-height:32px}.input,.select-inp,.textarea-inp{font-size:10px;padding:6px 7px;min-height:36px}.qty-inp{width:48px;padding:5px 5px;min-height:32px;font-size:9px}.form-group label{font-size:9.5px}.form-section{font-size:8px;margin:8px 0 4px}.vehicle-card{padding:8px;margin-bottom:4px}.vehicle-icon{width:28px;height:28px;font-size:14px}.vehicle-name{font-size:10px}.vehicle-detail{font-size:9px}.modal{padding:0.95rem;border-radius:10px 10px 0 0}.modal-title{font-size:11px}.modal-handle{width:35px;margin-bottom:0.9rem}.btn-group{gap:3px;flex-direction:column}.btn-group .btn{width:100%}.two-col,.three-col{gap:0.6rem}.form-row{gap:4px;margin-bottom:6px;grid-template-columns:1fr}.chip{padding:1px 6px;font-size:8px}.avatar{width:24px;height:24px;font-size:8px}canvas{height:70px!important}.chart-legend{gap:6px;font-size:8px;flex-direction:column}.receipt-box{font-size:9px;padding:0.6rem;line-height:1.6}.stop{gap:6px;margin-bottom:10px}.stop-dot{width:14px;height:14px;border:1.5px}  .tl-item{padding:0 0 6px 14px}.tl-dot{width:8px;height:8px;left:-4px}.recon-row{font-size:10px;padding:4px 0}.topbar-left{gap:4px}.tb-chip{font-size:10px;padding:4px 8px}}
+
+/* ════════════════════════════════════════════════ */
+/* ── POLISH 2.0 — global consistency & motion ── */
+/* ════════════════════════════════════════════════ */
+::selection{background:rgba(229,62,62,.16);color:var(--black)}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{-webkit-tap-highlight-color:transparent;text-rendering:optimizeLegibility}
+
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.btn:focus-visible,.nav-group-header:focus-visible,.nav-item:focus-visible,
+.role-btn:focus-visible,.menu-btn:focus-visible,.notif-btn:focus-visible,
+.occd-module-tab:focus-visible,.cal-cell:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.btn:active{transform:translateY(0) scale(.96)}
+.btn:disabled,.btn[disabled]{opacity:.55;cursor:not-allowed;box-shadow:none;transform:none}
+.btn svg{transition:transform .2s ease}
+.btn:hover svg{transform:translateX(1px)}
+
+.metric-card{transition:box-shadow .25s ease,transform .25s ease,border-color .25s ease}
+.metric-card:hover{transform:translateY(-2px);border-color:var(--gray-light);box-shadow:var(--shadow-lg)}
+.metric-card.hi:hover{box-shadow:0 8px 24px rgba(212,43,43,.32)}
+
+.page.active{animation:page-in .22s ease}
+@keyframes page-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.skel{position:relative;overflow:hidden;color:transparent!important;background:var(--gray-light)!important;border-radius:6px;pointer-events:none;user-select:none}
+.skel::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);transform:translateX(-100%);animation:skel 1.3s ease-in-out infinite}
+@keyframes skel{100%{transform:translateX(100%)}}
+td.skel{padding:.6rem .8rem}
+.skel:only-child{min-height:1.1em}
+
+.num{font-variant-numeric:tabular-nums;letter-spacing:0}
+
+.chip.success{background:#f0fdf4;border-color:#86efac;color:#166534}
+.chip.danger{background:#fff5f5;border-color:#fecaca;color:#991b1b}
+.tb-chip.today{background:#fff0f0;border-color:#fca5a5;color:var(--red)}
+
+.list-empty{padding:1rem;color:var(--gray-mid);font-size:13px;text-align:center}
+
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:#94a3b8;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+
+.modal .form-group:last-child{margin-bottom:0}
+.card-header .chip{flex-shrink:0}
+
+@media(max-width:640px){
+  .modal{padding-bottom:calc(1.2rem + env(safe-area-inset-bottom))}
+  .rdc-bal-sticky{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+}
+@media(max-width:480px){
+  .card-header{align-items:flex-start}
+  .alert{font-size:12px;padding:8px 11px;line-height:1.5}
+}
 </style>
 </head>
 <body>
@@ -511,7 +605,7 @@ canvas{display:block;width:100%!important}
   </div>
   <div class="topbar-right">
     <div class="tb-chip hide-sm" id="clockChip">--:--</div>
-    <div class="tb-chip hide-sm" id="topbarDateChip" style="color:var(--red);border-color:#fca5a5;background:#fff0f0">—</div>
+    <div class="tb-chip hide-sm today" id="topbarDateChip">—</div>
     <div class="notif-btn" onclick="openNotifModal()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <div class="notif-dot" id="notifUnreadDot" style="display:none"></div>
@@ -534,7 +628,7 @@ canvas{display:block;width:100%!important}
     <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">System owner view — users, approvals, exceptions, then reporting-chain health. Day-to-day depot close stays with RDC / Manager.</p>
     <div class="tbl-wrap"><table>
       <tr><th>#</th><th>Step</th><th>Status</th><th>Action</th></tr>
-      <tbody id="adminChecklistBody"><tr><td colspan="4" style="color:var(--gray-mid)">Loading…</td></tr></tbody>
+      <tbody id="adminChecklistBody"><tr><td colspan="4" class="skel">Loading…</td></tr></tbody>
     </table></div>
   </div>
 
@@ -547,8 +641,18 @@ canvas{display:block;width:100%!important}
     <div id="directorBriefWidget" style="margin:0 0 .8rem;padding:.6rem .8rem;background:rgba(0,0,0,.03);border-radius:8px;border:1px solid var(--gray-light)"></div>
     <div class="tbl-wrap"><table>
       <tr><th>#</th><th>Step</th><th>Status</th><th>Action</th></tr>
-      <tbody id="execChecklistBody"><tr><td colspan="4" style="color:var(--gray-mid)">Loading…</td></tr></tbody>
+      <tbody id="execChecklistBody"><tr><td colspan="4" class="skel">Loading…</td></tr></tbody>
     </table></div>
+  </div>
+
+  <div id="execMonthbar" class="card" style="display:none;margin-bottom:1rem;padding:.7rem 1rem">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="chip" style="background:var(--red-light);color:var(--red-dark)">Month review</span>
+      <span style="font-size:13px;color:var(--gray-mid)">View sales, targets &amp; cash flow for any month:</span>
+      <input type="month" id="execMonthPick" class="select-inp" style="width:auto" onchange="execSetMonth(this.value)">
+      <button class="btn btn-sm" type="button" onclick="execSetMonth('')">Current month</button>
+      <span id="execMonthNote" class="chip"></span>
+    </div>
   </div>
 
   <div class="metric-grid">
@@ -558,6 +662,26 @@ canvas{display:block;width:100%!important}
     <div class="metric-card"><div class="metric-label">Revenue MTD</div><div class="metric-value" id="admMetricRevenueMtd">—</div><div class="metric-sub">UGX</div></div>
     <div class="metric-card"><div class="metric-label">Vehicles out</div><div class="metric-value" id="admMetricVehiclesOut">—</div><div class="metric-sub">active now</div></div>
     <div class="metric-card"><div class="metric-label">Edit requests</div><div class="metric-value" id="admMetricPendingRequests">—</div><div class="metric-sub pending">pending</div></div>
+    <div class="metric-card" style="display:none"><div class="metric-label">Cash still out</div><div class="metric-value" id="admMetricCashOut">—</div><div class="metric-sub">open + opening</div></div>
+  </div>
+  <div class="card" id="execTargetsCard" style="display:none;margin-bottom:1rem">
+    <div class="card-header">
+      <span class="card-title">Monthly sales targets — <strong id="execTargetsTitle">—</strong></span>
+      <button class="btn btn-sm" type="button" onclick="loadExecutiveTargets()">Refresh</button>
+    </div>
+    <div id="execTargetsBody"><p class="skel" style="padding:.6rem">Loading…</p></div>
+  </div>
+  <div class="card" id="execCsoCard" style="display:none;margin-bottom:1rem">
+    <div class="card-header">
+      <span class="card-title">Cash still out — monthly trend</span>
+      <span class="chip">Recurring from previous months</span>
+    </div>
+    <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">Outstanding cash follows customers month to month — every open cash-out from previous months is carried forward automatically.</p>
+    <div id="execCsoSummary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.8rem"></div>
+    <div class="tbl-wrap"><table id="execCsoTable">
+      <tr><th>Month</th><th>Cash still out (UGX)</th><th>vs previous</th></tr>
+      <tbody id="execCsoBody"><tr><td colspan="3" class="skel">Loading…</td></tr></tbody>
+    </table></div>
   </div>
   <div class="card" id="adminActionCenterCard">
     <div class="card-header">
@@ -567,7 +691,7 @@ canvas{display:block;width:100%!important}
     <div class="tbl-wrap"><table>
       <tr><th>Priority</th><th>Item</th><th>Count</th><th>Action</th></tr>
       <tbody id="adminActionCenterBody">
-        <tr><td colspan="4" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr>
+        <tr><td colspan="4" class="skel" style="text-align:center">Loading…</td></tr>
       </tbody>
     </table></div>
   </div>
@@ -599,7 +723,7 @@ canvas{display:block;width:100%!important}
 
 <!-- PDF REPORT EXCHANGE (Accountant · Manager · Executive) -->
 <div class="page" id="page-report-exchange">
-  <div id="reportExchangeRoot"><p style="color:var(--gray-mid);padding:1rem">Loading…</p></div>
+  <div id="reportExchangeRoot"><p class="skel" style="padding:1rem">Loading…</p></div>
 </div>
 
 <!-- ADMIN USERS -->
@@ -643,7 +767,7 @@ canvas{display:block;width:100%!important}
     <div class="card-header"><span class="card-title">Pending requests</span><span class="badge bd">—</span></div>
     <div class="tbl-wrap"><table>
       <tr><th>Ref</th><th>User</th><th>Type</th><th>Reason</th><th>Details</th><th>Time</th><th>Action</th></tr>
-      <tr><td colspan="7" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr>
+      <tr><td colspan="7" class="skel" style="text-align:center">Loading…</td></tr>
     </table></div>
   </div>
 </div>
@@ -658,7 +782,7 @@ canvas{display:block;width:100%!important}
     <div class="card-header"><span class="card-title">Exception queue</span><button class="btn btn-sm" onclick="loadExceptionsPage()">Refresh</button></div>
     <div class="tbl-wrap"><table>
       <tr><th>Type</th><th>Reference</th><th>Severity</th><th>Owner</th><th>Status</th><th>Detail</th><th>Action</th></tr>
-      <tbody id="excTableBody"><tr><td colspan="7" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr></tbody>
+      <tbody id="excTableBody"><tr><td colspan="7" class="skel" style="text-align:center">Loading…</td></tr></tbody>
     </table></div>
   </div>
 </div>
@@ -712,31 +836,6 @@ canvas{display:block;width:100%!important}
   <div class="card" id="reportsDetailPanel"><div class="card-title">Report detail</div><div id="reportsDetailBody" class="tbl-wrap"></div></div>
 </div>
 
-<!-- ADMIN CUSTOMERS -->
-<div class="page" id="page-admin-customers">
-  <div class="card" style="margin-bottom:1rem">
-    <div class="metric-grid" style="margin-bottom:0">
-      <div class="metric-card hi" id="recvTotalCard">
-        <div class="metric-label">Outstanding receivables</div>
-        <div class="metric-value" id="recvTotalValue">—</div>
-        <div class="metric-sub" id="recvTotalSub">Loading…</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Customers with balance</div>
-        <div class="metric-value" id="recvCountValue">—</div>
-        <div class="metric-sub">Active accounts owing</div>
-      </div>
-    </div>
-  </div>
-  <div class="btn-group" style="margin-bottom:.8rem">
-    <button class="btn" type="button" onclick="LapokAPI.exportCsv('receivables')">Export balances</button>
-  </div>
-  <div style="margin-bottom:.8rem"><input class="input" style="max-width:360px" type="text" placeholder="Search customers…" oninput="loadAdminCustomers(this.value)"></div>
-  <div class="card"><div class="tbl-wrap"><table id="adminCustomerTable">
-    <tr><th>Name</th><th>Phone</th><th>Location</th><th>Category</th><th>Balance (UGX)</th><th>Actions</th></tr>
-  </table></div></div>
-</div>
-
 <!-- ADMIN ROUTES -->
 <div class="page" id="page-admin-routes">
   <div class="btn-group"><button class="btn btn-red" onclick="openModal('addRouteModal')">+ Add route</button></div>
@@ -762,7 +861,7 @@ canvas{display:block;width:100%!important}
   </div>
   <div class="card">
     <div class="card-header"><span class="card-title">System audit log</span><span class="chip" id="auditCountChip">0 entries</span></div>
-    <div class="tbl-wrap"><table id="auditTable"><tr><th>When</th><th>User</th><th>Table</th><th>Action</th><th>Changes</th><th>View</th></tr><tbody id="auditTableBody"><tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr></tbody></table></div>
+    <div class="tbl-wrap"><table id="auditTable"><tr><th>When</th><th>User</th><th>Table</th><th>Action</th><th>Changes</th><th>View</th></tr><tbody id="auditTableBody"><tr><td colspan="6" class="skel" style="text-align:center">Loading…</td></tr></tbody></table></div>
   </div>
 </div>
 
@@ -789,6 +888,9 @@ canvas{display:block;width:100%!important}
   </div>
 
   <div class="rdc-hub-progress" id="rdcHubProgress" aria-hidden="true">
+    <div class="rdc-hub-progress-seg" id="rdcHubProgEod"><span>Field EOD</span></div>
+    <div class="rdc-hub-progress-seg" id="rdcHubProgCash"><span>Cash</span></div>
+    <div class="rdc-hub-progress-seg" id="rdcHubProgRoutes"><span>Trips</span></div>
     <div class="rdc-hub-progress-seg" id="rdcHubProgBal"><span>Balancing</span></div>
     <div class="rdc-hub-progress-seg" id="rdcHubProgPack"><span>Pack</span></div>
   </div>
@@ -808,16 +910,9 @@ canvas{display:block;width:100%!important}
   <div class="rdc-hub-cash-nudge" id="rdcHubCashNudge" style="display:none">
     <div class="rdc-hub-cash-nudge-text">
       <strong id="rdcHubCashNudgeTitle">Field cash pending</strong>
-      <span id="rdcHubCashNudgeSub">Confirm trip cash when cadets return — not part of today&apos;s close.</span>
+      <span id="rdcHubCashNudgeSub">Confirm trip cash when cadets return — required before the manager pack.</span>
     </div>
     <button class="btn btn-sm" type="button" onclick="showPage('accountant-cash')">Confirm cash</button>
-  </div>
-
-  <div class="rdc-hub-cash-nudge rdc-hub-recv-nudge" id="rdcHubRecvNudge" style="display:none">
-    <div class="rdc-hub-cash-nudge-text">
-      <strong id="rdcHubRecvNudgeTitle">High receivables</strong>
-      <span id="rdcHubRecvNudgeSub">Outstanding customer credit is elevated — your manager handles collections.</span>
-    </div>
   </div>
 
   <div class="rdc-hub-cash-nudge rdc-hub-depot-nudge" id="rdcHubCadetNudge" style="display:none">
@@ -846,6 +941,8 @@ canvas{display:block;width:100%!important}
 
   <ul class="rdc-hub-pack-view" id="rdcHubPackView" style="display:none"></ul>
 
+  <div id="cashoutsMountRdc"></div>
+
   <details class="rdc-section" open>
     <summary>Depot stock status (view only) + director snapshot</summary>
     <div class="rdc-section-body">
@@ -854,7 +951,7 @@ canvas{display:block;width:100%!important}
         <div style="font-size:12px">Opening and closing stock counts are entered by the <strong>manager</strong>. RDC reviews the figures here for balancing and the director pack.</div>
       </div>
       <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem" id="accClosingStatus">Loading closing status…</p>
-      <div class="tbl-wrap"><table id="accClosingStockTable"><tr><th>Product</th><th>SKU</th><th>Qty</th></tr><tr><td colspan="3" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
+      <div class="tbl-wrap"><table id="accClosingStockTable"><tr><th>Product</th><th>SKU</th><th>Qty</th></tr><tr><td colspan="3" class="skel">Loading…</td></tr></table></div>
       <div class="form-group" style="margin-top:.8rem"><label>Manager notes</label><textarea class="textarea-inp" id="accClosingNotes" rows="2" readonly disabled placeholder="Visible after manager saves closing stock"></textarea></div>
       <div id="rdcHubDeliveryConfirmStrip" class="alert a-info" style="margin-top:1rem;display:none">
         <span>ℹ</span>
@@ -878,7 +975,13 @@ canvas{display:block;width:100%!important}
       </p>
       <div id="rdcHubHistoryTools" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:.8rem"></div>
       <div class="page-section-label">Recent sheets</div>
-      <div class="tbl-wrap"><table id="rdcHubRecentTable"><tr><th>Date</th><th>Status</th><th>Variance</th><th></th></tr><tr><td colspan="4" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:.6rem">
+        <input class="input" id="rdcHubCalMonth" type="month" style="width:auto">
+        <span style="font-size:12px;color:var(--gray-mid)">Tap a day to open its balancing sheet</span>
+      </div>
+      <div id="rdcHubCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:.6rem"></div>
+      <div class="cal-legend"><span><span class="cal-tick ok">✓</span> Balanced</span><span><span class="cal-tick bad">✗</span> Not balanced</span></div>
+      <div class="tbl-wrap"><table id="rdcHubRecentTable"><tr><th>Date</th><th>Status</th><th>Variance</th><th></th></tr><tr><td colspan="4" class="skel">Loading…</td></tr></table></div>
     </div>
   </details>
 </div>
@@ -887,7 +990,19 @@ canvas{display:block;width:100%!important}
 <div class="page" id="page-accountant-rdc">
   <div class="rdc-bal-toolbar">
     <button class="btn btn-sm" type="button" id="rdcPageBackBtn" onclick="rdcPageBack()">← Back</button>
-    <input class="input" type="date" id="rdcDate" style="width:auto;min-height:36px" title="Change date">
+    <div class="rdc-datepicker" id="rdcDatePicker">
+      <input type="hidden" id="rdcDate" value="">
+      <button type="button" class="input rdc-date-btn" id="rdcDateBtn" title="Change date"></button>
+      <div class="rdc-date-pop" id="rdcDatePop" style="display:none">
+        <div class="rdc-date-nav">
+          <button type="button" class="btn btn-sm" id="rdcCalPrev" title="Previous month">←</button>
+          <input class="input" id="rdcCalMonth" type="month" style="width:auto;min-height:32px;flex:1">
+          <button type="button" class="btn btn-sm" id="rdcCalNext" title="Next month">→</button>
+        </div>
+        <div id="rdcCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:.6rem"></div>
+        <div class="cal-legend"><span><span class="cal-tick ok">✓</span> Balanced</span><span><span class="cal-tick bad">✗</span> Not balanced</span></div>
+      </div>
+    </div>
     <span class="badge bd" id="rdcUnsavedBadge" style="display:none">Unsaved</span>
     <span class="chip" id="rdcMetaLine">Loading…</span>
     <span class="badge bw" id="rdcStatusBadge" style="margin-left:auto">draft</span>
@@ -1038,7 +1153,7 @@ canvas{display:block;width:100%!important}
 
   <div class="card">
     <div class="card-header"><span class="card-title">Register</span></div>
-    <div class="tbl-wrap"><table id="welfareTable"><tr><th>Date</th><th>Staff</th><th>Type</th><th>Amount</th><th>Status</th><th>Notes</th><th></th></tr><tr><td colspan="7" style="color:var(--gray-mid);padding:1rem">Loading…</td></tr></table></div>
+    <div class="tbl-wrap"><table id="welfareTable"><tr><th>Date</th><th>Staff</th><th>Type</th><th>Amount</th><th>Status</th><th>Notes</th><th></th></tr><tr><td colspan="7" class="skel" style="padding:1rem">Loading…</td></tr></table></div>
   </div>
 </div>
 
@@ -1053,14 +1168,14 @@ canvas{display:block;width:100%!important}
   <div class="alert a-warning" id="cashLoadError" style="display:none"></div>
 
   <div class="card" id="cashPendingCard">
-    <div class="card-header"><span class="card-title">Confirm field cash</span><span class="badge bg" id="cashPendingBadge">—</span></div>
+    <div class="card-header"><span class="card-title">Confirm field cash</span><span class="badge bg" id="cashPendingBadge">—</span><button class="btn btn-sm" type="button" id="cashMatchAllBtn" onclick="cashMatchAll()" style="margin-left:auto;display:none">Match all to reported</button></div>
     <p style="font-size:12px;color:var(--gray-mid);margin:0 0 1rem">Enter what you physically received. Use <strong>Match</strong> if it equals the reported amount.</p>
-    <div class="tbl-wrap"><table id="cashConfirmTable"><tr><th>Trip</th><th>Cadet</th><th>Route</th><th>Returned</th><th>Reported</th><th>Received</th><th>Variance</th><th></th></tr><tr><td colspan="8" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
+    <div class="tbl-wrap"><table id="cashConfirmTable"><tr><th>Trip</th><th>Cadet</th><th>Route</th><th>Returned</th><th>Reported</th><th>Received</th><th>Variance</th><th></th></tr><tr><td colspan="8" class="skel">Loading…</td></tr></table></div>
   </div>
 
   <details class="rdc-section" style="margin-top:1rem">
     <summary>Confirmed today</summary>
-    <div class="rdc-section-body"><div class="tbl-wrap"><table id="cashConfirmedTable"><tr><th>Trip</th><th>Cadet</th><th>Reported</th><th>Received</th><th>Variance</th></tr><tr><td colspan="5" style="color:var(--gray-mid)">Loading…</td></tr></table></div></div>
+    <div class="rdc-section-body"><div class="tbl-wrap"><table id="cashConfirmedTable"><tr><th>Trip</th><th>Cadet</th><th>Reported</th><th>Received</th><th>Variance</th></tr><tr><td colspan="5" class="skel">Loading…</td></tr></table></div></div>
   </details>
 
   <div class="rdc-bal-sticky" id="cashStickyBar">
@@ -1117,34 +1232,16 @@ canvas{display:block;width:100%!important}
     </div>
   </div>
   <details class="rdc-section">
-    <summary>Advanced — automation, controls, alerts, P&amp;L template</summary>
+    <summary>Advanced — live KPIs &amp; alerts</summary>
     <div class="rdc-section-body">
       <div class="metric-grid" style="margin-bottom:1rem">
         <div class="metric-card"><div class="metric-label">Cash flow (MTD)</div><div class="metric-value" id="accKpiCashFlow">UGX 0</div></div>
         <div class="metric-card"><div class="metric-label">Receivables</div><div class="metric-value" id="accKpiReceivables">UGX 0</div></div>
         <div class="metric-card"><div class="metric-label">Gross margin</div><div class="metric-value" id="accKpiMargin">0%</div></div>
       </div>
-      <div class="two-col" style="margin-bottom:1rem">
-        <div class="card">
-          <div class="card-header"><span class="card-title">Automation tracker</span><button class="btn btn-sm btn-red" onclick="saveAccountantAutomation()">Save</button></div>
-          <div id="accAutomationList"></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><span class="card-title">Proactive alerts</span><button class="btn btn-sm btn-red" onclick="refreshAccountantCommandCenter()">Refresh</button></div>
-          <div id="accAlertsList"></div>
-        </div>
-      </div>
-      <div class="card" style="margin-bottom:1rem">
-        <div class="card-header"><span class="card-title">Controls &amp; evidence</span></div>
-        <div class="form-group"><label>Approval matrix</label><select class="select-inp" id="accApprovalMatrix"><option value="green">Approved</option><option value="amber">Needs review</option><option value="red">Outdated</option></select></div>
-        <div class="page-section-label">Maker-checker <button class="btn btn-sm" onclick="addAccountantControlLog()">+ Log</button></div>
-        <div class="tbl-wrap"><table id="accControlsTable"></table></div>
-        <div class="page-section-label" style="margin-top:1rem">Documents <button class="btn btn-sm" onclick="addAccountantDocument()">+ Add</button></div>
-        <div class="tbl-wrap"><table id="accDocumentsTable"></table></div>
-      </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">P&amp;L variance template</span><button class="btn btn-sm btn-red" onclick="saveAccountantTemplates()">Save</button></div>
-        <textarea class="textarea-inp" id="accTplPnL" rows="3" placeholder="Revenue vs costs, major variances…"></textarea>
+        <div class="card-header"><span class="card-title">Proactive alerts</span><button class="btn btn-sm btn-red" onclick="refreshAccountantCommandCenter()">Refresh</button></div>
+        <div id="accAlertsList"></div>
       </div>
     </div>
   </details>
@@ -1166,7 +1263,7 @@ canvas{display:block;width:100%!important}
       <span style="font-size:13px"><strong id="rdcBulkCount">0</strong> selected</span>
       <button class="btn btn-sm btn-black" type="button" onclick="rdcBulkApproveSelected()">Bulk approve</button>
     </div>
-    <div class="tbl-wrap"><table id="rdcReviewTable"><tr><th></th><th>Date</th><th>Status</th><th>Grand total</th><th>Variance</th><th>Submitted</th><th>Review</th><th>Action</th></tr><tr><td colspan="8" style="color:var(--gray-mid)">Loading…</td></tr></table></div>
+    <div class="tbl-wrap"><table id="rdcReviewTable"><tr><th></th><th>Date</th><th>Status</th><th>Grand total</th><th>Variance</th><th>Submitted</th><th>Review</th><th>Action</th></tr><tr><td colspan="8" class="skel">Loading…</td></tr></table></div>
   </div>
   <div class="card" id="rdcCommentsPanel" style="display:none;margin-top:1rem">
     <div class="card-header">
@@ -1207,16 +1304,39 @@ canvas{display:block;width:100%!important}
   <div class="page-section-label">Daily checklist &amp; handoff</div>
   <div class="card" id="mgrHandoffCard" style="margin-bottom:1rem"><div style="padding:1rem;color:var(--gray-mid)">Loading checklist…</div></div>
 
+  <div id="cashoutsMountManager"></div>
+
   <div class="page-section-label">Approvals &amp; alerts</div>
   <div class="two-col" style="margin-bottom:1rem">
     <div class="card" id="mgrExceptionsCard"><div style="padding:1rem;color:var(--gray-mid)">Loading exceptions…</div></div>
     <div class="card">
       <div class="card-header"><span class="card-title">Sales awaiting confirmation</span><span class="badge bd" id="mgrPendingSalesBadge">—</span></div>
-      <div class="tbl-wrap"><table id="mgrPendingSalesTable">
+      <div class="tbl-wrap">      <table id="mgrPendingSalesTable">
         <tr><th>User</th><th>Vehicle</th><th>Customer</th><th>Amount</th><th>Time</th><th>Action</th></tr>
-        <tr><td colspan="6" style="color:var(--gray-mid)">Loading…</td></tr>
+        <tr><td colspan="6" class="skel">Loading…</td></tr>
       </table></div>
     </div>
+  </div>
+</div>
+
+<!-- MONTHLY SALES TARGETS (Manager feeds monthly; Executive reads) -->
+<div class="page" id="page-manager-targets">
+  <div class="alert a-info"><span>ℹ</span><strong>Monthly sales targets:</strong> Set the SODA and WATER target (crates) for each cadet and for the depot. Targets come in monthly from management — enter them here at the start of the month. The executive board then shows overall + per-cadet target vs actual.</div>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Sales targets — <strong id="mgrTargetsMonthLabel">—</strong></span>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="month" id="mgrTargetsMonth" class="input" style="width:180px" onchange="loadManagerTargetsPage()">
+        <button class="btn btn-sm" type="button" onclick="loadManagerTargetsPage()">Load</button>
+        <button class="btn btn-sm btn-red" type="button" onclick="saveManagerTargets()">Save targets</button>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">Leave a field at 0 when a unit has no target for that category. The <strong>DEPOT</strong> row is the depot's own sales target (its own column in the RDC sheets).</p>
+    <div class="tbl-wrap"><table id="mgrTargetsTable">
+      <tr><th>Sales unit</th><th>Cadet</th><th>Type</th><th>SODA target (crates)</th><th>WATER target (crates)</th></tr>
+      <tbody id="mgrTargetsBody"><tr><td colspan="5" class="skel">Loading…</td></tr></tbody>
+    </table></div>
+    <div id="mgrTargetsStatus" style="margin-top:.6rem;font-size:12px;color:var(--gray-mid)"></div>
   </div>
 </div>
 
@@ -1273,7 +1393,7 @@ canvas{display:block;width:100%!important}
     <div class="page-section-label">1. Stock taking (start here)</div>
     <div class="alert a-info" style="margin:0 0 .8rem">
       <span>ℹ</span>
-      <div style="font-size:12px"><strong>Do stock counts first.</strong> Enter opening stock at 7:00 AM before dispatch. Enter closing stock at 7:00 PM. RDC sees these figures read-only.</div>
+      <div style="font-size:12px"><strong>One stock taking page.</strong> Count opening stock at 7:00 AM before dispatch (it locks after save — use <strong>Edit</strong> to correct), then closing stock from 6:30 PM. RDC sees these figures read-only.</div>
     </div>
     <div class="card stock-book-card" id="mgrClosingStockCard">
       <div class="stock-book-head">
@@ -1297,7 +1417,7 @@ canvas{display:block;width:100%!important}
       <div class="stock-book-wrap">
         <div class="alert a-info" style="margin:0 0 12px">
           <span>ℹ</span>
-          <div style="font-size:12px"><strong>Purchase</strong> = cartons received on <a href="#" onclick="showPage('manager-delivery');return false" style="font-weight:700;color:var(--red)">Record Coca-Cola delivery</a>. Save a delivery, then this column updates automatically.</div>
+          <div style="font-size:12px"><strong>Purchase</strong> = cartons received on <a href="#" onclick="showPage('manager-delivery');return false" style="font-weight:700;color:var(--red)">Record Coca-Cola delivery</a>. Save a delivery, then this column updates automatically. <strong>Sales</strong> come from cadet sales reports and fill in automatically — you only count <strong>Opening</strong> and <strong>Closing</strong> stock. <strong>Opening stock</strong> locks after you save it — use <strong>Edit</strong> to correct it. <strong>Closing stock</strong> is pre-filled from today's warehouse count + the stock cadets returned in the evening — adjust it to match your physical count.</div>
         </div>
         <div class="tbl-wrap">
           <table id="mgrStockBookTable" class="stock-book-table">
@@ -1309,27 +1429,28 @@ canvas{display:block;width:100%!important}
               <th class="qty-col">Sales</th>
               <th class="qty-col">Closing stock</th>
             </tr>
-            <tr><td colspan="6" style="color:var(--gray-mid)">Loading…</td></tr>
+            <tr><td colspan="6" class="skel">Loading…</td></tr>
           </table>
         </div>
-        <div class="stock-book-actions">
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">Opening stock — 7:00 AM</span>
-              <button class="btn btn-sm btn-red" type="button" onclick="saveManagerOpeningStock()">Save opening</button>
-            </div>
-            <div class="form-group" style="margin:0">
-              <label>Opening notes</label>
+        <div class="card" style="margin-top:14px">
+          <div class="card-header">
+            <span class="card-title">Stock taking — save the counts</span>
+            <span class="chip" id="mgrClosingLockChip">—</span>
+          </div>
+          <div class="form-row" style="grid-template-columns:1fr 1fr">
+            <div class="form-group" style="margin:0" id="mgrOpeningBlock">
+              <label>Opening stock — 7:00 AM</label>
+              <div class="btn-group" style="margin:0 0 .6rem">
+                <button class="btn btn-sm btn-red" id="mgrOpeningSaveBtn" type="button" onclick="saveManagerOpeningStock()">Save opening</button>
+                <button class="btn btn-sm" id="mgrOpeningEditBtn" type="button" onclick="editManagerOpeningStock()" style="display:none">Edit</button>
+              </div>
               <textarea class="textarea-inp" id="mgrOpeningNotes" rows="2" placeholder="Short note for morning count..."></textarea>
             </div>
-          </div>
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">Closing stock — from 6:30 PM</span>
-              <button class="btn btn-sm btn-red" id="mgrClosingSaveBtn" type="button" onclick="saveManagerClosingStock()">Save closing</button>
-            </div>
-            <div class="form-group" style="margin:0">
-              <label>Closing notes</label>
+            <div class="form-group" style="margin:0" id="mgrClosingBlock">
+              <label>Closing stock — from 6:30 PM</label>
+              <div class="btn-group" style="margin:0 0 .6rem">
+                <button class="btn btn-sm btn-red" id="mgrClosingSaveBtn" type="button" onclick="saveManagerClosingStock()">Save closing</button>
+              </div>
               <textarea class="textarea-inp" id="mgrClosingNotes" rows="2" placeholder="Shortages, recount notes…"></textarea>
             </div>
           </div>
@@ -1352,14 +1473,14 @@ canvas{display:block;width:100%!important}
       <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">
         After stock taking, confirm that today’s supplier deliveries match the waybill.
       </p>
-      <div id="mgrDeliveryConfirmList"><p style="color:var(--gray-mid)">Loading…</p></div>
+      <div id="mgrDeliveryConfirmList"><p class="skel">Loading…</p></div>
     </div>
     <div class="two-col">
       <div class="card">
         <div class="card-header"><span class="card-title">Current warehouse stock</span></div>
         <div class="tbl-wrap"><table id="mgrStockTable" class="wh-stock-table">
           <tr><th>Product</th><th>SKU</th><th>Warehouse</th><th>With vehicles</th><th>Sold today</th><th>Level</th></tr>
-          <tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr>
+          <tr><td colspan="6" class="skel" style="text-align:center">Loading…</td></tr>
         </table></div>
       </div>
       <div class="card">
@@ -1452,13 +1573,13 @@ canvas{display:block;width:100%!important}
   </div>
   <div class="card" style="margin-bottom:1rem">
     <div class="card-header"><span class="card-title">Today's dispatch log</span><button class="btn btn-sm" onclick="loadDispatchLog()">Refresh</button></div>
-    <div class="tbl-wrap"><table id="dispatchLogTable"><tr><td colspan="8" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr></table></div>
+    <div class="tbl-wrap"><table id="dispatchLogTable"><tr><td colspan="8" class="skel" style="text-align:center">Loading…</td></tr></table></div>
   </div>
   <div class="card">
     <div class="card-header"><span class="card-title">Current warehouse stock</span><button class="btn btn-sm" onclick="loadStockTable()">Refresh</button></div>
     <div class="tbl-wrap"><table id="dispatchStockTable" class="wh-stock-table">
       <tr><th>Product</th><th>SKU</th><th>Warehouse</th><th>With vehicles</th><th>Sold today</th><th>Level</th></tr>
-      <tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr>
+      <tr><td colspan="6" class="skel" style="text-align:center">Loading…</td></tr>
     </table></div>
   </div>
 </div>
@@ -1527,11 +1648,11 @@ canvas{display:block;width:100%!important}
         <div class="form-group"><label>Notes for CCBA</label><input class="input" id="ccbaOrderNotes" placeholder="Optional instructions"></div>
       </div>
       <div class="tbl-wrap"><table>
-        <tr><th>Product</th><th>Warehouse</th><th>Min</th><th>Order qty</th><th>Unit cost</th><th>Est. total</th></tr>
-        <tbody id="ccbaEditorBody"><tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr></tbody>
+        <tr><th>Product</th><th>Warehouse</th><th>Min</th><th>Order qty</th><th>CCBA SKU</th></tr>
+        <tbody id="ccbaEditorBody"><tr><td colspan="5" class="skel" style="text-align:center">Loading…</td></tr></tbody>
       </table></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--gray-light)">
-        <span style="font-weight:600">Total estimate: <span id="ccbaOrderTotal">UGX 0</span></span>
+        <span style="font-weight:600"><span id="ccbaOrderLines">0</span> lines to order</span>
         <span class="chip">Assisted portal · Phase 1</span>
       </div>
     </div>
@@ -1539,8 +1660,8 @@ canvas{display:block;width:100%!important}
       <div class="card">
         <div class="card-header"><span class="card-title">Recent CCBA orders</span></div>
         <div class="tbl-wrap"><table>
-          <tr><th>Outpost ref</th><th>Status</th><th>Lines</th><th>Est.</th><th>Created</th><th></th></tr>
-          <tbody id="ccbaOrderListBody"><tr><td colspan="6" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr></tbody>
+          <tr><th>Outpost ref</th><th>Status</th><th>Lines</th><th>Created</th><th></th></tr>
+          <tbody id="ccbaOrderListBody"><tr><td colspan="5" class="skel" style="text-align:center">Loading…</td></tr></tbody>
         </table></div>
       </div>
       <div class="card">
@@ -1648,6 +1769,14 @@ canvas{display:block;width:100%!important}
     </div>
     <button class="btn btn-red btn-sm" type="button" id="cadetDashReportBtn" onclick="showPage('cadet-daily')">Today's report →</button>
   </div>
+  <div class="alert a-info" id="cadetDashAckBanner" style="display:none">
+    <span>📦</span>
+    <div style="flex:1">
+      <div><strong>Dispatch awaiting confirmation</strong></div>
+      <div style="font-size:13px;margin-top:4px">Your manager loaded the vehicle for today's route. Check the load below, then confirm receipt to go on route.</div>
+    </div>
+    <button class="btn btn-sm" type="button" id="cadetDashAckBtn" onclick="confirmDispatchReceive(this)">Confirm load received →</button>
+  </div>
   <div class="alert a-warning" id="deadlineBannerCadet" style="display:none"></div>
   <div class="alert a-warning" id="cadetDashLateBanner" style="display:none"><span>⚠</span><div>After 7:00 PM — submit soon and add a note if cash differs from sales.</div></div>
   <div class="alert a-info" id="cadetDashNoTrip" style="display:none"><span>ℹ</span><div>No active trip. Ask your manager to dispatch your vehicle.</div></div>
@@ -1658,6 +1787,11 @@ canvas{display:block;width:100%!important}
     <div class="metric-card"><div class="metric-label">Report</div><div class="metric-value" id="cadetDashReportStatus">—</div><div class="metric-sub" id="cadetDashReportSub">—</div></div>
     <div class="metric-card"><div class="metric-label">Sales / cash</div><div class="metric-value" id="cadetDashSalesCash">—</div><div class="metric-sub" id="cadetDashSalesSub">After submit</div></div>
   </div>
+  <div class="card" id="cadetTargetsCard" style="margin-top:1rem;border:1px solid rgba(229,62,62,.25)">
+    <div class="card-header"><span class="card-title">My monthly targets — <strong id="cadetTargetsMonth">—</strong></span></div>
+    <p style="font-size:12px;color:var(--gray-mid);margin:0 0 .8rem">How you are performing against the monthly SODA / WATER targets the manager set for your vehicle.</p>
+    <div id="cadetTargetsBody"><p class="skel" style="padding:.6rem">Loading…</p></div>
+  </div>
   <div class="card" id="cadetDashNotifCard" style="margin-top:1rem;display:none">
     <div class="card-header"><span class="card-title">Messages from depot</span><button class="btn btn-sm" type="button" onclick="openMessagesModal()">View all</button></div>
     <div id="cadetDashNotifList"><p style="color:var(--gray-mid);font-size:13px">Loading…</p></div>
@@ -1666,6 +1800,7 @@ canvas{display:block;width:100%!important}
     <div class="card-header"><span class="card-title">Stock on vehicle (by group)</span></div>
     <div class="tbl-wrap"><table id="cadetDashStockTable"><tr><th>Group</th><th>Product</th><th>Loaded</th></tr></table></div>
   </div>
+  <div id="cashoutsMountCadet" style="margin-top:1rem"></div>
 </div>
 
 <div class="page" id="page-cadet-daily">
@@ -1685,7 +1820,7 @@ canvas{display:block;width:100%!important}
         <div class="recon-row" style="margin-top:.6rem"><span>Sales total</span><strong id="cadetSalesTotalDisplay">UGX 0</strong></div>
       </div>
       <div class="form-section" style="margin-top:.4rem">Auxiliary information</div>
-      <p style="font-size:12px;color:var(--gray-mid);margin:-0.2rem 0 .8rem">Matches LAPOK book page 2 for your vehicle — fuel, lunch, discount, shortage, and repairs.</p>
+      <p style="font-size:12px;color:var(--gray-mid);margin:-0.2rem 0 .8rem">Matches LAPOK book page 2 for your vehicle — fuel, lunch, discount, shortage, repairs, parking, transport, paper roll, promotion, and other.</p>
       <div class="form-row">
         <div class="form-group"><label>Fuel (UGX)</label><input class="input" id="cadetAuxFuel" type="number" min="0" step="1000" value="0"></div>
         <div class="form-group"><label>Lunch (UGX)</label><input class="input" id="cadetAuxLunch" type="number" min="0" step="1000" value="0"></div>
@@ -1694,7 +1829,18 @@ canvas{display:block;width:100%!important}
         <div class="form-group"><label>Discount (UGX)</label><input class="input" id="cadetAuxDiscount" type="number" min="0" step="1000" value="0"></div>
         <div class="form-group"><label>Shortage (UGX)</label><input class="input" id="cadetAuxShortage" type="number" min="0" step="1000" value="0"></div>
       </div>
-      <div class="form-group"><label>Repairs (UGX)</label><input class="input" id="cadetAuxRepairs" type="number" min="0" step="1000" value="0"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Repairs (UGX)</label><input class="input" id="cadetAuxRepairs" type="number" min="0" step="1000" value="0"></div>
+        <div class="form-group"><label>Parking (UGX)</label><input class="input" id="cadetAuxParking" type="number" min="0" step="1000" value="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Transport (UGX)</label><input class="input" id="cadetAuxTransport" type="number" min="0" step="1000" value="0"></div>
+        <div class="form-group"><label>Paper roll (UGX)</label><input class="input" id="cadetAuxPaperRoll" type="number" min="0" step="1000" value="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Promotion (UGX)</label><input class="input" id="cadetAuxPromotion" type="number" min="0" step="1000" value="0"></div>
+        <div class="form-group"><label>Other / misc (UGX)</label><input class="input" id="cadetAuxMisc" type="number" min="0" step="1000" value="0"></div>
+      </div>
       <div class="form-group"><label>Banking / amount collected (UGX)</label><input class="input" id="cadetCashHanded" type="number" min="0" step="1000" placeholder="Cash you are banking"></div>
       <div class="form-group"><label>Note (required if cash ≠ sales)</label><textarea class="textarea-inp" id="cadetDailyNote" rows="2" placeholder="Short explanation for any mismatch"></textarea></div>
       <p id="cadetDailyFlagsPreview" style="font-size:12px;color:var(--gray-mid);margin-bottom:.8rem"></p>
@@ -1716,6 +1862,7 @@ canvas{display:block;width:100%!important}
       <button class="btn btn-sm" type="button" id="cadetHistoryToggleBtn" onclick="toggleCadetHistoryPanel()">Show history calendar</button>
       <div id="cadetHistoryPanel" style="display:none;margin-top:.9rem">
       <div id="cadetHistoryCalendar" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:1rem"></div>
+      <div class="cal-legend"><span><span class="cal-tick ok">✓</span> Balanced</span><span><span class="cal-tick bad">✗</span> Not balanced</span></div>
       <div id="cadetHistoryEmpty" class="alert a-info" style="display:none"><span>ℹ</span><div>No submitted cadet reports for this month yet.</div></div>
       <div id="cadetHistoryDetail" style="display:none;border:1px solid rgba(15,23,42,.08);border-radius:12px;padding:.9rem;background:#fafafa">
         <div class="recon-row"><span>Date</span><strong id="cadetHistoryDetailDate">—</strong></div>
@@ -1723,6 +1870,7 @@ canvas{display:block;width:100%!important}
         <div class="recon-row"><span>Sales</span><strong id="cadetHistoryDetailSales">UGX 0</strong></div>
         <div class="recon-row"><span>Cash handed</span><strong id="cadetHistoryDetailCash">UGX 0</strong></div>
         <div class="recon-row"><span>Expenses</span><strong id="cadetHistoryDetailExpenses">UGX 0</strong></div>
+        <div class="recon-row"><span>Balanced (RDC)</span><strong id="cadetHistoryDetailBalance">—</strong></div>
         <div class="form-group" style="margin-top:.6rem">
           <label>Auxiliary information</label>
           <div class="tbl-wrap"><table id="cadetHistoryAuxTable">
@@ -1753,6 +1901,7 @@ canvas{display:block;width:100%!important}
       </div>
     </div>
   </div>
+  <div id="cashoutsDailyMount" style="margin-top:1rem"></div>
 </div>
 
 <div class="page" id="page-user-eod">
@@ -1763,7 +1912,7 @@ canvas{display:block;width:100%!important}
       <div class="eod-sec"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-mid);margin-bottom:10px">Stock reconciliation (7pm snapshot)</div>
         <div class="tbl-wrap"><table id="cadetCloseStockTable">
           <tr><th>Product</th><th>Loaded</th><th>Sold</th><th>Counted now</th><th>Variance</th></tr>
-          <tr><td colspan="5" style="color:var(--gray-mid)">Loading…</td></tr>
+          <tr><td colspan="5" class="skel">Loading…</td></tr>
         </table></div>
       </div>
       <div class="card"><div class="card-title" style="margin-bottom:.8rem">Cash and issues</div>
@@ -1846,8 +1995,8 @@ canvas{display:block;width:100%!important}
   <div class="alert a-info"><span>ℹ</span><div>Cadet and route are taken from the main Admin's assignment for today and cannot be changed during dispatch.</div></div>
   <div class="form-row"><div class="form-group"><label>Vehicle</label><select class="select-inp" id="dispatchVehicle"><option value="">Loading…</option></select></div><div class="form-group" id="dispatchCadetGroup"><label>Assigned cadet / rider</label><input class="input" id="dispatchCadetName" readonly value="Select a vehicle"></div></div>
   <input type="hidden" id="dispatchCadet"><div class="form-group"><label>Today's assigned route</label><textarea class="textarea-inp" id="dispatchRouteArea" rows="2" readonly placeholder="Select a vehicle"></textarea></div>
-  <div class="tbl-wrap"><table style="margin-bottom:.8rem;min-width:280px"><tr><th>Product</th><th>In warehouse</th><th>Crates to load</th></tr>
-    <tbody id="dispatchLoadBody"><tr><td colspan="3" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr></tbody>
+  <div class="tbl-wrap"><table class="dispatch-sales-table" style="margin-bottom:.8rem"><tr><th>Product</th><th>In warehouse</th><th>Crates to load</th></tr>
+    <tbody id="dispatchLoadBody"><tr><td colspan="3" class="skel" style="text-align:center">Loading…</td></tr></tbody>
   </table></div>
   <div class="modal-actions"><button class="btn" onclick="closeModal('dispatchModal')">Cancel</button><button class="btn btn-red" onclick="saveDispatch(this)">Confirm dispatch</button></div>
 </div></div>
@@ -1981,7 +2130,7 @@ canvas{display:block;width:100%!important}
 </div></div>
 
 <script src="assets/presentation-config.js?v=20260629"></script>
-<script src="assets/api.js?v=20260716r"></script>
+<script src="assets/api.js?v=20260802a"></script>
 <script>
 const ICONS={
   home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
@@ -2004,7 +2153,6 @@ const ROLES={
     {id:'admin-users',l:'User management',i:'users'},
     {id:'admin-editreqs',l:'Edit requests',i:'edit'},
     {id:'admin-exceptions',l:'Exception center',i:'chart'},
-    {id:'admin-customers',l:'Receivables & customers',i:'custs'},
     {id:'admin-reports',l:'Reports & analytics',i:'chart'}
   ]},
   executive:{name:'Mary Atim',email:'executive@lapok.ug',pill:'rp-admin',badge:'Executive',nav:[
@@ -2013,10 +2161,8 @@ const ROLES={
     {id:'report-exchange',l:'PDF reports',i:'receipt'},
     {id:'admin-reports',l:'Reports & analytics',i:'chart'},
     {id:'admin-exceptions',l:'Exception center',i:'chart'},
-    {id:'admin-customers',l:'Receivables overview',i:'custs'},
     {id:'admin-users',l:'Freeze accounts',i:'users'},
-    {id:'accountant-welfare',l:'Staff welfare',i:'edit'},
-    {id:'accountant-improvements',l:'Month-end',i:'chart'}
+    {id:'accountant-welfare',l:'Staff welfare',i:'edit'}
   ]},
   manager:{name:'Sarah Nakato',email:'manager@ccoutlet.ug',pill:'rp-manager',badge:'Manager',nav:[
     {id:'manager-dashboard',l:'Dashboard',i:'home'},
@@ -2027,10 +2173,8 @@ const ROLES={
     {id:'report-exchange',l:'PDF reports',i:'receipt'},
     {id:'admin-exceptions',l:'Exception center',i:'chart'},
     {id:'admin-editreqs',l:'Edit requests',i:'edit'},
-    {id:'admin-customers',l:'Customers & receivables',i:'custs'},
     {id:'manager-ccba-order',l:'Order via MyCCBA',i:'box'},
     {id:'manager-reports',l:'Reports',i:'chart'},
-    {id:'accountant-improvements',l:'Month-end',i:'chart'},
     {id:'accountant-welfare',l:'Staff welfare',i:'edit'}
   ]},
   user:{name:'David Ssemuju',email:'david@ccoutlet.ug',pill:'rp-user',badge:'Field User',nav:[
@@ -2065,6 +2209,7 @@ function showPage(id){
   document.getElementById('topbarTitle').textContent=LABELS[id]||id;
   if(id==='admin-dashboard')setTimeout(drawCharts,100);
   if(id==='admin-reports')setTimeout(drawReportChart,100);
+  if(pg&&location.hash!=='#page-'+id){try{history.replaceState(null,'','#page-'+id)}catch(_){ }}
   window.scrollTo(0,0);
 }
 
@@ -2312,22 +2457,23 @@ setInterval(refreshTopbarClock,1000);
 window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementById('page-admin-dashboard').classList.contains('active'))setTimeout(drawCharts,150)});
 
 </script>
-<script src="assets/app.js?v=20260719a"></script>
-<script src="assets/phase45.js?v=20260719a"></script>
-<script src="assets/report-exchange.js?v=20260719c"></script>
-<script src="assets/manager-ops.js?v=20260716r"></script>
+<script src="assets/app.js?v=20260801f"></script>
+<script src="assets/phase45.js?v=20260802g"></script>
+<script src="assets/report-exchange.js?v=20260731e"></script>
+<script src="assets/manager-ops.js?v=20260731d"></script>
 <script src="assets/occd-boards.js?v=20260716g"></script>
 <script src="assets/ccba.js?v=20260716a"></script>
-<script src="assets/rdc-balancing.js?v=20260719d"></script>
+<script src="assets/rdc-balancing.js?v=20260801c"></script>
 <script src="assets/cash-handover.js?v=20260713b"></script>
-<script src="assets/rdc-hub.js?v=20260713d"></script>
-<script src="assets/rdc-review.js?v=20260716a"></script>
-<script src="assets/accountant-improvements.js?v=20260721a"></script>
+<script src="assets/rdc-hub.js?v=20260801d"></script>
+<script src="assets/rdc-review.js?v=20260801a"></script>
+<script src="assets/accountant-improvements.js?v=20260801a"></script>
 <script src="assets/accountant-welfare.js?v=20260716a"></script>
-<script src="assets/notifications.js?v=20260719b"></script>
-<script src="assets/cadet-dashboard.js?v=20260708j"></script>
-<script src="assets/cadet-daily.js?v=20260716m"></script>
-<script src="assets/depot-snapshots.js?v=20260716t"></script>
-<script src="assets/director-brief.js?v=20260719d"></script>
+<script src="assets/notifications.js?v=20260801c"></script>
+<script src="assets/cadet-dashboard.js?v=20260802b"></script>
+<script src="assets/cadet-daily.js?v=20260801e"></script>
+<script src="assets/depot-snapshots.js?v=20260731b"></script>
+<script src="assets/director-brief.js?v=20260802g"></script>
+<script src="assets/cashouts.js?v=20260801a"></script>
 </body>
 </html>
