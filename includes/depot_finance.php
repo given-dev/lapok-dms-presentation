@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/stock.php';
 require_once __DIR__ . '/depot_catalog.php';
+require_once __DIR__ . '/cadet_reports.php';
 
 function depot_snapshot_fetch(string $date, string $type): ?array
 {
@@ -197,6 +198,129 @@ function depot_cadet_sales_for_date(string $date): array
     $out = [];
     foreach ($stmt->fetchAll() as $row) {
         $out[(int) $row['product_id']] = (int) ($row['sold'] ?? 0);
+    }
+    return $out;
+}
+
+/**
+ * Consolidated sales revenue per returned date (RDC sheet primary, cadet trip reports as fallback).
+ * The RDC sheet is the book; if a sheet does not exist for a day, cadet report totals cover it.
+ *
+ * @return array<string, float> balance_date => UGX revenue
+ */
+function depot_sales_revenue_by_day(string $from, string $to): array
+{
+    $pdo = db();
+    $out = [];
+    $stmt = $pdo->prepare(
+        'SELECT balance_date, sales_total FROM rdc_daily_sheets WHERE balance_date BETWEEN ? AND ?'
+    );
+    $stmt->execute([$from, $to]);
+    foreach ($stmt->fetchAll() as $row) {
+        $out[$row['balance_date']] = (float) $row['sales_total'];
+    }
+
+    $tStmt = $pdo->prepare(
+        "SELECT DATE(returned_at) AS d, notes FROM delivery_trips
+         WHERE status IN ('returned','completed') AND DATE(returned_at) BETWEEN ? AND ?"
+    );
+    $tStmt->execute([$from, $to]);
+    foreach ($tStmt->fetchAll() as $row) {
+        $parsed = cadet_parse_report_note($row['notes'] ?? null);
+        $revenue = (float) ($parsed['sales_total'] ?? 0);
+        if ($revenue > 0) {
+            $day = $row['d'];
+            $out[$day] = max($out[$day] ?? 0.0, $revenue);
+        }
+    }
+    ksort($out);
+    return $out;
+}
+
+/** Cartons sold (qty_sold) per returned date from submitted trip reports. */
+function depot_cartons_sold_by_day(string $from, string $to): array
+{
+    $pdo = db();
+    $stmt = $pdo->prepare(
+        "SELECT DATE(dt.returned_at) AS d, COALESCE(SUM(tli.qty_sold), 0) AS sold
+         FROM trip_load_items tli
+         JOIN delivery_trips dt ON dt.id = tli.trip_id
+         WHERE dt.status IN ('returned','completed') AND DATE(dt.returned_at) BETWEEN ? AND ?
+         GROUP BY DATE(dt.returned_at)"
+    );
+    $stmt->execute([$from, $to]);
+    $out = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $out[$row['d']] = (int) $row['sold'];
+    }
+    return $out;
+}
+
+/**
+ * Build the WHERE clause + params for trips returned in a period with optional filters.
+ *
+ * @return array{0: string, 1: list<mixed>}
+ */
+function depot_trip_filter_where(string $from, string $to, int $routeId = 0, int $vehicleId = 0, int $userId = 0): array
+{
+    $where = ["dt.status IN ('returned','completed')", 'DATE(dt.returned_at) BETWEEN ? AND ?'];
+    $params = [$from, $to];
+    if ($routeId > 0) {
+        $where[] = 'dt.route_id = ?';
+        $params[] = $routeId;
+    }
+    if ($vehicleId > 0) {
+        $where[] = 'dt.vehicle_id = ?';
+        $params[] = $vehicleId;
+    }
+    if ($userId > 0) {
+        $where[] = '(dt.cadet_id = ? OR dt.driver_id = ?)';
+        $params[] = $userId;
+        $params[] = $userId;
+    }
+    return [$where, $params];
+}
+
+/**
+ * Revenue per returned date from cadet trip reports, with optional trip filters.
+ * Useful for filter-aware reports (per-vehicle / per-route / per-user).
+ *
+ * @return array<string, float>
+ */
+function depot_trip_revenue_by_day(string $from, string $to, int $routeId = 0, int $vehicleId = 0, int $userId = 0): array
+{
+    [$where, $params] = depot_trip_filter_where($from, $to, $routeId, $vehicleId, $userId);
+    $stmt = db()->prepare(
+        'SELECT DATE(dt.returned_at) AS d, dt.notes FROM delivery_trips dt WHERE ' . implode(' AND ', $where)
+    );
+    $stmt->execute($params);
+    $out = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $parsed = cadet_parse_report_note($row['notes'] ?? null);
+        $revenue = (float) ($parsed['sales_total'] ?? 0);
+        if ($revenue > 0) {
+            $out[$row['d']] = ($out[$row['d']] ?? 0.0) + $revenue;
+        }
+    }
+    ksort($out);
+    return $out;
+}
+
+/** Cartons sold per returned date from cadet trip reports, with optional trip filters. */
+function depot_trip_cartons_by_day(string $from, string $to, int $routeId = 0, int $vehicleId = 0, int $userId = 0): array
+{
+    [$where, $params] = depot_trip_filter_where($from, $to, $routeId, $vehicleId, $userId);
+    $stmt = db()->prepare(
+        "SELECT DATE(dt.returned_at) AS d, COALESCE(SUM(tli.qty_sold), 0) AS sold
+         FROM trip_load_items tli
+         JOIN delivery_trips dt ON dt.id = tli.trip_id
+         WHERE " . implode(' AND ', $where) . "
+         GROUP BY DATE(dt.returned_at)"
+    );
+    $stmt->execute($params);
+    $out = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $out[$row['d']] = (int) $row['sold'];
     }
     return $out;
 }

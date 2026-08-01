@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/branded_export.php';
+require_once dirname(__DIR__, 2) . '/includes/cadet_reports.php';
 
 $user = require_login();
 
@@ -142,46 +143,51 @@ if ($type === 'stock') {
     ], $who, 'Current warehouse and vehicle stock levels');
 }
 
-// default: sales
-$headers = ['Date', 'Order ref', 'Customer', 'Amount (UGX)', 'Status', 'Payment'];
-$where = ['o.created_at BETWEEN ? AND ?'];
-$params = [$from . ' 00:00:00', $to . ' 23:59:59'];
+// default: sales (from submitted cadet / field trip reports)
+$headers = ['Date', 'Trip', 'Vehicle', 'Cadet', 'Sales (UGX)', 'Cash reported (UGX)', 'Status'];
+$where = ["dt.status IN ('returned','completed')", 'DATE(dt.returned_at) BETWEEN ? AND ?'];
+$params = [$from, $to];
 if ($routeId > 0) {
-    $where[] = 'o.trip_id IN (SELECT id FROM delivery_trips WHERE route_id = ?)';
+    $where[] = 'dt.route_id = ?';
     $params[] = $routeId;
 }
 if ($vehicleId > 0) {
-    $where[] = 'o.vehicle_id = ?';
+    $where[] = 'dt.vehicle_id = ?';
     $params[] = $vehicleId;
 }
 if ($userId > 0) {
-    $where[] = 'o.user_id = ?';
+    $where[] = '(dt.cadet_id = ? OR dt.driver_id = ?)';
+    $params[] = $userId;
     $params[] = $userId;
 }
 $stmt = db()->prepare(
-    "SELECT o.created_at, o.order_ref, c.name AS customer, o.amount_total, o.status, o.payment_type
-     FROM orders o
-     LEFT JOIN customers c ON c.id = o.customer_id
+    "SELECT DATE(dt.returned_at) AS d, dt.id AS trip_id, v.registration AS vehicle,
+            u.full_name AS cadet, dt.notes, dt.cash_reported, dt.status
+     FROM delivery_trips dt
+     LEFT JOIN vehicles v ON v.id = dt.vehicle_id
+     LEFT JOIN users u ON u.id = dt.cadet_id
      WHERE " . implode(' AND ', $where) . "
-     ORDER BY o.created_at"
+     ORDER BY dt.returned_at"
 );
 $stmt->execute($params);
 $rows = [];
 $salesTotal = 0.0;
-while ($row = $stmt->fetch()) {
-    $amt = (float) $row['amount_total'];
-    $salesTotal += $amt;
+foreach ($stmt->fetchAll() as $row) {
+    $parsed = cadet_parse_report_note($row['notes'] ?? null);
+    $rev = (float) ($parsed['sales_total'] ?? 0);
+    $salesTotal += $rev;
     $rows[] = [
-        $row['created_at'],
-        $row['order_ref'],
-        $row['customer'] ?: ' - ',
-        $amt,
+        $row['d'],
+        'Trip #' . $row['trip_id'],
+        $row['vehicle'] ?: ' - ',
+        $row['cadet'] ?: ' - ',
+        $rev,
+        (float) $row['cash_reported'],
         $row['status'],
-        $row['payment_type'],
     ];
 }
 export_branded_report($reportTitle, $headers, $rows, [
     'Period' => date('d M Y', strtotime($from)) . ' – ' . date('d M Y', strtotime($to)),
-    'Orders' => (string) count($rows),
+    'Trips' => (string) count($rows),
     'Total sales' => 'UGX ' . number_format($salesTotal, 0),
 ], $who, 'Sales for the selected period');

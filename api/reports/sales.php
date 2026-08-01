@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/permissions.php';
+require_once dirname(__DIR__, 2) . '/includes/depot_finance.php';
 
 require_permission('reports_sales');
 
@@ -15,93 +16,138 @@ $cadetId = (int) ($_GET['cadet_id'] ?? 0);
 $userId = (int) ($_GET['user_id'] ?? 0);
 $groupBy = $_GET['group_by'] ?? 'day';
 
-$params = [$from, $to . ' 23:59:59'];
-$where = "o.status IN ('confirmed','delivered','dispatched') AND o.created_at BETWEEN ? AND ?";
+// Sales come from submitted cadet / field trip reports (returned/completed trips).
+$where = ["dt.status IN ('returned','completed')", 'DATE(dt.returned_at) BETWEEN ? AND ?'];
+$params = [$from, $to];
 
 if ($vehicleId > 0) {
-    $where .= ' AND o.vehicle_id = ?';
+    $where[] = 'dt.vehicle_id = ?';
     $params[] = $vehicleId;
 }
 if ($routeId > 0) {
-    $where .= ' AND o.trip_id IN (SELECT id FROM delivery_trips WHERE route_id = ?)';
+    $where[] = 'dt.route_id = ?';
     $params[] = $routeId;
 }
 if ($driverId > 0) {
-    $where .= ' AND o.trip_id IN (SELECT id FROM delivery_trips WHERE driver_id = ?)';
+    $where[] = 'dt.driver_id = ?';
     $params[] = $driverId;
 }
 if ($cadetId > 0) {
-    $where .= ' AND o.user_id = ?';
+    $where[] = 'dt.cadet_id = ?';
     $params[] = $cadetId;
 }
 if ($userId > 0) {
-    $where .= ' AND o.user_id = ?';
+    $where[] = '(dt.cadet_id = ? OR dt.driver_id = ?)';
+    $params[] = $userId;
     $params[] = $userId;
 }
 
+$whereSql = implode(' AND ', $where);
+
+$tripStmt = db()->prepare(
+    "SELECT dt.id, dt.vehicle_id, dt.notes, DATE(dt.returned_at) AS d
+     FROM delivery_trips dt WHERE {$whereSql}"
+);
+$tripStmt->execute($params);
+$trips = $tripStmt->fetchAll();
+$tripIds = array_map('intval', array_column($trips, 'id'));
+
+$tripRevenue = [];
+$tripDay = [];
+foreach ($trips as $t) {
+    $parsed = cadet_parse_report_note($t['notes'] ?? null);
+    $tripRevenue[(int) $t['id']] = (float) ($parsed['sales_total'] ?? 0);
+    $tripDay[(int) $t['id']] = $t['d'];
+}
+
+$cartonsByTrip = [];
+if ($tripIds) {
+    $ph = implode(',', array_fill(0, count($tripIds), '?'));
+    $cStmt = db()->prepare(
+        "SELECT trip_id, COALESCE(SUM(qty_sold), 0) AS sold
+         FROM trip_load_items WHERE trip_id IN ({$ph}) GROUP BY trip_id"
+    );
+    $cStmt->execute($tripIds);
+    foreach ($cStmt->fetchAll() as $r) {
+        $cartonsByTrip[(int) $r['trip_id']] = (int) $r['sold'];
+    }
+}
+
 $dateFmt = match ($groupBy) {
-    'week' => '%Y-%u',
-    'month' => '%Y-%m',
-    default => '%Y-%m-%d',
+    'week' => 'Y-\WW',
+    'month' => 'Y-m',
+    default => 'Y-m-d',
 };
 
-$dailyStmt = db()->prepare(
-    "SELECT DATE_FORMAT(o.created_at, '{$dateFmt}') AS period,
-            COUNT(DISTINCT o.id) AS order_count,
-            COALESCE(SUM(o.amount_total), 0) AS revenue,
-            COALESCE(SUM(oi.qty), 0) AS cartons
-     FROM orders o
-     LEFT JOIN order_items oi ON oi.order_id = o.id
-     WHERE {$where}
-     GROUP BY period
-     ORDER BY period"
-);
-$dailyStmt->execute($params);
-$byPeriod = $dailyStmt->fetchAll();
+$byPeriod = [];
+$byVehicle = [];
+foreach ($trips as $t) {
+    $id = (int) $t['id'];
+    $period = date($dateFmt, strtotime($t['d']));
+    $cartons = $cartonsByTrip[$id] ?? 0;
+    $revenue = $tripRevenue[$id] ?? 0.0;
+
+    $byPeriod[$period] = $byPeriod[$period] ?? ['cartons' => 0, 'revenue' => 0.0];
+    $byPeriod[$period]['cartons'] += $cartons;
+    $byPeriod[$period]['revenue'] += $revenue;
+
+    $vid = (int) $t['vehicle_id'];
+    if ($vid > 0) {
+        $byVehicle[$vid] = $byVehicle[$vid] ?? ['trips' => 0, 'cartons' => 0, 'revenue' => 0.0];
+        $byVehicle[$vid]['trips']++;
+        $byVehicle[$vid]['cartons'] += $cartons;
+        $byVehicle[$vid]['revenue'] += $revenue;
+    }
+}
+
+$byPeriodRows = [];
+foreach ($byPeriod as $period => $agg) {
+    $byPeriodRows[] = ['period' => $period, 'cartons' => $agg['cartons'], 'revenue' => $agg['revenue']];
+}
+usort($byPeriodRows, static fn($a, $b) => strcmp((string) $a['period'], (string) $b['period']));
+
+$vehicleRows = [];
+if ($byVehicle) {
+    $ph = implode(',', array_fill(0, count($byVehicle), '?'));
+    $vStmt = db()->prepare(
+        "SELECT id, registration FROM vehicles WHERE id IN ({$ph}) ORDER BY registration"
+    );
+    $vStmt->execute(array_keys($byVehicle));
+    foreach ($vStmt->fetchAll() as $v) {
+        $agg = $byVehicle[(int) $v['id']];
+        $vehicleRows[] = [
+            'registration' => $v['registration'],
+            'trips' => $agg['trips'],
+            'cartons' => $agg['cartons'],
+            'revenue' => $agg['revenue'],
+        ];
+    }
+}
 
 $productStmt = db()->prepare(
-    "SELECT p.name, SUM(oi.qty) AS cartons, SUM(oi.subtotal) AS revenue
-     FROM order_items oi
-     JOIN orders o ON o.id = oi.order_id
-     JOIN products p ON p.id = oi.product_id
-     WHERE {$where}
+    "SELECT p.name, COALESCE(SUM(tli.qty_sold), 0) AS cartons,
+            COALESCE(SUM(tli.qty_sold * p.unit_price), 0) AS revenue
+     FROM trip_load_items tli
+     JOIN delivery_trips dt ON dt.id = tli.trip_id
+     JOIN products p ON p.id = tli.product_id
+     WHERE {$whereSql}
      GROUP BY p.id, p.name
      ORDER BY revenue DESC"
 );
 $productStmt->execute($params);
 $byProduct = $productStmt->fetchAll();
 
-$vehicleStmt = db()->prepare(
-    "SELECT v.registration, COUNT(DISTINCT dt.id) AS trips,
-            COALESCE(SUM(oi.qty), 0) AS cartons,
-            COALESCE(SUM(o.amount_total), 0) AS revenue
-     FROM orders o
-     JOIN vehicles v ON v.id = o.vehicle_id
-     LEFT JOIN delivery_trips dt ON dt.id = o.trip_id
-     LEFT JOIN order_items oi ON oi.order_id = o.id
-     WHERE {$where}
-     GROUP BY v.id, v.registration
-     ORDER BY revenue DESC"
-);
-$vehicleStmt->execute($params);
-$byVehicle = $vehicleStmt->fetchAll();
-
-$totals = db()->prepare(
-    "SELECT COALESCE(SUM(o.amount_total), 0) AS revenue,
-            COUNT(DISTINCT o.id) AS orders,
-            COALESCE(SUM(oi.qty), 0) AS cartons
-     FROM orders o
-     LEFT JOIN order_items oi ON oi.order_id = o.id
-     WHERE {$where}"
-);
-$totals->execute($params);
-$summary = $totals->fetch();
+$summary = [
+    'revenue' => array_sum($tripRevenue),
+    'trips' => count($trips),
+    'cartons' => array_sum($cartonsByTrip),
+];
 
 json_ok([
     'from' => $from,
     'to' => $to,
     'summary' => $summary,
-    'by_period' => $byPeriod,
+    'by_period' => $byPeriodRows,
     'by_product' => $byProduct,
-    'by_vehicle' => $byVehicle,
+    'by_vehicle' => $vehicleRows,
 ]);

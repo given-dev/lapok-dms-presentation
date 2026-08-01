@@ -2,7 +2,7 @@
 
 **Product:** Outpost DMS  
 **Build folder:** `lapok-dms-presentation` (accountant module **live**)  
-**Last updated:** 16 July 2026  
+**Last updated:** 31 July 2026  
 **Purpose:** Single place to track what is live, what is planned, and what we may add next. Update this when modules ship or scope changes.
 
 **Status key**
@@ -22,6 +22,7 @@
 | Priority | Focus | Goal |
 |----------|--------|------|
 | **Done (this shift)** | Manager CCBA boards + executive brief | Boards = Inventory + OCCD only; SKU map / sync = Phase 2. Executive brief = finance + **styled full stock-book table** + sellers. **Companion CCBA boards PDF** = navy banners + bordered tables matching on-screen boards (migration **016**). |
+| **Done (31 Jul)** | Manager daily-ops fixes | Dispatch load list is **pack-level** (300ML RGB, 300PET, …) like the cadet daily list; Daily readiness trimmed to **3 items** (Accountant pack reviewed / RDC sheet approved / Opening stock); executive login restored (`executive@lapok.ug`); vehicles free when trips return (cadet report + field EOD); Revenue today / crates sold / revenue MTD, dashboard charts, **financial & sales reports + CSV export** read **real depot sales** (RDC sheet + cadet trip reports) instead of the orders table. |
 | **Next (1)** | **Cadet — receive dispatch** | How the cadet sees and accepts manager dispatch / load before going on route. Primary UX gap after manager dispatch. |
 | **Next (2) — primary attack** | **Accountant (RDC) account** | Deep polish of the accountant daily close: Home → Today's close → cash → manager pack. This is the main quality target after cadet dispatch receive. |
 
@@ -85,11 +86,11 @@ Do **not** reopen CCBA SKU map / Sync warehouse on daily boards until Phase 2 My
 | Edit requests | `admin-editreqs` | **Live** | Approve / reject field edits |
 | Exception center | `admin-exceptions` | **Live** | Cross-role queue |
 | Customers & receivables | `admin-customers` | **Live** | Live totals + customer table |
-| Stock & deliveries | `manager-stock` | **Live** | Receive, confirm, dispatch |
+| Stock & deliveries | `manager-stock` | **Live** | Receive, confirm, **pack-level dispatch** (300ML RGB, 300PET, … — same packs the cadet list shows); warehouse qty rolls up across SKUs |
 | CCBA boards | `manager-ccba-boards` | **Live** | Inventory + OCCD only (SKU map / sync = Phase 2) |
 | Order via MyCCBA | `manager-ccba-order` | **Live** | Replenishment order draft → portal |
 | PDF report exchange | `report-exchange` | **Live** | Brief + companion `ccba_boards` PDF; styled tables/banners |
-| Reports & analytics | `manager-reports` | **Live** | |
+| Reports & analytics | `manager-reports` | **Live** | Financial + sales reports read real depot sales (RDC sheet + cadet trip reports); CSV export per-trip |
 
 ### Manager — suggested additions
 
@@ -105,12 +106,12 @@ Do **not** reopen CCBA SKU map / Sync warehouse on daily boards until Phase 2 My
 
 | Feature | Page / area | Status | Notes |
 |---------|-------------|--------|-------|
-| Executive dashboard | `admin-dashboard` | **Live** | Daily checklist + director P&L widget; hides admin action center |
+| Executive dashboard | `admin-dashboard` | **Live** | Daily checklist + director P&L widget; hides admin action center. Revenue today / crates sold / revenue MTD + charts read **real depot sales** (RDC sheet + cadet trip reports). |
 | Director brief | `director-brief` | **Live** | Today / yesterday / date picker P&L. Now includes opening/closing stock breakdown. |
 | PDF inbox | `report-exchange` | **Live** | Acknowledge manager brief — full day summary PDF |
 
 | Pack-arrival bell | Notifications | **Live** | Unread when manager sends/replaces executive brief |
-| Reports & analytics | `admin-reports` | **Live** | |
+| Reports & analytics | `admin-reports` | **Live** | Financial + sales reports read real depot sales (RDC sheet + cadet trip reports) |
 | Exception center | `admin-exceptions` | **Live** | Monitor only (no ops deep-links) |
 | Receivables overview | `admin-customers` | **Live** | |
 | Staff welfare / month-end | `accountant-welfare`, `accountant-improvements` | **Live** | View only |
@@ -157,7 +158,7 @@ Re-send the brief after code changes to regenerate both PDFs.
 | Edit requests | `admin-editreqs` | **Live** | |
 | Exception center | `admin-exceptions` | **Live** | |
 | PDF reports | `report-exchange` | **Live** | |
-| Reports & analytics | `admin-reports` | **Live** | |
+| Reports & analytics | `admin-reports` | **Live** | Financial + sales reports read real depot sales (RDC sheet + cadet trip reports) |
 | Month-end / welfare | `accountant-improvements`, `accountant-welfare` | **Live** | Admin can edit |
 
 ---
@@ -193,7 +194,7 @@ Month-end (last 3 days): banner on Home → accountant-improvements
 | Feature | Page / area | Status | Notes |
 |---------|-------------|--------|-------|
 | Cadet dashboard | `cadet-dashboard` | **Live** | Trip status, load summary, report status |
-| Cadet daily report | `cadet-daily` | **Live** | Submit sales/expenses/cash → RDC vehicle column |
+| Cadet daily report | `cadet-daily` | **Live** | Submit sales/expenses/cash → RDC vehicle column. Closing the report returns the trip **and frees the vehicle** (same on field-user EOD). |
 | Cadet notifications | Bell | **Live** | Manager / RDC / admin messages |
 | **Receive / acknowledge dispatch** | `cadet-dashboard` (+ load confirm) | **Planned** | **Next shift #1** — clear UX when manager dispatches: see load, confirm receive, then go on route |
 | Limited field-user dashboard | `manager-dashboard` subset | **Partial** | Field login subset (no dedicated demo seed) |

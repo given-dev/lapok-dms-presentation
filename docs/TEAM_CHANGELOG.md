@@ -37,6 +37,26 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 
 ## Log
 
+### 2026-07-31 · ~14:00 (Africa/Kampala)
+
+| | |
+|--|--|
+| **Who** | Team |
+| **Push / ref** | Local — dispatch pack & readiness committed (`383a86d`, `36cfb60`, `aaf67f5`); dashboard-source + vehicle-return fixes local WIP |
+| **Area** | Manager daily ops · Executive dashboard · Cadet/field return |
+
+**Changes**
+- **Dispatch load list is pack-level** like the cadet daily list (300ML RGB, 300PET, …): `depot_dispatch_pack_groups()` / `depot_split_pack_qty()` in `includes/depot_catalog.php`; `prepareDispatchModal` renders one input per pack (warehouse qty rolled up across SKUs); `saveDispatch` sends `rdc_key`; `api/vehicles/dispatch.php` splits pack qty across SKUs by stock. Dispatch table styled like the cadet sales table (cat-row layout).
+- **Daily readiness trimmed to 3 items**: Accountant pack reviewed, RDC daily sheet approved, Opening stock completed. Removed closing stock, Inventory board, and OCCD board items (`report_manager_readiness()` in `includes/report_packets.php`; totals in `assets/report-exchange.js`).
+- **Executive login restored**: created `executive@lapok.ug` (Mary Atim, `password123`) directly in the live `users` table.
+- **Vehicles free when trips return**: `api/cadet/submit_report.php` and `api/trips/eod_submit.php` both flip the trip's vehicle to `available` and clear `driver_id`/`cadet_id` when the trip closes. Swept stale `on_route` vehicles that had no open trip (TUK-001).
+- **Dashboard sales figures now real**: revenue today / crates sold / revenue MTD on executive, admin and manager dashboards, plus `dashboard_charts.php` graphs, read actual depot sales — RDC sheet (`sales_total`) with cadet trip report fallback (`notes` JSON), crates from `trip_load_items.qty_sold`. New helpers `depot_sales_revenue_by_day()` / `depot_cartons_sold_by_day()` in `includes/depot_finance.php`. Replaced `orders`-table queries in `api/dashboard/executive.php`, `api/dashboard/admin.php`, `api/reports/dashboard_charts.php`.
+- **Reports pulled from depot sales too**: `api/reports/financial.php` (Revenue / Cartons / Revenue-by-month) and `api/reports/sales.php` (by period / product / vehicle / summary) now read submitted trip reports instead of the empty `orders` table. Filter-aware helpers `depot_trip_revenue_by_day()` / `depot_trip_cartons_by_day()` (route/vehicle/user) added in `includes/depot_finance.php`. Sales CSV export (`api/reports/export_csv.php`) exports per-trip rows (date, trip, vehicle, cadet, sales, cash) instead of orders; reports summary label changed from “Orders” to “Trips” (`assets/phase45.js`).
+
+**Notes**
+- Hard refresh (**Ctrl+F5**) after JS/CSS changes; these changes are mostly PHP so refresh is enough.
+- Historical sweep was a one-off DB update (no migration) — the return-path fix prevents recurrence.
+
 ### 2026-07-21 · ~09:35 (Africa/Kampala)
 
 | | |

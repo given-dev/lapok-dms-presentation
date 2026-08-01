@@ -865,7 +865,7 @@ async function loadSalesReports() {
     }
     const body = document.getElementById('reportsDetailBody');
     if (body) {
-      body.innerHTML = `<p>Total revenue: <strong>${LapokAPI.formatUgx(d.summary?.revenue)}</strong> · Orders: ${d.summary?.orders} · Cartons: ${d.summary?.cartons}</p>`;
+      body.innerHTML = `<p>Total revenue: <strong>${LapokAPI.formatUgx(d.summary?.revenue)}</strong> · Trips: ${d.summary?.trips} · Cartons: ${d.summary?.cartons}</p>`;
     }
   } catch (e) { console.warn('Sales reports:', e.message); }
 }

@@ -90,7 +90,7 @@ Stock page is daily only: opening/closing counts + delivery confirmation. CCBA b
 
 **Executive brief PDF** (manager → executive) summarises: attention flags, day glance, RDC finance, **styled full stock-book table**, most & least selling products, stock risk. **CCBA Inventory + OCCD** go as a **separate companion PDF** with **navy banners and bordered tables** matching the boards UI. Re-send after code changes to regenerate both. Apply migration **016** for typed `ccba_boards` packets.
 
-**Manager reporting desk:** `report-exchange` is an inbox-first, date-based workflow. The manager must review the Accountant pack, approve the RDC daily sheet, complete opening and closing stock, and submit both Inventory and OCCD boards. Only then can the manager confirm generation and delivery of the two-document executive pack. The same readiness gate is enforced by the generation and upload APIs, so it cannot be bypassed from the browser.
+**Manager reporting desk:** `report-exchange` is an inbox-first, date-based workflow. The manager must review the Accountant pack, approve the RDC daily sheet, and complete opening stock (3 readiness checks). Only then can the manager confirm generation and delivery of the two-document executive pack. Closing stock auto-records its snapshot and the CCBA boards are no longer readiness gates. The same readiness gate is enforced by the generation and upload APIs, so it cannot be bypassed from the browser.
 
 ### Accountant (RDC)
 
@@ -168,7 +168,7 @@ Manager: Stock taking (opening first, closing from 6:30 PM) + delivery confirmat
 
 1. **Field / Cadet:** submitting an end-of-day trip report archives one Field EOD PDF for that trip.
 2. **Accountant / RDC:** the manager finance pack unlocks only when all Field EOD PDFs exist, cadet cash handovers are confirmed, assigned trips are closed, and the RDC sheet is submitted.
-3. **Manager:** the executive pack unlocks only after the Accountant pack is opened, RDC is approved, opening and closing stock exist, and Inventory + OCCD boards are submitted.
+3. **Manager:** the executive pack unlocks only after the Accountant pack is opened, the RDC daily sheet is approved, and opening stock exists (3 readiness checks).
 4. **Executive / Board:** the chain is complete only after both the operations brief and CCBA boards companion are acknowledged.
 
 These readiness rules are enforced by both PDF generation and replacement-upload APIs. The PDF report screens show the same live four-stage status for the selected reporting date.

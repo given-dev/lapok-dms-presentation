@@ -76,6 +76,12 @@ $pdo->prepare(
     'UPDATE delivery_trips SET odometer_end = ?, fuel_cost = ?, cash_reported = ?, notes = ?, status = ?, returned_at = NOW() WHERE id = ?'
 )->execute([$odometerEnd, $fuelCost, $cashReported, $notes, 'returned', $tripId]);
 
+if ((int) $trip['vehicle_id'] > 0) {
+    $pdo->prepare(
+        'UPDATE vehicles SET status = ?, driver_id = NULL, cadet_id = NULL WHERE id = ?'
+    )->execute(['available', (int) $trip['vehicle_id']]);
+}
+
 if (is_array($returns)) {
     foreach ($returns as $ret) {
         $productId = (int) ($ret['product_id'] ?? 0);

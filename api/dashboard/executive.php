@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/stock.php';
+require_once dirname(__DIR__, 2) . '/includes/depot_finance.php';
 
 $user = require_permission('dashboard');
 if (!in_array($user['role'], ['executive', 'admin'], true)) {
@@ -17,42 +18,26 @@ $warehouse = (int) $pdo->query(
      INNER JOIN products p ON p.id = b.product_id AND p.is_active = 1'
 )->fetchColumn();
 
-$revenueToday = (float) $pdo->query(
-    "SELECT COALESCE(SUM(amount_total), 0) FROM orders
-     WHERE status IN ('confirmed','delivered','dispatched') AND DATE(created_at) = CURDATE()"
-)->fetchColumn();
+$today = date('Y-m-d');
+$yesterday = date('Y-m-d', strtotime('-1 day'));
+$monthStart = date('Y-m-01');
+$prevMonthStart = date('Y-m-01', strtotime('first day of last month'));
+$prevMonthEnd = date('Y-m-t', strtotime('last day of last month'));
 
-$revenueYesterday = (float) $pdo->query(
-    "SELECT COALESCE(SUM(amount_total), 0) FROM orders
-     WHERE status IN ('confirmed','delivered','dispatched') AND DATE(created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
-)->fetchColumn();
+$revenueByDay = depot_sales_revenue_by_day($monthStart, $today);
+$cartonsByDay = depot_cartons_sold_by_day($monthStart, $today);
+$revenueToday = $revenueByDay[$today] ?? 0.0;
+$revenueYesterday = depot_sales_revenue_by_day($yesterday, $yesterday)[$yesterday] ?? 0.0;
+$cartonsToday = $cartonsByDay[$today] ?? 0;
+$cartonsYesterday = depot_cartons_sold_by_day($yesterday, $yesterday)[$yesterday] ?? 0;
+$revenueMtd = array_sum($revenueByDay);
 
-$cartonsToday = (int) $pdo->query(
-    "SELECT COALESCE(SUM(oi.qty), 0) FROM order_items oi
-     JOIN orders o ON o.id = oi.order_id
-     WHERE o.status IN ('confirmed','delivered','dispatched') AND DATE(o.created_at) = CURDATE()"
-)->fetchColumn();
-
-$cartonsYesterday = (int) $pdo->query(
-    "SELECT COALESCE(SUM(oi.qty), 0) FROM order_items oi
-     JOIN orders o ON o.id = oi.order_id
-     WHERE o.status IN ('confirmed','delivered','dispatched')
-       AND DATE(o.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
-)->fetchColumn();
-
-$revenueMtd = (float) $pdo->query(
-    "SELECT COALESCE(SUM(amount_total), 0) FROM orders
-     WHERE status IN ('confirmed','delivered','dispatched')
-       AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())"
-)->fetchColumn();
-
-$revenuePrevMtd = (float) $pdo->query(
-    "SELECT COALESCE(SUM(amount_total), 0) FROM orders
-     WHERE status IN ('confirmed','delivered','dispatched')
-       AND YEAR(created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
-       AND MONTH(created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
-       AND DAY(created_at) <= DAY(CURDATE())"
-)->fetchColumn();
+$revenuePrevMtd = 0.0;
+foreach (depot_sales_revenue_by_day($prevMonthStart, $prevMonthEnd) as $day => $rev) {
+    if ((int) substr($day, 8, 2) <= (int) date('d')) {
+        $revenuePrevMtd += $rev;
+    }
+}
 
 $pendingOrders = (int) $pdo->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetchColumn();
 $pendingRequests = (int) $pdo->query("SELECT COUNT(*) FROM edit_requests WHERE status = 'pending'")->fetchColumn();
@@ -111,7 +96,6 @@ try {
 
 $director = null;
 try {
-    require_once dirname(__DIR__, 2) . '/includes/depot_finance.php';
     $director = depot_director_snapshot(date('Y-m-d'));
 } catch (Throwable) {
 }
