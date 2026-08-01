@@ -42,7 +42,7 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 | | |
 |--|--|
 | **Who** | opencode |
-| **Push / ref** | `main` · local commit |
+| **Push / ref** | `testing-era` · commit `1e469f0` |
 | **Area** | Executive dashboard · target tracking |
 
 **Changes**
@@ -61,7 +61,7 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 | | |
 |--|--|
 | **Who** | opencode |
-| **Push / ref** | `main` · local commit |
+| **Push / ref** | `testing-era` · commit `46a09b4` |
 | **Area** | Executive dashboard · docs |
 
 **Changes**
