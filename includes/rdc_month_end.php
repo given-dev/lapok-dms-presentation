@@ -5,30 +5,12 @@ declare(strict_types=1);
 function rdc_month_end_default_state(): array
 {
     return [
-        'automation' => [
-            ['key' => 'bankFeeds', 'label' => 'Bank feeds synced daily', 'enabled' => true],
-            ['key' => 'invoiceCapture', 'label' => 'Invoice capture and coding workflow (manual in this release)', 'enabled' => true],
-            ['key' => 'recurringJv', 'label' => 'Recurring journals posted automatically', 'enabled' => false],
-            ['key' => 'reconciliationRules', 'label' => 'Reconciliation rules active', 'enabled' => true],
-        ],
         'checklist' => [
             ['task' => 'Bank reconciliation complete', 'owner' => 'Accountant', 'due' => 'D+1 10:00', 'status' => 'pending'],
             ['task' => 'Sales and cash tie-out', 'owner' => 'Accountant', 'due' => 'D+1 11:00', 'status' => 'pending'],
             ['task' => 'Expense review and coding', 'owner' => 'Manager', 'due' => 'D+1 13:00', 'status' => 'pending'],
             ['task' => 'Close pack sent to leadership', 'owner' => 'Accountant', 'due' => 'D+1 16:00', 'status' => 'pending'],
         ],
-        'controls' => [
-            ['action' => 'Cash confirmation', 'maker' => 'Cadet', 'checker' => 'Accountant', 'status' => 'active'],
-            ['action' => 'Credit adjustment', 'maker' => 'Accountant', 'checker' => 'Manager', 'status' => 'active'],
-        ],
-        'documents' => [
-            ['name' => 'Route cash handover note', 'source' => 'Cadet', 'status' => 'received'],
-            ['name' => 'Fuel support receipt', 'source' => 'Driver', 'status' => 'missing'],
-        ],
-        'templates' => [
-            'pnl' => 'Revenue vs fuel/operating costs, with major variances and action owners.',
-        ],
-        'approvalMatrix' => 'green',
         'processReviewDate' => '',
         'bottlenecks' => '',
         'sopUpdates' => '',
@@ -38,12 +20,12 @@ function rdc_month_end_default_state(): array
 
 function rdc_month_end_roles_view(): array
 {
-    return ['accountant', 'manager', 'executive', 'admin'];
+    return ['accountant'];
 }
 
 function rdc_month_end_roles_edit(): array
 {
-    return ['accountant', 'admin'];
+    return ['accountant'];
 }
 
 function rdc_month_end_can_view(string $role): bool
@@ -61,12 +43,7 @@ function rdc_month_end_normalize_state(array $state): array
 {
     $default = rdc_month_end_default_state();
     $merged = array_merge($default, $state);
-    if (isset($state['templates']) && is_array($state['templates'])) {
-        $merged['templates'] = [
-            'pnl' => (string) ($state['templates']['pnl'] ?? $default['templates']['pnl']),
-        ];
-    }
-    foreach (['automation', 'checklist', 'controls', 'documents'] as $key) {
+    foreach (['checklist'] as $key) {
         if (!isset($merged[$key]) || !is_array($merged[$key])) {
             $merged[$key] = $default[$key];
         }

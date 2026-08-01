@@ -62,12 +62,12 @@ function toggleCcbaEditorActions() {
 async function loadCcbaOrderList() {
   const tbody = document.getElementById('ccbaOrderListBody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1rem;color:var(--gray-mid)">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" class="skel" style="text-align:center;padding:1rem">Loading…</td></tr>';
   try {
     const data = await LapokAPI.get('/api/ccba/orders/fetch.php?limit=30');
     const orders = data.orders || [];
     if (!orders.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1rem;color:var(--gray-mid)">No CCBA orders yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--gray-mid)">No CCBA orders yet.</td></tr>';
       return;
     }
     tbody.innerHTML = orders.map((o) => {
@@ -77,13 +77,12 @@ async function loadCcbaOrderList() {
         <td style="font-family:monospace;font-size:11px">${escHtml(o.lapok_ref)}${ref}</td>
         <td>${ccbaStatusBadge(o.status)}</td>
         <td>${o.line_count || 0}</td>
-        <td>${Number(o.est_total || 0).toLocaleString()}</td>
         <td style="font-size:11px">${LapokAPI.formatDate(o.created_at)}</td>
         <td><button class="btn btn-sm" onclick="ccbaOpenOrder(${o.id})">Open</button></td>
       </tr>`;
     }).join('');
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:1rem">${escHtml(e.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--red);padding:1rem">${escHtml(e.message)}</td></tr>`;
   }
 }
 
@@ -101,7 +100,6 @@ async function ccbaNewFromLowStock() {
         warehouse_qty: s.warehouse_qty,
         min_stock: s.min_stock,
         qty_requested: 0,
-        unit_cost_estimate: (s.unit_price || 0) * 0.6,
         ccba_sku_code: null,
       }));
     }
@@ -122,10 +120,9 @@ async function ccbaOpenOrder(id) {
       product_id: i.product_id,
       name: i.product_name,
       sku: i.sku,
-      warehouse_qty: '—',
-      min_stock: '—',
+      warehouse_qty: i.warehouse_qty,
+      min_stock: i.min_stock,
       qty_requested: i.qty_requested,
-      unit_cost_estimate: i.unit_cost_estimate,
       ccba_sku_code: i.ccba_sku_code,
     }));
     document.getElementById('ccbaEditorRef').textContent = order.lapok_ref;
@@ -143,52 +140,38 @@ async function ccbaOpenOrder(id) {
 function renderCcbaEditor() {
   const tbody = document.getElementById('ccbaEditorBody');
   if (!tbody) return;
-  let total = 0;
+  const activeLines = ccbaEditorLines.filter((l) => (l.qty_requested || 0) > 0).length;
   tbody.innerHTML = ccbaEditorLines.map((line, i) => {
-    const sub = (line.qty_requested || 0) * (line.unit_cost_estimate || 0);
-    total += sub;
     const low = line.warehouse_qty !== '—' && line.warehouse_qty < line.min_stock;
     const wh = line.warehouse_qty === '—' ? '—' : (low ? `<span class="badge bd">${line.warehouse_qty}</span>` : line.warehouse_qty);
+    const sku = line.ccba_sku_code ? escHtml(line.ccba_sku_code) : '<span style="color:var(--gray-mid)">—</span>';
     return `<tr>
       <td>${escHtml(line.name)}<div style="font-size:10px;color:var(--gray-mid)">${escHtml(line.sku)}</div></td>
       <td>${wh}</td>
       <td>${line.min_stock}</td>
       <td><input class="qty-inp ccba-qty" type="number" min="0" value="${line.qty_requested || 0}" data-idx="${i}" oninput="ccbaRecalcTotal()"></td>
-      <td><input class="qty-inp ccba-cost" type="number" min="0" value="${Math.round(line.unit_cost_estimate || 0)}" data-idx="${i}" style="width:90px" oninput="ccbaRecalcTotal()"></td>
-      <td class="ccba-line-total" data-idx="${i}">${sub.toLocaleString()}</td>
+      <td>${sku}</td>
     </tr>`;
   }).join('');
-  document.getElementById('ccbaOrderTotal').textContent = 'UGX ' + total.toLocaleString();
+  document.getElementById('ccbaOrderLines').textContent = String(activeLines);
 }
 
 function ccbaRecalcTotal() {
-  let total = 0;
+  let lines = 0;
   document.querySelectorAll('#ccbaEditorBody tr').forEach((tr) => {
     const qtyInp = tr.querySelector('.ccba-qty');
-    const costInp = tr.querySelector('.ccba-cost');
     const idx = parseInt(qtyInp?.dataset.idx || '0', 10);
     const qty = parseInt(qtyInp?.value || '0', 10);
-    const cost = parseFloat(costInp?.value || '0');
-    if (ccbaEditorLines[idx]) {
-      ccbaEditorLines[idx].qty_requested = qty;
-      ccbaEditorLines[idx].unit_cost_estimate = cost;
-    }
-    const sub = qty * cost;
-    total += sub;
-    const cell = tr.querySelector('.ccba-line-total');
-    if (cell) cell.textContent = sub.toLocaleString();
+    if (ccbaEditorLines[idx]) ccbaEditorLines[idx].qty_requested = qty;
+    if (qty > 0) lines++;
   });
-  document.getElementById('ccbaOrderTotal').textContent = 'UGX ' + total.toLocaleString();
+  document.getElementById('ccbaOrderLines').textContent = String(lines);
 }
 
 function ccbaCollectPayload(markReady) {
   document.querySelectorAll('.ccba-qty').forEach((inp) => {
     const idx = parseInt(inp.dataset.idx || '0', 10);
     if (ccbaEditorLines[idx]) ccbaEditorLines[idx].qty_requested = parseInt(inp.value || '0', 10);
-  });
-  document.querySelectorAll('.ccba-cost').forEach((inp) => {
-    const idx = parseInt(inp.dataset.idx || '0', 10);
-    if (ccbaEditorLines[idx]) ccbaEditorLines[idx].unit_cost_estimate = parseFloat(inp.value || '0');
   });
   return {
     order_id: ccbaActiveOrderId || undefined,
@@ -200,7 +183,6 @@ function ccbaCollectPayload(markReady) {
       .map((l) => ({
         product_id: l.product_id,
         qty_requested: l.qty_requested,
-        unit_cost_estimate: l.unit_cost_estimate,
         ccba_sku_code: l.ccba_sku_code,
       })),
   };
@@ -257,20 +239,20 @@ async function ccbaExportCsv() {
   }
   const rows = ccbaEditorLines
     .filter((l) => (l.qty_requested || 0) > 0)
-    .map((l) => [l.sku, l.product_id, l.qty_requested, l.unit_cost_estimate, l.ccba_sku_code || '']);
+    .map((l) => [l.sku, l.product_id, l.qty_requested, l.ccba_sku_code || '']);
   const ref = document.getElementById('ccbaEditorRef')?.textContent || 'order';
   if (typeof LapokAPI !== 'undefined' && LapokAPI.downloadBrandedExcel) {
     await LapokAPI.downloadBrandedExcel({
       title: 'CCBA order lines',
       subtitle: 'Pick list for MyCCBA confirmation',
-      headers: ['Outpost SKU', 'Product ID', 'Qty', 'Unit cost est.', 'CCBA SKU'],
+      headers: ['Outpost SKU', 'Product ID', 'Qty', 'CCBA SKU'],
       rows,
       meta: { Reference: ref, Lines: String(rows.length) },
       filename: 'Outpost-DMS-CCBA-' + String(ref).replace(/\s+/g, '_') + '.xls',
     });
     return;
   }
-  const header = 'Outpost SKU,Product ID,Qty,Unit cost est.,CCBA SKU\n';
+  const header = 'Outpost SKU,Product ID,Qty,CCBA SKU\n';
   const body = rows.map((r) => r.join(',')).join('\n');
   const blob = new Blob([header + body], { type: 'text/csv' });
   const a = document.createElement('a');
@@ -326,7 +308,7 @@ function escHtml(s) {
 async function loadCcbaProductMap() {
   const body = document.getElementById('ccbaMapBody');
   if (!body) return;
-  body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray-mid)">Loading…</td></tr>';
+  body.innerHTML = '<tr><td colspan="4" class="skel" style="text-align:center">Loading…</td></tr>';
   try {
     const data = await LapokAPI.get('/api/ccba/product_map/fetch.php');
     const maps = data.mappings || [];

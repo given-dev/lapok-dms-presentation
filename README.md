@@ -100,7 +100,7 @@ Stock page is daily only: opening/closing counts + delivery confirmation. CCBA b
 | Today's close | `accountant-rdc` | 3-step wizard, products grouped like depot sales book, cadet data by vehicle column, auto-save, and per-vehicle cash reconciliation |
 | Manager pack | `report-exchange` | One-tap send; gated on submitted balancing |
 | Cash handover | `accountant-cash` | Confirm field trip cash |
-| Month-end | `accountant-improvements` | Checklist + monthly notes — **DB sync** across roles |
+| Month-end | `accountant-improvements` | Checklist + monthly notes — **accountant only** (nav + API restricted) |
 | Staff welfare | `accountant-welfare` | Welfare register — **DB sync** across roles |
 | Closing stock (7pm) | `accountant-rdc-hub` | **View only** — manager enters counts on `manager-stock` |
 | Depot alerts | `admin-exceptions` | Live exception queue (see below) |
@@ -120,6 +120,10 @@ Read-only board/MD view. Initial local account: `executive@lapok.ug`; change its
 **Sidebar — Reports:** PDF reports (acknowledge manager brief), Reports & analytics  
 
 **Sidebar — Monitoring:** Exception center (monitor only), Receivables overview, Staff welfare (view), Month-end (view)
+
+The dashboard has a **month picker** (current + any previous month). Picking a past month switches revenue, per-cadet sales, targets, and cash still out to that month and hides live "today" cards and charts. **Per-cadet soda/water sold is always tracked** even before targets are set (they sync in once the Manager saves them on the Monthly targets page), and the "Monthly sales targets" table ends with an **Overall depot** total row (DEPOT + all vehicles) for target / sold / %.
+
+**Director brief widget is monthly** — Revenue, Expenses (var + fixed), Net operating and Shortages flagged capture the whole selected month (migration-verified live for July 2026), while the full Director brief page stays a daily P&L. **Cash still out** reads the approved RDC sheets (`cash_out_json`/`recoveries_json`), e.g. July 2026 Cash out MTD 99,500 / CSO 99,500.
 
 Daily flow: Director brief → acknowledge PDF pack → scan exceptions / receivables / welfare. Admin action center is hidden on this home.
 
@@ -244,8 +248,10 @@ C:\xampp\php\php.exe scripts\setup_passwords.php --confirm-local-reset
 | **017** | `017_remove_demo_operational_data.sql` | Remove seeded operations, stock quantities, stale trips, and historical sample packets while preserving accounts and genuine records |
 | **018** | `018_admin_vehicle_route_assignments.sql` | Weekly Admin vehicle / cadet / route assignments (`vehicle_route_assignments`) |
 | **019** | `019_cadet_confirm_receive.sql` | `delivery_trips.acknowledged_at` — cadet confirms dispatch before going on route |
+| **020** | `020_exec_kpi_targets.sql` | `sales_targets` (monthly SODA/WATER targets) + `exec_kpi_config` (CSO opening carry-forward); seeds July 2026 |
+| **021** | `021_sales_targets_per_cadet.sql` | `sales_targets.vehicle_id` — one target row per sales unit (NULL = DEPOT, else cadet vehicle); overall = SUM |
 
-**Required for this build:** apply **001–019**, including both `004_efris_integration.sql` and `004_fleet_tracking.sql`. Migration `017` is the no-demo cleanup and intentionally preserves the six accounts, fleet master, product catalogue, and genuine operational records.
+**Required for this build:** apply **001–021**, including both `004_efris_integration.sql` and `004_fleet_tracking.sql`. Migration `017` is the no-demo cleanup and intentionally preserves the six accounts, fleet master, product catalogue, and genuine operational records.
 
 Verify core tables:
 

@@ -41,7 +41,13 @@ const LapokAPI = (() => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
   }
 
-  async function request(method, path, body) {
+  const inflight = new Map();
+  const dashboardCache = new Map();
+  const DASH_CACHE_TTL = 15000;
+  const isDashboardRead = (key) =>
+    key.includes('/api/dashboard/') || key.includes('/api/reports/dashboard_charts.php');
+
+  async function doFetch(method, path, body) {
     const opts = {
       method,
       credentials: 'include',
@@ -51,8 +57,7 @@ const LapokAPI = (() => {
       opts.headers['Content-Type'] = 'application/json';
       opts.body = JSON.stringify(body);
     }
-    const url = resolvePath(path);
-    const res = await fetch(url, opts);
+    const res = await fetch(resolvePath(path), opts);
     const raw = await res.text();
     let json;
     try {
@@ -67,6 +72,32 @@ const LapokAPI = (() => {
     return json.data;
   }
 
+  async function request(method, path, body) {
+    if (method === 'GET') {
+      const key = resolvePath(path);
+      // Share concurrent GETs to the same URL (dedup duplicate page-loads).
+      if (inflight.has(key)) return inflight.get(key);
+      // Short-lived cache for heavy dashboard payloads — back-navigation is instant.
+      if (isDashboardRead(key)) {
+        const hit = dashboardCache.get(key);
+        if (hit && Date.now() - hit.t < DASH_CACHE_TTL) return hit.data;
+      }
+      const p = doFetch(method, path, body)
+        .then((data) => {
+          if (isDashboardRead(key)) dashboardCache.set(key, { t: Date.now(), data });
+          return data;
+        })
+        .finally(() => {
+          inflight.delete(key);
+        });
+      inflight.set(key, p);
+      return p;
+    }
+    // Any mutation invalidates cached dashboards so KPIs stay fresh.
+    dashboardCache.clear();
+    return doFetch(method, path, body);
+  }
+
   const navManager = [
     { section: 'Daily' },
     { id: 'manager-dashboard', l: 'Dashboard', i: 'home' },
@@ -79,11 +110,10 @@ const LapokAPI = (() => {
     { id: 'admin-exceptions', l: 'Exception center', i: 'chart' },
     { id: 'admin-editreqs', l: 'Edit requests', i: 'edit' },
     { section: 'Business' },
-    { id: 'admin-customers', l: 'Customers & receivables', i: 'custs' },
     { id: 'manager-ccba-order', l: 'Order via MyCCBA', i: 'box' },
     { id: 'manager-reports', l: 'Reports & analytics', i: 'chart' },
     { section: 'Monthly' },
-    { id: 'accountant-improvements', l: 'Month-end', i: 'chart' },
+    { id: 'manager-targets', l: 'Monthly targets', i: 'chart' },
     { id: 'accountant-welfare', l: 'Staff welfare', i: 'edit' },
   ];
 
@@ -200,14 +230,12 @@ const LapokAPI = (() => {
         { id: 'admin-users', l: 'User management', i: 'users' },
         { id: 'admin-audit', l: 'Audit log', i: 'edit' },
         { section: 'Operations' },
-        { id: 'admin-customers', l: 'Customers & receivables', i: 'custs' },
         { id: 'admin-editreqs', l: 'Edit requests', i: 'edit' },
         { id: 'admin-exceptions', l: 'Exception center', i: 'chart' },
         { section: 'Reports' },
         { id: 'report-exchange', l: 'PDF reports', i: 'receipt' },
         { id: 'admin-reports', l: 'Reports & analytics', i: 'chart' },
         { section: 'RDC / depot' },
-        { id: 'accountant-improvements', l: 'Month-end', i: 'chart' },
         { id: 'accountant-welfare', l: 'Staff welfare', i: 'edit' },
       ],
       manager: navManager,
@@ -230,10 +258,8 @@ const LapokAPI = (() => {
         { id: 'admin-reports', l: 'Reports & analytics', i: 'chart' },
         { section: 'Monitoring' },
         { id: 'admin-exceptions', l: 'Exception center', i: 'chart' },
-        { id: 'admin-customers', l: 'Receivables overview', i: 'custs' },
         { id: 'admin-users', l: 'Freeze accounts', i: 'users' },
         { id: 'accountant-welfare', l: 'Staff welfare', i: 'edit' },
-        { id: 'accountant-improvements', l: 'Month-end', i: 'chart' },
       ],
       field_user: [
         { section: 'Access' },
@@ -286,32 +312,37 @@ const LapokAPI = (() => {
       'admin-users': 'Admin / Executive',
       'admin-audit': 'Admin',
       'admin-editreqs': 'Manager / Admin',
-      'admin-customers': 'Manager',
+      'accountant-improvements': 'Accountant',
+      'accountant-welfare': 'Accountant',
       'cadet-dashboard': 'Cadet',
       'cadet-daily': 'Cadet',
     },
     roleBlockedPages: {
+      admin: [
+        'accountant-improvements',
+      ],
       cadet: [
         'accountant-rdc-hub', 'accountant-rdc', 'accountant-cash',
         'accountant-improvements', 'accountant-welfare',
         'manager-dashboard', 'manager-stock', 'manager-dispatch', 'manager-delivery', 'manager-rdc-review',
         'manager-ccba-boards', 'manager-ccba-order',
         'admin-dashboard', 'admin-users', 'admin-editreqs', 'admin-exceptions',
-        'admin-customers', 'admin-reports', 'admin-audit',
+        'admin-reports', 'admin-audit',
         'director-brief', 'report-exchange',
       ],
       accountant: [
         'manager-dashboard', 'manager-stock', 'manager-dispatch', 'manager-delivery', 'manager-rdc-review',
         'manager-ccba-boards', 'manager-ccba-order',
-        'admin-users', 'admin-audit', 'admin-editreqs', 'admin-customers',
+        'admin-users', 'admin-audit', 'admin-editreqs',
       ],
       manager: [
-        'accountant-rdc-hub', 'accountant-cash',
+        'accountant-rdc-hub', 'accountant-cash', 'accountant-improvements',
         'admin-users', 'admin-audit',
         'cadet-dashboard', 'cadet-daily',
       ],
       executive: [
         'accountant-rdc-hub', 'accountant-cash', 'accountant-rdc',
+        'accountant-improvements',
         'manager-dashboard', 'manager-stock', 'manager-dispatch', 'manager-delivery', 'manager-rdc-review',
         'manager-ccba-boards', 'manager-ccba-order',
         'admin-editreqs', 'admin-audit',

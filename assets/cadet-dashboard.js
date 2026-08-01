@@ -115,6 +115,7 @@
       }
 
       renderStockTable(groups);
+      renderCadetMonthlyTargets(data.monthly_targets);
       if (typeof refreshNotifications === 'function') refreshNotifications();
     } catch (e) {
       const title = document.getElementById('cadetDashVehicleTitle');
@@ -140,6 +141,30 @@
       if (typeof adminToast === 'function') adminToast(e.message, true);
       else alert(e.message);
     }
+  }
+
+  function renderCadetMonthlyTargets(t) {
+    const body = document.getElementById('cadetTargetsBody');
+    const monthEl = document.getElementById('cadetTargetsMonth');
+    if (!body) return;
+    if (!t || (!t.has_targets && !Number(t.soda_units || 0) && !Number(t.water_units || 0))) {
+      body.innerHTML = '<div class="alert a-info" style="margin:0"><span>ℹ</span><div>No monthly targets set for your vehicle yet — the manager enters them on the Monthly targets page. Check back soon.</div></div>';
+      return;
+    }
+    if (monthEl) monthEl.textContent = String(t.month || '').replace(/^(\d{4})-(\d{2})$/, (m, y, mo) => new Date(+y, +mo - 1, 1).toLocaleDateString('en-UG', { month: 'short', year: '2-digit' }));
+    const pct = (a, tg) => (Number(tg) > 0 ? Math.round((Number(a) / Number(tg)) * 100) : 0);
+    const row = (label, target, sold, p) => {
+      const ok = p >= 100;
+      return `<div style="flex:1;min-width:180px;padding:12px 14px;border:1px solid ${ok ? 'rgba(22,163,74,.4)' : 'var(--gray-light)'};border-radius:10px;background:${ok ? 'rgba(22,163,74,.06)' : 'rgba(0,0,0,.02)'}">
+        <div style="font-size:11px;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.4px">${label}</div>
+        <div style="font-size:20px;font-weight:700;color:var(--black)">${Number(sold || 0).toLocaleString('en-UG')} <span style="font-size:12px;color:var(--gray-mid);font-weight:500">${Number(target || 0) > 0 ? `/ ${Number(target || 0).toLocaleString('en-UG')}` : 'sold'}</span></div>
+        <div style="font-size:12px;margin-top:4px">${Number(target || 0) > 0 ? `<span class="badge ${ok ? 'bs' : 'bw'}">${p}%</span> <span style="color:var(--gray-mid)">${ok ? '✓ meeting target' : 'not yet'}</span>` : '<span class="badge bg">target not set yet</span>'}</div>
+      </div>`;
+    };
+    body.innerHTML = `<div style="display:flex;gap:10px;flex-wrap:wrap">
+      ${row('SODA', t.soda_target, t.soda_units, pct(t.soda_units, t.soda_target))}
+      ${row('WATER', t.water_target, t.water_units, pct(t.water_units, t.water_target))}
+    </div>`;
   }
 
   window.loadCadetDashboardPage = loadCadetDashboardPage;

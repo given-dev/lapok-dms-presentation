@@ -12,6 +12,7 @@ function rdcLocalIsoDate(d = new Date()) {
 let rdcBalanceDate = rdcLocalIsoDate();
 let rdcWizardStep = 1;
 let rdcAutoSaveTimer = null;
+let rdcCloseCalSheets = [];
 
 function rdcScheduleAutoSave() {
   if (rdcReadOnly) return;
@@ -1017,21 +1018,10 @@ async function loadRdcBalancingPage() {
   const root = document.getElementById('page-accountant-rdc');
   if (!root) return;
   const dateInp = document.getElementById('rdcDate');
-  if (dateInp) {
-    dateInp.value = rdcBalanceDate;
-    if (!dateInp.dataset.bound) {
-      dateInp.dataset.bound = '1';
-      dateInp.onchange = () => {
-        if (rdcDirty && !confirm('You have unsaved changes. Switch date anyway?')) {
-          dateInp.value = rdcBalanceDate;
-          return;
-        }
-        rdcBalanceDate = dateInp.value;
-        loadRdcBalancingPage();
-      };
-    }
-  }
+  if (dateInp) dateInp.value = rdcBalanceDate;
+  rdcUpdateDateLabel();
   root.querySelector('.rdc-load-err')?.remove();
+  if (rdcDatePopOpen()) loadRdcCloseCalendar(rdcBalanceDate.slice(0, 7));
   try {
     const fromManager = sessionStorage.getItem('rdcManagerEdit') === '1';
     if (fromManager) sessionStorage.removeItem('rdcManagerEdit');
@@ -1193,6 +1183,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const notes = document.getElementById('rdcNotes');
   if (notes) notes.addEventListener('input', rdcMarkDirty);
 
+  const rdcDateBtn = document.getElementById('rdcDateBtn');
+  if (rdcDateBtn) rdcDateBtn.addEventListener('click', () => rdcToggleDatePop());
+  const calMonth = document.getElementById('rdcCalMonth');
+  if (calMonth) calMonth.addEventListener('change', () => loadRdcCloseCalendar(calMonth.value));
+  const calPrev = document.getElementById('rdcCalPrev');
+  if (calPrev) calPrev.addEventListener('click', () => rdcShiftCalMonth(-1));
+  const calNext = document.getElementById('rdcCalNext');
+  if (calNext) calNext.addEventListener('click', () => rdcShiftCalMonth(1));
+  document.addEventListener('click', (e) => {
+    const picker = document.getElementById('rdcDatePicker');
+    if (picker && !picker.contains(e.target)) rdcToggleDatePop(false);
+  });
+
   const rdcPage = document.getElementById('page-accountant-rdc');
   if (rdcPage) {
     rdcPage.addEventListener('input', (e) => {
@@ -1238,10 +1241,107 @@ window.rdcPageBack = function () {
   }
   if (typeof showPage === 'function') showPage('accountant-rdc-hub');
 };
+function rdcUpdateDateLabel() {
+  const btn = document.getElementById('rdcDateBtn');
+  if (!btn) return;
+  const [y, m, d] = rdcBalanceDate.split('-').map(Number);
+  const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  btn.textContent = `${d} ${names[m - 1]} ${y}`;
+}
+
+function rdcDatePopOpen() {
+  const pop = document.getElementById('rdcDatePop');
+  return pop ? pop.style.display === 'block' : false;
+}
+
+function rdcToggleDatePop(forceOpen) {
+  const pop = document.getElementById('rdcDatePop');
+  const btn = document.getElementById('rdcDateBtn');
+  if (!pop || !btn) return;
+  const open = forceOpen !== undefined ? forceOpen : pop.style.display !== 'block';
+  pop.style.display = open ? 'block' : 'none';
+  if (open) {
+    loadRdcCloseCalendar(rdcBalanceDate.slice(0, 7));
+    btn.classList.add('btn-active');
+  } else {
+    btn.classList.remove('btn-active');
+  }
+}
+
+function rdcShiftCalMonth(delta) {
+  const input = document.getElementById('rdcCalMonth');
+  if (!input || !input.value) return;
+  const [y, m] = input.value.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  loadRdcCloseCalendar(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+}
+
 window.openRdcSheetDate = function (date) {
   if (rdcDirty && date !== rdcBalanceDate && !confirm('You have unsaved changes. Switch date anyway?')) return;
   rdcBalanceDate = date;
   const dateInp = document.getElementById('rdcDate');
   if (dateInp) dateInp.value = date;
+  rdcUpdateDateLabel();
+  rdcToggleDatePop(false);
   loadRdcBalancingPage();
 };
+
+function rdcSheetBalanced(s) {
+  const hasActivity = Number(s.grand_total || 0) > 0
+    || Number(s.expected_amount || 0) > 0
+    || Number(s.actual_total || 0) > 0
+    || Number(s.recovery_total || 0) > 0;
+  if (!hasActivity) return null;
+  return Number(s.variance || 0) === 0;
+}
+
+function renderRdcCloseCalendar(month, sheets) {
+  const grid = document.getElementById('rdcCalGrid');
+  if (!grid) return;
+  const byDate = {};
+  (sheets || []).forEach((s) => { if (s.balance_date) byDate[s.balance_date] = s; });
+  const [year, mon] = month.split('-').map(Number);
+  const daysInMonth = new Date(year, mon, 0).getDate();
+  const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const firstDay = new Date(year, mon - 1, 1).getDay();
+  const offset = (firstDay + 6) % 7;
+
+  let html = labels.map((label) =>
+    `<div style="font-size:11px;color:var(--gray-mid);font-weight:700;text-align:center;padding:4px 0">${label}</div>`
+  ).join('');
+  for (let i = 0; i < offset; i += 1) {
+    html += '<div></div>';
+  }
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const iso = `${month}-${String(day).padStart(2, '0')}`;
+    const s = byDate[iso];
+    let cls = 'none';
+    let tick = '';
+    if (s) {
+      const b = rdcSheetBalanced(s);
+      if (b !== null) {
+        cls = b ? 'ok' : 'bad';
+        tick = `<span class="cal-tick ${b ? 'ok' : 'bad'}">${b ? '✓' : '✗'}</span>`;
+      }
+    }
+    const isCurrent = iso === rdcBalanceDate;
+    if (isCurrent) cls = cls === 'none' ? 'active' : cls + ' active';
+    html += `<button type="button" class="cal-cell ${cls}" onclick="openRdcSheetDate('${iso}')">
+      <div class="cal-day">${day}</div>${tick}
+    </button>`;
+  }
+  grid.innerHTML = html;
+}
+
+async function loadRdcCloseCalendar(month) {
+  const input = document.getElementById('rdcCalMonth');
+  if (input && input.value !== month) input.value = month;
+  try {
+    const data = await LapokAPI.get('/api/rdc/list_sheets.php?month=' + encodeURIComponent(month));
+    rdcCloseCalSheets = data.sheets || [];
+    renderRdcCloseCalendar(month, rdcCloseCalSheets);
+  } catch (e) {
+    const grid = document.getElementById('rdcCalGrid');
+    if (grid) grid.innerHTML = `<div style="color:var(--red);font-size:12px">${e.message}</div>`;
+  }
+}

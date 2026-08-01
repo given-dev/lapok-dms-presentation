@@ -2,7 +2,7 @@
 
 **Product:** Outpost DMS  
 **Build folder:** `lapok-dms-presentation` (accountant module **live**)  
-**Last updated:** 1 August 2026  
+**Last updated:** 2 August 2026  
 **Purpose:** Single place to track what is live, what is planned, and what we may add next. Update this when modules ship or scope changes.
 
 **Status key**
@@ -21,6 +21,7 @@
 
 | Priority | Focus | Goal |
 |----------|--------|------|
+| **Done (2 Aug)** | Executive — month review + per-cadet sales + cash-out visibility | Exec dashboard gets a **month picker** (`kpi_month`); past months show revenue/sales/targets/cash still out for that month while live "today" cards and charts hide. Per-cadet soda/water **sold is always tracked** even before targets are set (targets sync in from Manager `manager-targets`). **Overall depot targets row** in "Monthly sales targets" sums DEPOT + all vehicles (target / sold / %). CSO cash-out comes from approved RDC sheets (Jul: **Cash out MTD 99,500**). **Director brief widget is now monthly** (whole-month Revenue / Expenses / Net operating / Shortages instead of a daily 0). |
 | **Done (this shift)** | Manager CCBA boards + executive brief | Boards = Inventory + OCCD only; SKU map / sync = Phase 2. Executive brief = finance + **styled full stock-book table** + sellers. **Companion CCBA boards PDF** = navy banners + bordered tables matching on-screen boards (migration **016**). |
 | **Done (31 Jul)** | Manager daily-ops fixes | Dispatch load list is **pack-level** (300ML RGB, 300PET, …) like the cadet daily list; Daily readiness trimmed to **3 items** (Accountant pack reviewed / RDC sheet approved / Opening stock); executive login restored (`executive@lapok.ug`); vehicles free when trips return (cadet report + field EOD); Revenue today / crates sold / revenue MTD, dashboard charts, **financial & sales reports + CSV export** read **real depot sales** (RDC sheet + cadet trip reports) instead of the orders table. |
 | **Done (1 Aug)** | Cadet — receive dispatch | After manager dispatch, the cadet sees a 📦 **Confirm load received** banner on `cadet-dashboard` (load list below it). Confirming moves the trip `dispatched → on_route`, records `acknowledged_at` (migration **019**), and notifies manager/admin. Dispatch log shows **Awaiting confirm → On route ✓**. |
@@ -39,7 +40,7 @@ Do **not** reopen CCBA SKU map / Sync warehouse on daily boards until Phase 2 My
 | Manager pack | `report-exchange` | **Live** | Accountant: one-tap send; gated on the 4-item daily-close readiness; disabled buttons explain why; View PDF from Home |
 | Cash handover | `accountant-cash` | **Live** | **Required before manager pack** — Home nudge + priority row; bulk Match-all; sticky bar advances to Manager pack when clear — polished **1 Aug** |
 | Depot alerts | `admin-exceptions` | **Live** | Live queue from DB — stock, cash, cadet flags, welfare, edits, sales |
-| Month-end tools | `accountant-improvements` | **Live** | DB sync — accountant edits; manager/executive/admin view |
+| Month-end tools | `accountant-improvements` | **Live** | **Accountant only** — nav + API restricted; other roles bounce home |
 | RDC sheet CSV export | `export_csv.php?type=rdc_sheet` | **Live** | From Home history + post-submit panel |
 | Receivables | `admin-customers` | **Live** | **Manager-only** nav; accountant sees Home nudge if total ≥ 8M UGX |
 | Staff welfare register | `accountant-welfare` | **Live** | DB sync — accountant/manager write; executive view |
@@ -55,7 +56,7 @@ Do **not** reopen CCBA SKU map / Sync warehouse on daily boards until Phase 2 My
 | Closing stock (7pm) | `manager-stock` | **Live** | Manager enters — RDC hub view-only |
 | Manager home landing | Login → `manager-dashboard` | **Live** | Dashboard #1; stock taking #2 with first-task card |
 | Manager confirm deliveries | `manager-stock` | **Live** | Confirm/reject today’s Coca-Cola deliveries; RDC hub shows pending status |
-| Monthly fixed costs | `accountant-improvements` (Month-end) | **Live** | Manager/admin edit — not on stock taking |
+| Monthly fixed costs | `accountant-improvements` (Month-end) | **Live** | Accountant edit (lives inside accountant-only Month-end) |
 | Director daily brief | `director-brief` | **Live** | P&L, shortages, expense ratio, 7pm readiness |
 
 ### Accountant — suggested additions
@@ -106,8 +107,8 @@ Do **not** reopen CCBA SKU map / Sync warehouse on daily boards until Phase 2 My
 
 | Feature | Page / area | Status | Notes |
 |---------|-------------|--------|-------|
-| Executive dashboard | `admin-dashboard` | **Live** | Daily checklist + director P&L widget; hides admin action center. Revenue today / crates sold / revenue MTD + charts read **real depot sales** (RDC sheet + cadet trip reports). |
-| Director brief | `director-brief` | **Live** | Today / yesterday / date picker P&L. Now includes opening/closing stock breakdown. |
+| Executive dashboard | `admin-dashboard` | **Live** | Daily checklist + director P&L widget; hides admin action center. **Month picker** (`kpi_month`, ≤ current) reviews any past month — revenue / sales / targets / cash still out for that month; live "today" cards + charts hidden for past months. Revenue today / crates sold / revenue MTD + charts read **real depot sales** (RDC sheet + cadet trip reports). Cards 5–6 = **Target achieved %** + **Cash still out**; targets panel shows **overall SODA & overall WATER separately**, an **Overall depot total row** (DEPOT + all vehicles: target / sold / %), and the per-cadet target/sold/% table — **sold is always shown even without targets** (migrations **020** + **021**; manager feeds via `manager-targets`). |
+| Director brief | `director-brief` | **Live** | Today / yesterday / date picker P&L with opening/closing stock breakdown. Exec-dashboard **widget is monthly** (`depot_director_snapshot_monthly`, `?month=YYYY-MM`): whole-month Revenue / Expenses / Net operating / Shortages following the exec month picker. |
 | PDF inbox | `report-exchange` | **Live** | Acknowledge manager brief — full day summary PDF |
 
 | Pack-arrival bell | Notifications | **Live** | Unread when manager sends/replaces executive brief |
@@ -204,4 +205,4 @@ Month-end (last 3 days): banner on Home → accountant-improvements
 
 ## Migrations (local DB)
 
-Catalog and apply-all PowerShell live in [`README.md`](../README.md) § Database setup (**001–016**). Required for this build: **008–014** (plus **003**, **005**, **011** for boards / PDF / bell; **015** catalog seed; **016** for CCBA boards companion PDF type; **019** for cadet dispatch confirmation `acknowledged_at`).
+Catalog and apply-all PowerShell live in [`README.md`](../README.md) § Database setup (**001–021**). Required for this build: **008–014** (plus **003**, **005**, **011** for boards / PDF / bell; **015** catalog seed; **016** for CCBA boards companion PDF type; **019** for cadet dispatch confirmation `acknowledged_at`; **020** for executive sales-target/CSO KPIs; **021** for per-sales-unit targets).

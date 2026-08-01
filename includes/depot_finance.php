@@ -418,6 +418,264 @@ function depot_legacy_stock_sku_map(): array
 }
 
 /**
+ * Soda (CSD) vs Water (WATER) sales units + revenue MTD from RDC daily sheets.
+ * The DEPOT column on each sheet line is the all-vehicle total.
+ *
+ * @return array{soda_units: float, water_units: float, soda_revenue: float, water_revenue: float}
+ */
+function depot_sales_split_mtd(string $from, string $to): array
+{
+    $out = ['soda_units' => 0.0, 'water_units' => 0.0, 'soda_revenue' => 0.0, 'water_revenue' => 0.0];
+    $stmt = db()->prepare(
+        'SELECT sales_json FROM rdc_daily_sheets WHERE balance_date BETWEEN ? AND ?'
+    );
+    $stmt->execute([$from, $to]);
+    foreach ($stmt->fetchAll() as $row) {
+        foreach (json_decode((string) ($row['sales_json'] ?? '[]'), true) ?: [] as $line) {
+            $cat = strtoupper((string) ($line['category'] ?? 'OTHER'));
+            if (!in_array($cat, ['CSD', 'WATER'], true)) {
+                continue;
+            }
+            // Sum the whole sales unit (DEPOT column + every cadet vehicle column),
+            // so the overall SODA / WATER totals include what each cadet sold.
+            $qty = 0.0;
+            $qtyMap = is_array($line['qty'] ?? null) ? $line['qty'] : [];
+            foreach ($qtyMap as $col => $q) {
+                if ($col === 'depot' || str_starts_with($col, 'vehicle_')) {
+                    $qty += (float) $q;
+                }
+            }
+            if ($qty <= 0) {
+                continue;
+            }
+            $key = $cat === 'CSD' ? 'soda' : 'water';
+            $out[$key . '_units'] += $qty;
+            $out[$key . '_revenue'] += $qty * (float) ($line['price'] ?? 0);
+        }
+    }
+    return $out;
+}
+
+/**
+ * Per sales unit (DEPOT column + each active vehicle column) soda/water units MTD.
+ * Reads every RDC sheet between $from and $to; keys are the sheet qty column names.
+ *
+ * @return array<string, array{soda: float, water: float}> e.g. ['depot' => [...], 'vehicle_2' => [...]]
+ */
+function depot_sales_split_by_unit_mtd(string $from, string $to): array
+{
+    $units = [];
+    $stmt = db()->prepare('SELECT sales_json FROM rdc_daily_sheets WHERE balance_date BETWEEN ? AND ?');
+    $stmt->execute([$from, $to]);
+    foreach ($stmt->fetchAll() as $row) {
+        foreach (json_decode((string) ($row['sales_json'] ?? '[]'), true) ?: [] as $line) {
+            $cat = strtoupper((string) ($line['category'] ?? 'OTHER'));
+            if (!in_array($cat, ['CSD', 'WATER'], true)) {
+                continue;
+            }
+            $key = $cat === 'CSD' ? 'soda' : 'water';
+            $qtyMap = is_array($line['qty'] ?? null) ? $line['qty'] : [];
+            foreach ($qtyMap as $col => $qty) {
+                $col = (string) $col;
+                if ($col !== 'depot' && !str_starts_with($col, 'vehicle_')) {
+                    continue;
+                }
+                $q = (float) $qty;
+                if ($q <= 0) {
+                    continue;
+                }
+                $units[$col][$key] = ($units[$col][$key] ?? 0.0) + $q;
+            }
+        }
+    }
+    return $units;
+}
+
+/**
+ * sales_targets rows for a month keyed by unit: 'DEPOT' or the vehicle id string.
+ *
+ * @return array<string, array{soda: float, water: float}>
+ */
+function depot_targets_for_month(string $month): array
+{
+    $out = [];
+    $stmt = db()->prepare('SELECT vehicle_id, category, target_units FROM sales_targets WHERE target_month = ?');
+    $stmt->execute([$month]);
+    foreach ($stmt->fetchAll() as $t) {
+        $unit = $t['vehicle_id'] === null ? 'DEPOT' : (string) (int) $t['vehicle_id'];
+        $out[$unit][strtolower((string) $t['category'])] = (float) $t['target_units'];
+    }
+    return $out;
+}
+
+/**
+ * Per-unit target vs actual breakdown for the executive board (DEPOT first, then trucks, then tuktuk).
+ *
+ * @return list<array<string, mixed>>
+ */
+function depot_sales_target_breakdown(string $from, string $to, string $month): array
+{
+    $pdo = db();
+    $vehicles = $pdo->query(
+        "SELECT v.id, v.registration, v.vehicle_type, v.cadet_id, u.full_name AS cadet_name
+         FROM vehicles v
+         LEFT JOIN users u ON u.id = v.cadet_id
+         WHERE v.is_active = 1
+         ORDER BY v.vehicle_type, v.registration"
+    )->fetchAll();
+    $actuals = depot_sales_split_by_unit_mtd($from, $to);
+    $targets = depot_targets_for_month($month);
+
+    $rows = [];
+    $rows[] = depot_target_breakdown_row('DEPOT', null, 'DEPOT', null, $targets, $actuals);
+    foreach ($vehicles as $v) {
+        $short = '';
+        if (!empty($v['cadet_name'])) {
+            $parts = preg_split('/\s+/', trim((string) $v['cadet_name']));
+            $short = strtoupper($parts[0] ?? '');
+        }
+        $label = strtoupper((string) $v['registration']) . ($short !== '' ? ' - ' . $short : '');
+        $rows[] = depot_target_breakdown_row(
+            'vehicle_' . $v['id'],
+            (int) $v['id'],
+            $label,
+            (string) $v['vehicle_type'],
+            $targets,
+            $actuals
+        );
+    }
+    return $rows;
+}
+
+/** @return array<string, mixed> */
+function depot_target_breakdown_row(string $key, ?int $vehicleId, string $label, ?string $vehicleType, array $targets, array $actuals): array
+{
+    $targetKey = $vehicleId === null ? 'DEPOT' : (string) $vehicleId;
+    $actual = $actuals[$key] ?? ['soda' => 0.0, 'water' => 0.0];
+    $sodaTarget = (float) ($targets[$targetKey]['soda'] ?? 0);
+    $waterTarget = (float) ($targets[$targetKey]['water'] ?? 0);
+    $sodaUnits = (float) ($actual['soda'] ?? 0);
+    $waterUnits = (float) ($actual['water'] ?? 0);
+    $pct = static function (float $actual, float $target): float {
+        return $target > 0 ? round(($actual / $target) * 100, 1) : 0.0;
+    };
+    return [
+        'key' => $key,
+        'vehicle_id' => $vehicleId,
+        'label' => $label,
+        'vehicle_type' => $vehicleType,
+        'is_depot' => $vehicleId === null,
+        'soda_target' => $sodaTarget,
+        'water_target' => $waterTarget,
+        'soda_units' => $sodaUnits,
+        'water_units' => $waterUnits,
+        'soda_pct' => $pct($sodaUnits, $sodaTarget),
+        'water_pct' => $pct($waterUnits, $waterTarget),
+        'total_pct' => $pct($sodaUnits + $waterUnits, $sodaTarget + $waterTarget),
+    ];
+}
+
+/**
+ * Target vs actual for a single sales unit (a cadet's vehicle, or the depot with vehicleId = null).
+ * Used by the cadet dashboard ("am I meeting my target?") and depot read views.
+ *
+ * @return array<string, mixed>
+ */
+function depot_unit_target_actual(string $from, string $to, string $month, ?int $vehicleId): array
+{
+    $key = $vehicleId === null ? 'DEPOT' : 'vehicle_' . $vehicleId;
+    $targets = depot_targets_for_month($month);
+    $actuals = depot_sales_split_by_unit_mtd($from, $to);
+    return depot_target_breakdown_row($key, $vehicleId, '', null, $targets, $actuals);
+}
+
+/** Sum the `amounts` map of every row in an RDC JSON column (cash_out / recoveries / expenses). */
+function depot_sheet_json_sum(array $rows): float
+{
+    $total = 0.0;
+    foreach ($rows as $row) {
+        foreach (is_array($row['amounts'] ?? null) ? $row['amounts'] : [] as $v) {
+            $total += (float) $v;
+        }
+    }
+    return round($total, 2);
+}
+
+/** Sum one RDC sheet JSON column (cash_out_json / recoveries_json) across a date range. */
+function depot_sheet_json_total(string $column, string $from, string $to): float
+{
+    if (!in_array($column, ['cash_out_json', 'recoveries_json'], true)) {
+        return 0.0;
+    }
+    $stmt = db()->prepare("SELECT $column FROM rdc_daily_sheets WHERE balance_date BETWEEN ? AND ?");
+    $stmt->execute([$from, $to]);
+    $total = 0.0;
+    foreach ($stmt->fetchAll() as $row) {
+        $total += depot_sheet_json_sum(json_decode((string) ($row[$column] ?? '[]'), true) ?: []);
+    }
+    return round($total, 2);
+}
+
+/**
+ * Cash still out (CSO) as of a date = every cash-out on the approved RDC sheets up to that date,
+ * minus every recovery on those sheets up to that date, clipped at zero. The RDC daily sheet is
+ * the consolidated source of truth (it also absorbs the cashout ledger via prefill), so previous
+ * months roll forward automatically — recurring data, no manual carry-forward needed.
+ */
+function depot_cash_still_out_as_of(string $asOfDate): float
+{
+    $stmt = db()->prepare('SELECT cash_out_json, recoveries_json FROM rdc_daily_sheets WHERE balance_date <= ?');
+    $stmt->execute([$asOfDate]);
+    $issued = 0.0;
+    $recovered = 0.0;
+    foreach ($stmt->fetchAll() as $row) {
+        $issued += depot_sheet_json_sum(json_decode((string) ($row['cash_out_json'] ?? '[]'), true) ?: []);
+        $recovered += depot_sheet_json_sum(json_decode((string) ($row['recoveries_json'] ?? '[]'), true) ?: []);
+    }
+    return round(max(0.0, $issued - $recovered), 2);
+}
+
+/**
+ * CSO monthly history for the last $months months (oldest -> newest, ending at $asOfDate
+ * for the current month). Used to keep the executive updated on recurring outstanding cash.
+ *
+ * @return list<array{month: string, cso: float}>
+ */
+function depot_cash_still_out_history(string $asOfDate, int $months = 6): array
+{
+    // Anchor month arithmetic on the 1st so month-end dates (31st) don't roll over.
+    $anchor = substr($asOfDate, 0, 7) . '-01';
+    $rows = [];
+    for ($i = $months - 1; $i >= 0; $i--) {
+        $m = date('Y-m', strtotime("-{$i} months", strtotime($anchor)));
+        $end = date('Y-m-t', strtotime($m . '-01'));
+        $asOf = $i === 0 ? $asOfDate : $end;
+        $rows[] = ['month' => $m, 'cso' => round(depot_cash_still_out_as_of($asOf), 2)];
+    }
+    return $rows;
+}
+
+/**
+ * Sum one RDC expense line across MTD (DEPOT column). Used for DISCOUNT on the executive board.
+ */
+function depot_expense_line_mtd(string $from, string $to, string $wantLabel): float
+{
+    $stmt = db()->prepare(
+        'SELECT expenses_json FROM rdc_daily_sheets WHERE balance_date BETWEEN ? AND ?'
+    );
+    $stmt->execute([$from, $to]);
+    $total = 0.0;
+    foreach ($stmt->fetchAll() as $row) {
+        foreach (json_decode((string) ($row['expenses_json'] ?? '[]'), true) ?: [] as $line) {
+            if (strtoupper((string) ($line['label'] ?? '')) === $wantLabel) {
+                $total += (float) ($line['amounts']['depot'] ?? 0);
+            }
+        }
+    }
+    return $total;
+}
+
+/**
  * Rebuild stock lines from the current flavor catalog and carry forward saved counts.
  * Drops deactivated / duplicate legacy rows (e.g. PREDATOR GOLD + PREDATOR).
  *
@@ -602,5 +860,124 @@ function depot_director_snapshot(string $date): array
         ],
         'opening_snapshot' => $opening,
         'closing_snapshot' => $closing,
+    ];
+}
+
+function depot_director_snapshot_monthly(string $month): array
+{
+    $pdo = db();
+    if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+        $month = date('Y-m');
+    }
+    $from = $month . '-01 00:00:00';
+    $to = date('Y-m-t', strtotime($month . '-01')) . ' 23:59:59';
+
+    $revStmt = $pdo->prepare(
+        "SELECT COALESCE(SUM(amount_total), 0) FROM orders
+         WHERE status IN ('confirmed','delivered','dispatched')
+           AND created_at BETWEEN ? AND ?"
+    );
+    $revStmt->execute([$from, $to]);
+    $revenue = (float) $revStmt->fetchColumn();
+
+    $fuelStmt = $pdo->prepare(
+        "SELECT COALESCE(SUM(fuel_cost), 0) FROM delivery_trips
+         WHERE dispatched_at BETWEEN ? AND ?"
+    );
+    $fuelStmt->execute([$from, $to]);
+    $fuelCost = (float) $fuelStmt->fetchColumn();
+
+    $rdcStmt = $pdo->prepare(
+        'SELECT COALESCE(SUM(expenses_total),0) AS exp, COALESCE(SUM(grand_total),0) AS rev,
+                COALESCE(SUM(variance),0) AS var, COUNT(*) AS n,
+                MAX(CASE WHEN status = \'approved\' THEN status END) AS approved,
+                MAX(status) AS any_status
+         FROM rdc_daily_sheets
+         WHERE balance_date BETWEEN ? AND ?'
+    );
+    $rdcStmt->execute([substr($from, 0, 10), substr($to, 0, 10)]);
+    $rdcRow = $rdcStmt->fetch() ?: ['exp' => 0, 'rev' => 0, 'var' => 0, 'n' => 0, 'approved' => null, 'any_status' => null];
+    $rdcExpenses = (float) ($rdcRow['exp'] ?? 0);
+    $rdcRevenue = (float) ($rdcRow['rev'] ?? 0);
+    $rdcVariance = (float) ($rdcRow['var'] ?? 0);
+    $rdcCount = (int) ($rdcRow['n'] ?? 0);
+    $rdcStatus = $rdcCount > 0
+        ? ((string) ($rdcRow['approved'] ?? '') !== '' ? 'approved' : (string) ($rdcRow['any_status'] ?? 'draft'))
+        : 'missing';
+
+    $variableExpenses = $rdcExpenses + $fuelCost;
+    $fixed = depot_fixed_costs_for_month($month);
+    $fixedTotal = depot_monthly_fixed_total($fixed);
+    $totalExpenses = $variableExpenses + $fixedTotal;
+
+    $bookRevenue = $rdcRevenue > 0 ? $rdcRevenue : $revenue;
+    $grossProfit = $bookRevenue - $variableExpenses;
+    $netOperating = $bookRevenue - $totalExpenses;
+    $expenseRatio = $bookRevenue > 0 ? round(($totalExpenses / $bookRevenue) * 100, 1) : 0.0;
+
+    $cashVarStmt = $pdo->prepare(
+        "SELECT COALESCE(SUM(ABS(COALESCE(cash_collected, 0) - COALESCE(cash_reported, 0))), 0)
+         FROM delivery_trips
+         WHERE status IN ('returned','completed') AND DATE(returned_at) BETWEEN ? AND ?
+           AND cash_collected IS NOT NULL"
+    );
+    $cashVarStmt->execute([substr($from, 0, 10), substr($to, 0, 10)]);
+    $cashShortage = (float) $cashVarStmt->fetchColumn();
+
+    $stockVarStmt = $pdo->prepare(
+        "SELECT COALESCE(SUM(ABS((tli.qty_loaded - tli.qty_sold) - tli.qty_returned)), 0)
+         FROM trip_load_items tli
+         JOIN delivery_trips dt ON dt.id = tli.trip_id
+         WHERE dt.status = 'returned' AND DATE(dt.returned_at) BETWEEN ? AND ?"
+    );
+    $stockVarStmt->execute([substr($from, 0, 10), substr($to, 0, 10)]);
+    $stockShortageUnits = (int) $stockVarStmt->fetchColumn();
+
+    return [
+        'date' => $month,
+        'monthly' => true,
+        'revenue' => [
+            'orders' => $revenue,
+            'rdc_booked' => $rdcRevenue,
+            'used' => $bookRevenue,
+        ],
+        'expenses' => [
+            'variable' => $variableExpenses,
+            'rdc_operating' => $rdcExpenses,
+            'fuel' => $fuelCost,
+            'fixed_daily' => 0.0,
+            'fixed_monthly' => $fixedTotal,
+            'total' => round($totalExpenses, 2),
+            'fixed_breakdown' => [
+                'rent' => (float) ($fixed['rent_ugx'] ?? 0),
+                'salaries' => (float) ($fixed['salaries_ugx'] ?? 0),
+                'utilities' => (float) ($fixed['utilities_ugx'] ?? 0),
+                'security' => (float) ($fixed['security_ugx'] ?? 0),
+                'other' => (float) ($fixed['other_ugx'] ?? 0),
+            ],
+        ],
+        'profit' => [
+            'gross' => round($grossProfit, 2),
+            'net_operating' => round($netOperating, 2),
+            'expense_ratio_pct' => $expenseRatio,
+        ],
+        'shortages' => [
+            'cash_variance_ugx' => $cashShortage,
+            'stock_variance_units' => $stockShortageUnits,
+            'rdc_variance_ugx' => abs($rdcVariance),
+            'total_flag_ugx' => round($cashShortage + abs($rdcVariance), 2),
+        ],
+        'controls' => [
+            'opening_submitted' => null,
+            'closing_submitted' => null,
+            'rdc_status' => $rdcStatus,
+            'readiness' => null,
+            'trips_out' => null,
+            'trips_returned' => null,
+            'cash_handovers_pending' => null,
+            'monthly' => true,
+        ],
+        'opening_snapshot' => null,
+        'closing_snapshot' => null,
     ];
 }

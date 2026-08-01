@@ -132,17 +132,6 @@
     return 'UGX ' + Number(value || 0).toLocaleString();
   }
 
-  function renderAutomation() {
-    const root = document.getElementById('accAutomationList');
-    if (!root || !state) return;
-    root.innerHTML = state.automation.map((item, idx) => `
-      <label style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--gray-line)">
-        <input type="checkbox" ${item.enabled ? 'checked' : ''} onchange="toggleAccountantAutomation(${idx}, this.checked)" ${readOnly ? 'disabled' : ''}>
-        <div><strong>${item.label}</strong><div style="font-size:12px;color:var(--gray-mid)">Status: ${item.enabled ? 'Enabled' : 'Not enabled'}</div></div>
-      </label>
-    `).join('');
-  }
-
   function renderChecklist() {
     const table = document.getElementById('accChecklistTable');
     if (!table || !state) return;
@@ -161,46 +150,6 @@
       </tr>
     `).join('');
     table.innerHTML = '<tr><th>Task</th><th>Owner</th><th>Due</th><th>Status</th></tr>' + rows;
-  }
-
-  function renderControlsAndEvidence() {
-    const matrix = document.getElementById('accApprovalMatrix');
-    if (matrix && state) matrix.value = state.approvalMatrix;
-
-    const controlsTable = document.getElementById('accControlsTable');
-    if (controlsTable && state) {
-      controlsTable.innerHTML = '<tr><th>Action</th><th>Maker</th><th>Checker</th><th>Status</th></tr>' + state.controls.map((row, idx) => `
-        <tr>
-          <td><input class="input" value="${row.action}" onchange="updateAccountantControl(${idx}, 'action', this.value)" ${readOnly ? 'readonly' : ''}></td>
-          <td><input class="input" value="${row.maker}" onchange="updateAccountantControl(${idx}, 'maker', this.value)" ${readOnly ? 'readonly' : ''}></td>
-          <td><input class="input" value="${row.checker}" onchange="updateAccountantControl(${idx}, 'checker', this.value)" ${readOnly ? 'readonly' : ''}></td>
-          <td><select class="select-inp" onchange="updateAccountantControl(${idx}, 'status', this.value)" ${readOnly ? 'disabled' : ''}>
-            <option value="active" ${row.status === 'active' ? 'selected' : ''}>Active</option>
-            <option value="review" ${row.status === 'review' ? 'selected' : ''}>Needs review</option>
-          </select></td>
-        </tr>
-      `).join('');
-    }
-
-    const documentsTable = document.getElementById('accDocumentsTable');
-    if (documentsTable && state) {
-      documentsTable.innerHTML = '<tr><th>Document</th><th>Source</th><th>Status</th></tr>' + state.documents.map((row, idx) => `
-        <tr>
-          <td><input class="input" value="${row.name}" onchange="updateAccountantDocument(${idx}, 'name', this.value)" ${readOnly ? 'readonly' : ''}></td>
-          <td><input class="input" value="${row.source}" onchange="updateAccountantDocument(${idx}, 'source', this.value)" ${readOnly ? 'readonly' : ''}></td>
-          <td><select class="select-inp" onchange="updateAccountantDocument(${idx}, 'status', this.value)" ${readOnly ? 'disabled' : ''}>
-            <option value="received" ${row.status === 'received' ? 'selected' : ''}>Received</option>
-            <option value="reviewing" ${row.status === 'reviewing' ? 'selected' : ''}>Reviewing</option>
-            <option value="missing" ${row.status === 'missing' ? 'selected' : ''}>Missing</option>
-          </select></td>
-        </tr>
-      `).join('');
-    }
-  }
-
-  function renderTemplates() {
-    const tplPnL = document.getElementById('accTplPnL');
-    if (tplPnL && state) tplPnL.value = state.templates.pnl;
   }
 
   function renderProcessFields() {
@@ -308,10 +257,7 @@
   }
 
   function renderAll() {
-    renderAutomation();
     renderChecklist();
-    renderControlsAndEvidence();
-    renderTemplates();
     renderProcessFields();
     applyReadOnlyUi();
     if (latestMetrics?.financial) {
@@ -391,55 +337,16 @@
     }
   }
 
-  function toggleAccountantAutomation(idx, enabled) {
-    if (readOnly) return;
-    state.automation[idx].enabled = !!enabled;
-    renderAutomation();
-  }
-
   function updateAccountantChecklist(idx, key, value) {
     if (readOnly) return;
     state.checklist[idx][key] = value;
-  }
-
-  function updateAccountantControl(idx, key, value) {
-    if (readOnly) return;
-    state.controls[idx][key] = value;
-  }
-
-  function updateAccountantDocument(idx, key, value) {
-    if (readOnly) return;
-    state.documents[idx][key] = value;
-  }
-
-  async function saveAccountantAutomation() {
-    await persistState('Automation settings saved.');
-    renderAutomation();
   }
 
   async function saveAccountantChecklist() {
     await persistState('Month-end checklist saved.');
   }
 
-  function addAccountantControlLog() {
-    if (readOnly) return;
-    state.controls.push({ action: 'New control step', maker: 'Accountant', checker: 'Manager', status: 'review' });
-    renderControlsAndEvidence();
-  }
-
-  function addAccountantDocument() {
-    if (readOnly) return;
-    state.documents.push({ name: 'New document', source: 'Team', status: 'reviewing' });
-    renderControlsAndEvidence();
-  }
-
-  async function saveAccountantTemplates() {
-    state.templates = { pnl: document.getElementById('accTplPnL')?.value || '' };
-    await persistState('P&L template saved.');
-  }
-
   async function saveAccountantNotes() {
-    state.approvalMatrix = document.getElementById('accApprovalMatrix')?.value || 'green';
     state.processReviewDate = document.getElementById('accProcessReviewDate')?.value || '';
     state.bottlenecks = document.getElementById('accBottlenecks')?.value || '';
     state.sopUpdates = document.getElementById('accSopUpdates')?.value || '';
@@ -453,15 +360,8 @@
 
   window.loadAccountantImprovementsPage = loadAccountantImprovementsPage;
   window.refreshAccountantCommandCenter = refreshAccountantCommandCenter;
-  window.toggleAccountantAutomation = toggleAccountantAutomation;
   window.updateAccountantChecklist = updateAccountantChecklist;
-  window.updateAccountantControl = updateAccountantControl;
-  window.updateAccountantDocument = updateAccountantDocument;
-  window.saveAccountantAutomation = saveAccountantAutomation;
   window.saveAccountantChecklist = saveAccountantChecklist;
-  window.addAccountantControlLog = addAccountantControlLog;
-  window.addAccountantDocument = addAccountantDocument;
-  window.saveAccountantTemplates = saveAccountantTemplates;
   window.saveAccountantNotes = saveAccountantNotes;
 
   document.addEventListener('DOMContentLoaded', () => {

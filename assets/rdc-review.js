@@ -87,9 +87,19 @@ async function loadRdcReviewPage() {
       const check = canBulk
         ? `<input type="checkbox" class="rdc-bulk-check" value="${s.balance_date}" onchange="rdcUpdateBulkBar()">`
         : '';
+      const hasActivity = Number(s.grand_total || 0) > 0
+        || Number(s.expected_amount || 0) > 0
+        || Number(s.actual_total || 0) > 0
+        || Number(s.recovery_total || 0) > 0;
+      const balanced = hasActivity && Number(s.variance || 0) === 0;
+      const balTick = !hasActivity
+        ? '<span style="color:var(--gray-mid);font-size:12px">—</span>'
+        : balanced
+          ? `<span class="cal-tick ok flat" title="Balanced">✓</span>`
+          : `<span class="cal-tick bad flat" title="Not balanced">✗</span>`;
       return `<tr>
         <td>${check}</td>
-        <td>${s.balance_date}</td>
+        <td>${s.balance_date} ${balTick}</td>
         <td>${rdcReviewBadge(s.status)}</td>
         <td>${Number(s.grand_total || 0).toLocaleString()}</td>
         <td class="${Number(s.variance || 0) === 0 ? 'surplus' : 'deficit'}">${Number(s.variance || 0).toLocaleString()}</td>

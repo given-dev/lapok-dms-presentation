@@ -2,7 +2,7 @@
  * RDC Home — accountant daily command desk
  */
 (function () {
-  const RECEIVABLES_HIGH_UGX = 8000000;
+  let rdcHubSheets = [];
 
   function todayIso() {
     const d = new Date();
@@ -26,10 +26,6 @@
       : '';
     const sal = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
     return name ? `${sal}, ${name}` : sal;
-  }
-
-  function fmtUgx(n) {
-    return LapokAPI.formatUgx(n);
   }
 
   function statusBadge(status) {
@@ -58,9 +54,11 @@
     const submitted = list.filter((s) => !['draft'].includes(String(s.status || 'draft'))).length;
     const pendingReview = list.filter((s) => ['submitted', 'under_review', 'reopened'].includes(String(s.status))).length;
     const approved = list.filter((s) => s.status === 'approved').length;
+    const balanced = list.filter((s) => rdcSheetBalanced(s) === true).length;
     let label = `${submitted}/${list.length} submitted this month`;
     if (pendingReview > 0) label += ` · ${pendingReview} awaiting review`;
     else if (approved > 0) label += ` · ${approved} approved`;
+    label += ` · ${balanced} balanced`;
     return label;
   }
 
@@ -234,22 +232,6 @@
     box.style.display = 'flex';
   }
 
-  function renderRecvNudge(ctx) {
-    const box = document.getElementById('rdcHubRecvNudge');
-    const title = document.getElementById('rdcHubRecvNudgeTitle');
-    const sub = document.getElementById('rdcHubRecvNudgeSub');
-    if (!box) return;
-    if (!ctx.receivablesLoaded || ctx.totalReceivables < RECEIVABLES_HIGH_UGX) {
-      box.style.display = 'none';
-      return;
-    }
-    if (title) title.textContent = `High receivables — ${fmtUgx(ctx.totalReceivables)}`;
-    if (sub) {
-      sub.textContent = `${ctx.receivablesCount} customer${ctx.receivablesCount === 1 ? '' : 's'} owing. Collections are managed by your manager — not part of today's close.`;
-    }
-    box.style.display = 'flex';
-  }
-
   function renderPrimaryAction(ctx, wf) {
     const box = document.getElementById('rdcHubPrimaryAction');
     const title = document.getElementById('rdcHubPrimaryTitle');
@@ -273,6 +255,11 @@
       detail = ctx.reviewNote || 'Update the sheet and resubmit.';
       label = 'Fix and resubmit';
       resumeWizard = true;
+    } else if (wf.cashPending) {
+      page = 'accountant-cash';
+      headline = 'Confirm field cash';
+      detail = `${ctx.cashPending} trip(s) waiting — confirm handovers before balancing and the manager pack.`;
+      label = 'Confirm cash';
     } else if (wf.balActive) {
       headline = 'Continue daily balancing';
       detail = 'Step 1 — enter sales, expenses, and cash.';
@@ -354,23 +341,88 @@
     /* removed — checklist handles labels */
   }
 
+  function rdcSheetBalanced(s) {
+    const hasActivity = Number(s.grand_total || 0) > 0
+      || Number(s.expected_amount || 0) > 0
+      || Number(s.actual_total || 0) > 0
+      || Number(s.recovery_total || 0) > 0;
+    if (!hasActivity) return null;
+    return Number(s.variance || 0) === 0;
+  }
+
   function renderRecentSheets(sheets, today) {
     const table = document.getElementById('rdcHubRecentTable');
     if (!table) return;
     const recent = (sheets || []).slice(0, 5);
     const rows = recent.map((s) => {
       const variance = Number(s.variance || 0);
+      const balanced = rdcSheetBalanced(s);
       const varCls = variance === 0 ? '' : variance > 0 ? 'surplus' : 'deficit';
       const isToday = s.balance_date === today;
+      const tick = balanced === null
+        ? '<span style="color:var(--gray-mid);font-size:12px">—</span>'
+        : `<span class="cal-tick ${balanced ? 'ok' : 'bad'} flat" title="${balanced ? 'Balanced' : 'Not balanced'}">${balanced ? '✓' : '✗'}</span>`;
       return `<tr class="${isToday ? 'rdc-hub-today' : ''}">
         <td>${isToday ? 'Today' : s.balance_date}</td>
+        <td>${tick}</td>
         <td>${statusBadge(s.status)}</td>
         <td class="${varCls}">${variance === 0 ? '0' : variance.toLocaleString()}</td>
         <td><button class="btn btn-sm" onclick="openRdcSheetDate('${s.balance_date}')">Open</button></td>
       </tr>`;
     }).join('');
-    table.innerHTML = '<tr><th>Date</th><th>Status</th><th>Variance</th><th></th></tr>' +
-      (rows || '<tr><td colspan="4" style="color:var(--gray-mid)">No sheets this month yet — start with Step 1.</td></tr>');
+    table.innerHTML = '<tr><th>Date</th><th>Balanced</th><th>Status</th><th>Variance</th><th></th></tr>' +
+      (rows || '<tr><td colspan="5" style="color:var(--gray-mid)">No sheets this month yet — start with Step 1.</td></tr>');
+  }
+
+  function renderRdcCalendar(month, sheets) {
+    const grid = document.getElementById('rdcHubCalGrid');
+    if (!grid) return;
+    const byDate = {};
+    (sheets || []).forEach((s) => { if (s.balance_date) byDate[s.balance_date] = s; });
+    const [year, mon] = month.split('-').map(Number);
+    const daysInMonth = new Date(year, mon, 0).getDate();
+    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const firstDay = new Date(year, mon - 1, 1).getDay();
+    const offset = (firstDay + 6) % 7;
+
+    let html = labels.map((label) =>
+      `<div style="font-size:11px;color:var(--gray-mid);font-weight:700;text-align:center;padding:4px 0">${label}</div>`
+    ).join('');
+    for (let i = 0; i < offset; i += 1) {
+      html += '<div></div>';
+    }
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const iso = `${month}-${String(day).padStart(2, '0')}`;
+      const s = byDate[iso];
+      let cls = 'none';
+      let tick = '';
+      if (s) {
+        const b = rdcSheetBalanced(s);
+        if (b !== null) {
+          cls = b ? 'ok' : 'bad';
+          tick = `<span class="cal-tick ${b ? 'ok' : 'bad'}">${b ? '✓' : '✗'}</span>`;
+        }
+      }
+      html += `<button type="button" class="cal-cell ${cls}" ${s ? '' : 'disabled'} onclick="openRdcSheetDate('${iso}')">
+        <div class="cal-day">${day}</div>${tick}
+      </button>`;
+    }
+    grid.innerHTML = html;
+  }
+
+  async function loadRdcHubMonth(month) {
+    const input = document.getElementById('rdcHubCalMonth');
+    if (input && input.value !== month) input.value = month;
+    const listRes = await hubFetch('/api/rdc/list_sheets.php?month=' + encodeURIComponent(month), 'Recent sheets');
+    if (!listRes.ok) {
+      const grid = document.getElementById('rdcHubCalGrid');
+      if (grid) grid.innerHTML = `<div style="color:var(--red);font-size:12px">${listRes.error}</div>`;
+      return;
+    }
+    rdcHubSheets = listRes.data.sheets || [];
+    renderMonthChip(rdcHubSheets);
+    renderRecentSheets(rdcHubSheets, todayIso());
+    renderRdcCalendar(month, rdcHubSheets);
   }
 
   function renderHubAlert(ctx) {
@@ -458,7 +510,6 @@
       hubFetch('/api/exceptions/fetch.php', 'Depot alerts'),
       hubFetch('/api/rdc/list_sheets.php?month=' + encodeURIComponent(month), 'Recent sheets'),
       hubFetch('/api/reports/exchange_list.php', 'Manager pack'),
-      hubFetch('/api/customers/fetch_customers.php', 'Receivables'),
       hubFetch('/api/welfare/fetch.php?status=open&limit=5', 'Staff welfare'),
     ]);
 
@@ -475,12 +526,7 @@
     const excRes = results[3].ok ? results[3].data : {};
     const listRes = results[4].ok ? results[4].data : {};
     const exchangeRes = results[5].ok ? results[5].data : {};
-    const customersRes = results[6].ok ? results[6].data : {};
-    const welfareRes = results[7].ok ? results[7].data : {};
-    const customers = customersRes.customers || [];
-    const owing = customers.filter((c) => Number(c.credit_balance) > 0);
-    const totalReceivables = owing.reduce((s, c) => s + Number(c.credit_balance || 0), 0);
-
+    const welfareRes = results[6].ok ? results[6].data : {};
     const sheet = sheetRes.sheet || {};
     const sheetStatus = String(sheet.status || 'draft');
     const variance = Number(sheet.variance || 0);
@@ -500,6 +546,10 @@
 
     renderVarianceCard();
     renderMonthChip(monthSheets);
+    rdcHubSheets = monthSheets;
+    const calInput = document.getElementById('rdcHubCalMonth');
+    if (calInput) calInput.value = month;
+    renderRdcCalendar(month, rdcHubSheets);
 
     const ctx = {
       sheetLoaded: results[1].ok,
@@ -511,9 +561,6 @@
       exceptionCount,
       packSentToday,
       packTodayId: packToday?.id || null,
-      receivablesLoaded: results[6].ok,
-      totalReceivables,
-      receivablesCount: owing.length,
       welfareOpen: welfareRes.summary?.open_count || 0,
       welfareOpenAmount: welfareRes.summary?.open_amount || 0,
       readiness: exchangeRes.accountant_readiness || null,
@@ -524,7 +571,6 @@
     renderChecklist(ctx, wf);
     renderCashNudge(ctx);
     renderCadetNudge(ctx);
-    renderRecvNudge(ctx);
     renderDepotNudge(ctx);
     renderMonthEndBanner();
     renderPackView(ctx);
@@ -548,7 +594,12 @@
 
   function renderMonthChip(sheets) {
     const chip = document.getElementById('rdcHubMonthChip');
-    if (chip) chip.textContent = monthProgressLabel(sheets);
+    if (!chip) return;
+    chip.textContent = monthProgressLabel(sheets);
+    const withActivity = (sheets || []).filter((s) => rdcSheetBalanced(s) !== null);
+    chip.style.color = withActivity.length
+      ? withActivity.every((s) => rdcSheetBalanced(s) === true) ? 'var(--green)' : 'var(--red)'
+      : '';
   }
 
   window.loadRdcHubPage = loadRdcHubPage;
@@ -559,4 +610,9 @@
     if (typeof openRdcSheetDate === 'function') openRdcSheetDate(picked);
     else showPage('accountant-rdc');
   };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const monthEl = document.getElementById('rdcHubCalMonth');
+    if (monthEl) monthEl.addEventListener('change', () => loadRdcHubMonth(monthEl.value));
+  });
 })();

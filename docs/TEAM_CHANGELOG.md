@@ -37,6 +37,330 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 
 ## Log
 
+### 2026-08-02 · Overall depot targets row + docs + commit
+
+| | |
+|--|--|
+| **Who** | opencode |
+| **Push / ref** | `main` · local commit |
+| **Area** | Executive dashboard · docs |
+
+**Changes**
+- "Monthly sales targets" table now ends with an **Overall depot** total row that encompasses the inner depot sales **and** the vehicles: SODA/WATER target, sold, % and total % summed across DEPOT + every cadet vehicle (rendered even when targets are unset).
+- Docs updated: `README.md` (Executive section — month review, per-cadet sold without targets, Overall depot row, monthly director-brief widget, sheet-based CSO), `docs/MODULE_TRACKER.md` (2 Aug focus row + Executive module rows + migration footer **001–021**).
+- All `php -l` / `node --check` clean; commit created with the rest of this session's work.
+
+**Notes**
+- Next session: host on Truehost (backend + move the XAMPP `lapok_dms` database to the host's phpMyAdmin).
+
+### 2026-08-02 · Director brief widget is now monthly (whole-month capture)
+
+| | |
+|--|--|
+| **Who** | opencode |
+| **Push / ref** | local WIP, not pushed |
+| **Area** | Executive dashboard · director brief |
+
+**Changes**
+- The exec dashboard "director brief" widget (Revenue / Expenses / Net operating / Shortages flagged) showed **UGX 0** because it used the *daily* snapshot for today, but those figures are tracked monthly. Added `depot_director_snapshot_monthly($month)` and a `?month=YYYY-MM` branch in `api/reports/director_snapshot.php` that aggregates the whole month: all RDC sheets in range (revenue `grand_total`, expenses, variance), month fuel from `delivery_trips`, full-month fixed costs, cash/stock variances across the month.
+- `loadDirectorBriefWidget()` (`assets/director-brief.js`) now passes the exec-selected month (`execKpiMonth`, else current) and labels revenue with the month; the day-only "7pm readiness" row was removed from the widget. The daily `?date=` endpoint and the date-picker brief page are unchanged.
+- When reviewing a past month the checklist card is now shown with a note ("daily checklist applies to today only") instead of being hidden, so the director-brief widget values are visible for the selected month.
+- Verified live: `?month=2026-07` → Revenue 3,191,700 · Expenses 401,000 (RDC 202,500 + fuel 198,500) · Net operating 2,790,700 · Shortages 369,000; `?month=2026-08` → 0s (no data yet); daily `?date=2026-07-31` unchanged.
+- Bumped `phase45.js?v=20260802g`, `director-brief.js?v=20260802g`.
+
+**Notes**
+- The daily brief page still shows the day snapshot; the exec widget is month-based by design.
+
+### 2026-08-02 · Per-cadet sales tracked without targets + July cash-out now visible
+
+| | |
+|--|--|
+| **Who** | opencode |
+| **Push / ref** | local WIP, not pushed |
+| **Area** | Executive dashboard · cadet dashboard · cash flow |
+
+**Changes**
+- Per-cadet sales are now ALWAYS tracked and shown, even before targets are set. The exec "Monthly sales targets" table renders every sales unit (DEPOT + each cadet vehicle) with **sold** numbers at all times; target / % cells show "—" until the Manager sets them, then they sync in automatically. Overall SODA/WATER boxes switch from "target" to "sold" when nothing is set.
+- Exec metric cards 5/6 show "SODA sold / WATER sold" with "target not set" instead of a dead "Not set" value.
+- Cadet dashboard "My monthly targets" now shows the cadet's own sold crates even without a target ("target not set yet" badge instead of hiding the card).
+- FIXED cash-out visibility: the executive cash flow was reading only the `customer_cashouts` ledger, which is empty — the real cash-outs live in the RDC sheet `cash_out_json`/`recoveries_json` (the consolidated source that also absorbs the ledger via prefill). `cash_out_mtd`/`recovery_mtd`/CSO now come from the sheets.
+- New `depot_sheet_json_sum()` / `depot_sheet_json_total()` helpers; `depot_cash_still_out_as_of()` now sums sheet cash-outs minus recoveries (recurring across months).
+- CSO trend card gained "Cash out MTD" / "Recovered MTD" chips.
+- Verified live: July 2026 now shows **Cash out MTD 99,500** (Ayella → cadet 4) and **CSO 99,500**; per-cadet sold 163 soda / 23 water tracked with targets 0; after a temporary manager save the targets synced (TUK-001 1500/700) and pct computed, then test rows were removed.
+- Bumped `phase45.js?v=20260802f`, `cadet-dashboard.js?v=20260802b`.
+
+**Notes**
+- The `customer_cashouts` ledger remains the per-customer working tool; the exec board now reflects the approved consolidated RDC sheets.
+
+### 2026-08-02 · Executive month review — view sales, targets & cash flow for past months
+
+| | |
+|--|--|
+| **Who** | opencode |
+| **Push / ref** | local WIP, not pushed |
+| **Area** | Executive dashboard · monthly analytics |
+
+**Changes**
+- `executive.php` accepts `?kpi_month=YYYY-MM` (past months only; future months rejected). `revenue_mtd`/`revenue_prev_mtd`/delta are computed for that month (full-month vs previous month for past months, same-elapsed-days for current). CSO (`cso_open`, `cso_opening_bf`, `cso_history`) is now "as of" the end of the selected month.
+- New "Month review" bar on the exec dashboard: a month picker (last 13 months) + "Current month" reset. Viewing a past month hides the live "today" cards (warehouse, revenue today, crates today), the daily checklist and live charts; Revenue card is relabeled for that month and its trend becomes "vs previous month".
+- FIXED `depot_sales_split_mtd()`: overall SODA / WATER sold now sums the **whole** sales unit (DEPOT column + every `vehicle_N` column) instead of only the DEPOT column — per-cadet sales were being dropped from the totals.
+- FIXED `depot_cash_still_out_history()`: month arithmetic anchored on the 1st so month-end (31st) "as of" dates no longer produce duplicated/skipped months.
+- Verified live: July 2026 shows revenue 3,191,700, sold 163 soda / 23 water (from the approved 07-31 sheet), correct CSO history Feb→Jul; current month unaffected.
+- Bumped `phase45.js?v=20260802e`.
+
+**Notes**
+- Targets are only visible once the manager enters them for that month (`sales_targets`); July/August currently show "Not set".
+
+### 2026-08-02 · CSO rolls forward automatically across months
+
+| | |
+|--|--|
+| **Who** | opencode |
+| **Push / ref** | local WIP, not pushed |
+| **Area** | Executive dashboard · cash flow |
+
+**Changes**
+- New `depot_cash_still_out_as_of($asOfDate)`: Cash Still Out recomputed from **all** cash-out + payment history up to a date (no manual carry-forward, no reliance on `exec_kpi_config.cso_opening_bf`).
+- New `depot_cash_still_out_history($asOfDate, 6)`: last six months of outstanding cash for the executive.
+- `executive.php` cash_flow now returns `cso_open` (outstanding today), `cso_opening_bf` (as of last month-end), `cso_history` (rolling 6-month trend), `cso_cumulative` = today's outstanding.
+- New exec card "Cash still out — monthly trend" with month / amount / ▲▼ vs previous month (red = up, green = down).
+- Verified live with synthetic rows: May 1,000,000 → Jun 400,000 after payment → Jul 600,000 after new cash-out → Aug 600,000 carried forward; test rows removed afterwards.
+- Bumped `phase45.js?v=20260802d`.
+
+**Notes**
+- `cashout_payments.paid_on` is a plain `DATE` — no timezone conversion needed (earlier UTC concern was wrong).
+
+### 2026-08-02 · Exec soda/water cards + cadet own-target view · honest "not set" state
+
+| | |
+|--|--|
+| **Who** | Build |
+| **Push / ref** | local WIP, not pushed |
+| **Area** | Executive dashboard · cadet dashboard · targets |
+
+**Changes**
+- Executive metric grid: cards 5 & 6 are now **SODA target** and **WATER target** (each its own top card: target, sold, %); **Cash still out** moved to card 7 (exec-only, hidden for admin). The combined "Target achieved %" card was dropped (overall % still on checklist row 1 + targets panel).
+- **Cadet self-view:** `api/cadet/fetch_context.php` now returns `monthly_targets` (their vehicle's soda/water target vs actual from RDC sheets); new **"My monthly targets"** card on the cadet dashboard shows SODA/WATER target, sold, % and a ✓ meeting target / not yet badge. Uses `users.vehicle_id` (fallback trip vehicle).
+- **Honest empty state:** removed the kpi_month fallback (exec board always shows the current month) and deleted the placeholder seed rows; migration `020` no longer seeds `sales_targets`. Until the manager enters targets, exec shows **"Not set — manager feeds monthly"** (cards, checklist row, targets panel) and the cadet sees **"No monthly targets set for your vehicle yet."**
+- Fixed a SUM bug in `api/dashboard/executive.php`: overall `soda_target`/`water_target` now accumulate across all rows (DEPOT + cadets) instead of the last row overwriting earlier ones.
+- `includes/depot_finance.php`: added `depot_unit_target_actual()` (single-unit target vs actual, reused by the cadet API).
+- Bumped `phase45.js?v=20260802c`, `cadet-dashboard.js?v=20260802a`.
+
+**Verified live** (then re-cleaned `sales_targets` to empty): manager save → exec overall = SUM (6500/2700), cadet `vehicle_2` sees his own 1500/700 with 0% until he sells.
+
+### 2026-08-02 · Per-cadet monthly targets — manager entry + exec breakdown
+
+| | |
+|--|--|
+| **Who** | Build |
+| **Push / ref** | local WIP, not pushed |
+| **Area** | Executive dashboard · manager · targets |
+
+**Changes**
+- Migration **021** (`database/migrations/021_sales_targets_per_cadet.sql`): `sales_targets.vehicle_id` — one target row per sales unit (`NULL` = DEPOT, else cadet vehicle); overall month target = SUM of all rows. Existing seeds moved to the DEPOT row.
+- `includes/depot_finance.php`: helpers `depot_sales_split_by_unit_mtd()` (per-column soda/water actuals), `depot_targets_for_month()`, `depot_sales_target_breakdown()` (DEPOT + each active vehicle: target/actual/%).
+- New APIs: `api/targets/get.php` (read month targets, any dashboard role) and `api/targets/save.php` (manager/admin feed a whole month: delete + insert per unit).
+- `api/dashboard/executive.php`: `sales_split` now includes `by_unit` breakdown; overall `soda_target`/`water_target` are the month SUMs.
+- `assets/phase45.js`: manager **Monthly targets** page (month picker + per-cadet & DEPOT soda/water inputs + save) and exec **targets panel** (overall SODA and overall WATER shown separately + per-cadet table like the Excel report: unit, type, target/sold/%). Page route + nav item added (`manager-targets` in the Monthly section of `assets/api.js` roleNav).
+- `index.html`: `page-manager-targets`, `execTargetsCard`, `.right` util; bumped `api.js?v=20260802a` and `phase45.js?v=20260802b`.
+
+**Notes**
+- The manager feeds the monthly numbers (targets arrive monthly from management); the exec board then shows overall + per-cadet target vs actual. Verified live: executive API returns `by_unit` (DEPOT + 6 vehicles, July fallback), manager GET/save round-trips.
+- Overall target figure on the board is a live SUM of the entered rows — no separate "overall" row to keep consistent.
+
+### 2026-08-02 · Executive dashboard — sales-vs-target, cash-still-out KPIs
+
+| | |
+|--|--|
+| **Who** | Build |
+| **Push / ref** | local WIP, not pushed |
+| **Area** | Executive dashboard · finance |
+
+**Changes**
+- Migration **020** (`database/migrations/020_exec_kpi_targets.sql`): `sales_targets` (monthly SODA/WATER unit targets) + `exec_kpi_config` (CSO opening carry-forward `cso_opening_bf`). Seeded July 2026 overall targets from the Jul-26 depot report (SODA 49,980 · WATER 22,321 crates); **August 2026 seeded with the same overall targets** as the current operating baseline.
+- `includes/depot_finance.php`: new helpers `depot_sales_split_mtd()` (soda/water units + revenue MTD from RDC sheets) and `depot_expense_line_mtd()` (e.g. DISCOUNT).
+- `api/dashboard/executive.php`: new `sales_split` (units, revenue, targets, % achieved), `cash_flow` (cash-out MTD, recovery MTD, CSO open + opening BF + cumulative), `discount_mtd`.
+- `assets/phase45.js`: executive dashboard cards 5–6 now show **Target achieved %** (soda/water sub-line **with actual/target units**, e.g. `soda 0/49,980 · water 0/22,321`) and **Cash still out** (open + cumulative); exec checklist row 1 = **Sales vs target (MTD)** with Reports link (rows renumbered 2–5). Admin keeps Vehicles out / Edit requests.
+- `index.html`: bumped `phase45.js?v=20260801a` → `?v=20260802a` so the executive KPI changes actually load (browsers were serving the cached script — this is why the exec account "didn't show the implementation").
+
+**Notes**
+- Targets default to 0 for a month with no `sales_targets` row — set each month (no UI yet; direct SQL or follow-up UI in Month-end).
+- CSO reads `customer_cashouts` open balances; set `cso_opening_bf` when rolling a month over.
+- Report noise intentionally left out: `Target Fuel` (all zeros), empty OCCD weekly block, derived rows the system computes itself.
+
+### 2026-08-01 · evening (Africa/Kampala) — "Customers & receivables" removed from the manager account
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | Manager · receivables |
+
+**Changes**
+- `assets/api.js?v=20260801b` — dropped the **Customers & receivables** item from the manager nav (`navManager`), added `admin-customers` to the manager's `roleBlockedPages` (a manager who reaches it is redirected home with a "belongs to Admin / Executive" toast), and updated `rolePageOwner['admin-customers']` to `Admin / Executive`.
+- `index.html` — removed the same item from the demo `ROLES` manager nav; bumped `api.js?v=` to `20260801b`. Admin and Executive keep the page.
+
+### 2026-08-01 · evening (Africa/Kampala) — receivables nudge removed from the RDC hub
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | RDC hub (accountant) |
+
+**Changes**
+- `assets/rdc-hub.js?v=20260801d` — dropped the "High receivables" banner (`renderRecvNudge`), its `RECEIVABLES_HIGH_UGX` threshold/`fmtUgx` helpers, the `api/customers/fetch_customers.php` call from the hub's `Promise.all`, and the receivables fields in the hub context. Receivables are order-based credit managed by the manager, so the banner only duplicated the manager/executive dashboards and said "not part of today's close".
+- `index.html` — removed the `rdcHubRecvNudge` markup and the now-unused `.rdc-hub-recv-nudge` CSS rule; bumped `rdc-hub.js?v=` to `20260801d`.
+
+### 2026-08-01 · evening (Africa/Kampala) — Cash outs promoted on the manager dashboard
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | Manager · cash outs |
+
+**Changes**
+- `index.html` — the **Cash outs** card on the manager's dashboard moved up, directly after "Daily checklist & handoff" and before "Approvals & alerts". Still not the first thing on the page (stock taking stays first).
+
+### 2026-08-01 · evening (Africa/Kampala) — Cash outs promoted on the RDC hub
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | RDC / accountant · cash outs |
+
+**Changes**
+- `index.html` — the **Cash outs** card on the accountant's hub moved up, directly after the EOD steps (progress bar → CTA → checklist → nudges) and before "Depot stock status". Still not the first thing on the page.
+
+### 2026-08-01 · evening (Africa/Kampala) — RDC hub directs the accountant to cash handover
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | RDC / accountant · cash handover |
+
+**Changes**
+- `assets/rdc-hub.js` — the hub's main **Continue** CTA now becomes **"Confirm cash"** (opens `accountant-cash`) whenever field cash is pending, before pointing at balancing or the manager pack. Order of priority stays: sheet error → rejected/reopened → pending cash → balancing → pack → done. The existing "Cadet cash handovers confirmed" checklist item and "Field cash" priority row still point there too. Bumped `assets/rdc-hub.js?v=20260801c`.
+
+### 2026-08-01 · evening (Africa/Kampala) — Month-end Advanced section trimmed to live KPIs & alerts
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | RDC / accountant · month-end |
+
+**Changes**
+- **Removed** from the Advanced tab: Automation tracker (decorative toggles — no real engine), Controls & evidence (maker-checker log + documents register + approval matrix — pure notes, no enforcement), and P&L variance template (unused text). They gave the impression of automation/integration that this build doesn't have.
+- **Kept**: the live KPI grid (cash flow, receivables, margin) and Proactive alerts — both computed from real APIs (`financial.php`, `pending_cash.php`). Advanced summary renamed to "live KPIs & alerts".
+- **State model** — `includes/rdc_month_end.php` default state now holds only what the page uses (checklist, process review date, bottlenecks, SOP updates, monthly summary); automation/controls/documents/templates/approvalMatrix keys dropped. Existing saved rows keep any old keys harmlessly (never rendered).
+- Bumped `assets/accountant-improvements.js?v=20260801a`.
+
+### 2026-08-01 · evening (Africa/Kampala) — Month-end restricted to the accountant only
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | RDC / accountant · access control |
+
+**Changes**
+- **API** — `includes/rdc_month_end.php` view and edit roles are now `['accountant']` only (was: view manager/executive/admin, edit accountant/admin). `fetch_month_end.php` / `save_month_end.php` 403 everyone else.
+- **Nav** — Month-end removed from the admin, manager, and executive menus (`assets/api.js` roleNav + demo ROLES in `index.html`); only the accountant keeps it.
+- **Access guard** — `accountant-improvements` added to the admin / manager / executive `roleBlockedPages` lists, so deep-links bounce to home with a "belongs to Accountant" toast. Owner label set in `rolePageOwner`.
+- **Dashboard buttons** — the "Month-end" button removed from the admin and executive home checklists (Staff welfare button stays). Bumped `assets/api.js?v=20260801a`, `assets/phase45.js?v=20260801a`.
+
+### 2026-08-01 · evening (Africa/Kampala) — balance calendar merged into Today's close date selector
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | RDC / accountant |
+
+**Changes**
+- `index.html` — the daily balancing page (`page-accountant-rdc`) toolbar's native date input is now a **date-picker dropdown** (`#rdcDatePicker`): a trigger button showing the selected date, opening a popover with a month calendar (`#rdcCalMonth` + `←/→` month nav + `#rdcCalGrid` + green/red legend). The old separate "Balance calendar" toggle button and card panel were removed. Added `.rdc-datepicker` / `.rdc-date-btn` / `.rdc-date-pop` / `.rdc-date-nav` styles.
+- `assets/rdc-balancing.js` — `rdcToggleDatePop()` / `rdcDatePopOpen()` / `rdcShiftCalMonth()` / `rdcUpdateDateLabel()` control the picker; `renderRdcCloseCalendar()` now keeps **every day clickable** (not just days with a sheet) so you can open/create a sheet for any date — days with an active sheet get the green `✓` / red `✗` circle, the current date keeps the ring. Clicking a day calls `openRdcSheetDate` (unsaved-changes guard) and closes the popover. Popover closes on outside click. Bumped `assets/rdc-balancing.js?v=20260801c`.
+
+### 2026-08-01 · evening (Africa/Kampala) — RDC hub now has a balance calendar
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | RDC / accountant / manager |
+
+**Changes**
+- `index.html` — the accountant RDC hub "Recent sheets" section now includes a month calendar grid (`#rdcHubCalMonth` + `#rdcHubCalGrid`) with the green/red legend, above the recent-sheets table.
+- `assets/rdc-hub.js` — added `renderRdcCalendar()`: each day with an active RDC sheet gets the same solid green `✓` (balanced, variance 0) or red `✗` (not balanced) circle as the cadet calendar; empty draft sheets show no tick; days without a sheet are disabled. Tapping a ticked day opens that date's balancing sheet (`openRdcSheetDate`). A month selector reloads the sheet list, calendar, and month chip. Added `loadRdcHubMonth()` + a `change` listener, and a module `rdcHubSheets` state. Bumped `assets/rdc-hub.js?v=20260801b`.
+- Verified via simulation with live July data: 31 July → red ✗; empty drafts (1, 16, 21) → no tick; 27 other days disabled.
+
+### 2026-08-01 · evening (Africa/Kampala) — balanced/not-balanced ticks added to RDC account views
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | RDC / accountant / manager |
+
+**Changes**
+- `assets/rdc-hub.js` — the accountant RDC hub "Recent sheets" table gained a **Balanced** column with the same green `✓` / red `✗` circles used on the cadet calendar. Empty draft sheets (no activity: all totals zero) show a gray `—` instead of a tick. The month progress label now ends with `· N balanced` and the chip turns green when every active sheet balances, red otherwise.
+- `assets/rdc-review.js` — the manager/accountant RDC review table shows the same green/red tick next to each date (gray `—` for empty drafts). Same balance rule: active sheet with variance 0 = balanced, else not balanced.
+- `index.html` — added `.cal-tick.flat` (table-friendly tick, no top margin) and bumped `assets/rdc-hub.js?v=20260801a`, `assets/rdc-review.js?v=20260801a`.
+- Verified against live data: 2026-07-31 (variance 369,000) → red; empty drafts → gray `—`.
+
+### 2026-08-01 · evening (Africa/Kampala) — calendar ticks made bolder (solid green/red circles)
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | Cadet |
+
+**Changes**
+- `index.html` — the calendar tick is now a solid green (`#16A34A`) or red (`#E53E3E`) circle with the ✓/✗ inside (was a small thin glyph). The selected-day ring is neutral gray so it no longer washes out the green/red border. Bumped `assets/cadet-daily.js?v=20260801e`.
+- Note: the history calendar defaults to the current month — select `2026-07` from the Month input to see the 31 July report cell.
+
+### 2026-08-01 · evening (Africa/Kampala) — cadet history calendar dates ticked green/red by RDC balance
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | Cadet |
+
+**Changes**
+- `api/cadet/history.php` — each report now carries `balanced`, `rdc_status`, and `rdc_variance`. Balanced means the RDC daily sheet for that date has variance 0 (the sheet reconciles sales + recoveries vs expenses, cash out, and cash actual together). If no RDC sheet exists for the date, it falls back to the cadet's own report flags (no flags → balanced).
+- `assets/cadet-daily.js` — the history calendar now ticks each date that has a report: green `✓` for balanced, red `✗` for not balanced, with matching light-green/light-red cell backgrounds and a blue ring on the selected day. The old "Sent"/"Flagged" text marker is gone. The summary now reads `Reports · ✓ balanced · ✗ not balanced`, and a legend ("✓ Balanced / ✗ Not balanced") sits under the grid. The detail panel gained a "Balanced (RDC)" row showing the variance when the sheet doesn't balance.
+- `index.html` — added `--green`/`--green-light`/`--amber-light` CSS vars, `.cal-cell`/`.cal-tick`/`.cal-legend` styles, the calendar legend, the balance detail row, and bumped `assets/cadet-daily.js?v=20260801d`.
+- Verified live: 2026-07-31 sheet (variance 369000) → red/not balanced; temporarily zeroing the variance → green/balanced (then restored).
+
+### 2026-08-01 · evening (Africa/Kampala) — messages UI redesigned as a clean list
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | Cadet |
+
+**Changes**
+- `assets/notifications.js` — messages no longer render as stacked colored alert boxes. Each message is now a compact list row: unread red dot (with glow), sender + timestamp on one line, bold title (with an "Urgent"/"Alert" chip for warning/danger severity), and a 2-line muted body preview. The whole row is clickable (opens the detail modal); the old per-row "Open →" button is gone. Applies to the cadet dashboard "Messages from depot" card, the bell modal, and the messages modal.
+- `index.html` — added `.notif-list`, `.notif-row`, `.notif-dot`, `.notif-meta`, `.notif-sender`, `.notif-time`, `.notif-title`, `.notif-body`, `.notif-sev`, `.sev-warning`, `.sev-danger` styles (after `.alert`, ~line 196) and bumped `assets/notifications.js?v=20260801c`.
+
+### 2026-08-01 · evening (Africa/Kampala) — "Depot products" card now shows live loaded lines
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | Cadet |
+
+**Changes**
+- `api/cadet/fetch_context.php` — `summary.product_lines` was counting every product in the RDC sales catalog (16), even ones with no quantity loaded. It now counts only products where `qty_loaded > 0`, so the dashboard "Depot products" card reflects the actual lines on the cadet's vehicle (0 when there is no trip). Verified live: test trip with 3 distinct products → card read 3; deleted after test.
+
 ### 2026-08-01 · afternoon (Africa/Kampala) — dashboard cash out card is now read-only
 
 | | |

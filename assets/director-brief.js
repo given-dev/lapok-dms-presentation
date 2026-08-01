@@ -144,14 +144,31 @@
       : document.getElementById('directorBriefWidget');
     if (!box) return;
     try {
-      const d = await LapokAPI.get('/api/reports/director_snapshot.php');
-      box.innerHTML = `
-        <div class="recon-row"><span>Revenue</span><strong>${ugx(d.revenue?.used || 0)}</strong></div>
-        <div class="recon-row"><span>Expenses (var + fixed/day)</span><strong>${ugx(d.expenses?.total || 0)}</strong></div>
-        <div class="recon-row"><span>Net operating</span><strong>${ugx(d.profit?.net_operating || 0)}</strong></div>
-        <div class="recon-row"><span>Shortages flagged</span><strong>${ugx(d.shortages?.total_flag_ugx || 0)}</strong></div>
-        <div class="recon-row"><span>7pm readiness</span><strong>${readinessLabel(d.controls?.readiness)}</strong></div>
-      `;
+      const isMonthly = currentUser.role !== 'accountant';
+      const url = isMonthly
+        ? '/api/reports/director_snapshot.php?month=' + encodeURIComponent((typeof execKpiMonth !== 'undefined' && execKpiMonth) || LapokAPI.monthIso())
+        : '/api/reports/director_snapshot.php';
+      const d = await LapokAPI.get(url);
+      if (isMonthly) {
+        const month = (typeof execKpiMonth !== 'undefined' && execKpiMonth) || LapokAPI.monthIso();
+        const [y, m] = (month || '').split('-');
+        const monNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthLabel = monNames[(Number(m) || 1) - 1] + '-' + String(y || '').slice(2);
+        box.innerHTML = `
+          <div class="recon-row"><span>Revenue (${monthLabel})</span><strong>${ugx(d.revenue?.used || 0)}</strong></div>
+          <div class="recon-row"><span>Expenses (var + fixed)</span><strong>${ugx(d.expenses?.total || 0)}</strong></div>
+          <div class="recon-row"><span>Net operating</span><strong>${ugx(d.profit?.net_operating || 0)}</strong></div>
+          <div class="recon-row"><span>Shortages flagged</span><strong>${ugx(d.shortages?.total_flag_ugx || 0)}</strong></div>
+        `;
+      } else {
+        box.innerHTML = `
+          <div class="recon-row"><span>Revenue</span><strong>${ugx(d.revenue?.used || 0)}</strong></div>
+          <div class="recon-row"><span>Expenses (var + fixed/day)</span><strong>${ugx(d.expenses?.total || 0)}</strong></div>
+          <div class="recon-row"><span>Net operating</span><strong>${ugx(d.profit?.net_operating || 0)}</strong></div>
+          <div class="recon-row"><span>Shortages flagged</span><strong>${ugx(d.shortages?.total_flag_ugx || 0)}</strong></div>
+          <div class="recon-row"><span>7pm readiness</span><strong>${readinessLabel(d.controls?.readiness)}</strong></div>
+        `;
+      }
     } catch (_) {
       box.innerHTML = '<p style="font-size:12px;color:var(--gray-mid)">Director brief loads after migration 010.</p>';
     }

@@ -190,27 +190,33 @@ async function loadStockTable() {
 }
 
 async function loadLowStockAlerts() {
-  try {
-    const data = await LapokAPI.get('/api/stock/fetch_stock.php?low_only=1');
-    const alerts = data.alerts || [];
-    const el = document.getElementById('admLowStockAlert');
-    if (!el) return;
-    const div = el.querySelector('div');
-    if (!div) return;
-    if (alerts.length) {
-      const preview = alerts.slice(0, 3)
-        .map((a) => `${appEscapeHtml(a.name)} (${Number(a.warehouse_qty).toLocaleString()} cartons)`)
-        .join(', ');
-      const remaining = Math.max(0, alerts.length - 3);
-      const previewText = preview
-        ? ` Examples: ${preview}${remaining ? ` and ${remaining} more` : ''}.`
-        : '';
-      div.innerHTML = `<strong>Low stock:</strong> ${alerts.length} product${alerts.length === 1 ? '' : 's'} below minimum.${previewText} <a href="#" onclick="showPage('admin-exceptions');return false" style="color:var(--red);font-weight:600">View all in Exception Center →</a>`;
-      el.style.display = '';
-    } else {
-      el.style.display = 'none';
+  const el = document.getElementById('admLowStockAlert');
+  if (!el) return;
+  const div = el.querySelector('div');
+  if (!div) return;
+  let alerts;
+  if (productCatalog.length) {
+    alerts = productCatalog.filter((s) => s.low_stock);
+  } else {
+    try {
+      alerts = (await LapokAPI.get('/api/stock/fetch_stock.php?low_only=1')).alerts || [];
+    } catch (_) {
+      return;
     }
-  } catch (_) {}
+  }
+  if (alerts.length) {
+    const preview = alerts.slice(0, 3)
+      .map((a) => `${appEscapeHtml(a.name)} (${Number(a.warehouse_qty).toLocaleString()} cartons)`)
+      .join(', ');
+    const remaining = Math.max(0, alerts.length - 3);
+    const previewText = preview
+      ? ` Examples: ${preview}${remaining ? ` and ${remaining} more` : ''}.`
+      : '';
+    div.innerHTML = `<strong>Low stock:</strong> ${alerts.length} product${alerts.length === 1 ? '' : 's'} below minimum.${previewText} <a href="#" onclick="showPage('admin-exceptions');return false" style="color:var(--red);font-weight:600">View all in Exception Center →</a>`;
+    el.style.display = '';
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 async function loadPendingOrders() {
@@ -242,7 +248,7 @@ async function loadPendingOrders() {
 }
 
 async function loadEditRequests() {
-  const pages = ['#page-admin-editreqs table'];
+  if (!document.querySelector('#page-admin-editreqs table')) return;
   try {
     const data = await LapokAPI.get('/api/orders/fetch_requests.php');
     const reqs = data.requests || [];
