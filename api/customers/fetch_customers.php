@@ -27,9 +27,9 @@ if (is_field_role($user['role'])) {
 }
 
 if ($search !== '') {
-    $sql .= ' AND (c.name LIKE ? OR c.phone LIKE ? OR c.location LIKE ?)';
+    $sql .= ' AND (c.name LIKE ? OR c.phone LIKE ? OR c.nin LIKE ? OR c.location LIKE ?)';
     $q = '%' . $search . '%';
-    $params = array_merge($params, [$q, $q, $q]);
+    $params = array_merge($params, [$q, $q, $q, $q]);
 }
 
 $sql .= ' ORDER BY c.name';

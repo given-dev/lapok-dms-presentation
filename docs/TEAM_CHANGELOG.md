@@ -37,6 +37,25 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 
 ## Log
 
+### 2026-08-01 · afternoon (Africa/Kampala) — cadet cash out ledger (credit issued + recoveries, settled over time)
+
+| | |
+|--|--|
+| **Who** | Dev |
+| **Push / ref** | `testing-era` · local WIP |
+| **Area** | Cadet · Manager · RDC (accountant) · Customers |
+
+**Changes**
+- New ledger tables: `customers.nin` column added; `customer_cashouts` (customer, cadet, optional trip, `amount_out`, running `balance`, `status` open/settled) and `cashout_payments` (each recovery with `paid_on` date). `balance` is updated transactionally and a cashout settles automatically when it reaches 0.
+- `includes/cashouts.php` — `cashout_list()`, `cashout_create()`, `cashout_record_recovery()` (transactional; rejects over-recovery), `cashout_daily_totals()` (per-cadet issued / collected for a date), `cashout_prefill_sheet_totals()`.
+- `api/cashouts/` — `list.php` (cadet sees own; manager/accountant/executive/admin see all with `view_all`), `create.php` (records the day's cash out; links the cadet's active trip), `recover.php` (records a repayment; settles at 0).
+- `api/customers/create_customer.php` — cadets/field users may now add customers on the fly (`customers_write_own`); `nin` accepted on create/edit and searched in `fetch_customers.php`. Edit still manager-only.
+- RDC balancing — `rdc_new_sheet_template()` and `rdc_sync_cadet_reports_into_sheet()` prefill the daily sheet's **cash out** and **recoveries** columns per cadet from the ledger (only where the cell is still 0, so RDC manual adjustments are never overwritten).
+- `assets/cashouts.js` + `index.html` — cadet dashboard gets full cash out management (new cash out with add-customer inline, recover button, outstanding/settled lists, summary cards); manager dashboard and accountant RDC hub get a read-only overview. Wired into `showPage`.
+
+**Notes**
+- Verified live as cadet 4: create cash out → partial recovery keeps it open → final recovery settles it → over-recovery rejected; manager sees all rows (`view_all: true`); RDC sheet for 2026-08-01 prefilled `cadet_4` cash out 250,000 / recoveries 110,000. Test data cleaned up after verification.
+
 ### 2026-08-01 · evening (Africa/Kampala) — cadet remainders restock into warehouse on trip close
 
 | | |

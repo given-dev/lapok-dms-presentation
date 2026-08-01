@@ -873,6 +873,8 @@ canvas{display:block;width:100%!important}
     </div>
   </details>
 
+  <div id="cashoutsMountRdc"></div>
+
   <details class="rdc-section">
     <summary>History &amp; depot alerts</summary>
     <div class="rdc-section-body">
@@ -1218,12 +1220,13 @@ canvas{display:block;width:100%!important}
     <div class="card" id="mgrExceptionsCard"><div style="padding:1rem;color:var(--gray-mid)">Loading exceptions…</div></div>
     <div class="card">
       <div class="card-header"><span class="card-title">Sales awaiting confirmation</span><span class="badge bd" id="mgrPendingSalesBadge">—</span></div>
-      <div class="tbl-wrap"><table id="mgrPendingSalesTable">
+      <div class="tbl-wrap">      <table id="mgrPendingSalesTable">
         <tr><th>User</th><th>Vehicle</th><th>Customer</th><th>Amount</th><th>Time</th><th>Action</th></tr>
         <tr><td colspan="6" style="color:var(--gray-mid)">Loading…</td></tr>
       </table></div>
     </div>
   </div>
+  <div id="cashoutsMountManager"></div>
 </div>
 
 <!-- CCBA DAILY BOARDS (Inventory + OCCD) -->
@@ -1681,6 +1684,7 @@ canvas{display:block;width:100%!important}
     <div class="card-header"><span class="card-title">Stock on vehicle (by group)</span></div>
     <div class="tbl-wrap"><table id="cadetDashStockTable"><tr><th>Group</th><th>Product</th><th>Loaded</th></tr></table></div>
   </div>
+  <div id="cashoutsMountCadet" style="margin-top:1rem"></div>
 </div>
 
 <div class="page" id="page-cadet-daily">
@@ -2356,5 +2360,6 @@ window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementBy
 <script src="assets/cadet-daily.js?v=20260716m"></script>
 <script src="assets/depot-snapshots.js?v=20260731b"></script>
 <script src="assets/director-brief.js?v=20260719d"></script>
+<script src="assets/cashouts.js?v=20260801a"></script>
 </body>
 </html>

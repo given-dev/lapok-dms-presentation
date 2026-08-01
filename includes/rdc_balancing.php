@@ -244,6 +244,7 @@ function rdc_compute_totals(array $payload): array
 function rdc_new_sheet_template(string $date): array
 {
     require_once __DIR__ . '/depot_catalog.php';
+    require_once __DIR__ . '/cashouts.php';
     $columns = rdc_build_columns();
     $salesCols = array_values(array_filter(
         $columns,
@@ -260,6 +261,10 @@ function rdc_new_sheet_template(string $date): array
             || str_starts_with($c['key'], 'vehicle_')
     ));
 
+    $recoveries = [['label' => '', 'amounts' => rdc_empty_amounts($recoveryCols)]];
+    $cashOut = [['label' => '', 'amounts' => rdc_empty_amounts($recoveryCols)]];
+    $prefilled = cashout_prefill_sheet_totals($recoveries, $cashOut, $date);
+
     return array_merge([
         'balance_date' => $date,
         'status' => 'draft',
@@ -269,15 +274,15 @@ function rdc_new_sheet_template(string $date): array
         'cash_columns' => $cashCols,
         'product_categories' => depot_category_order(),
         'sales' => rdc_enrich_sales_lines(rdc_blank_sales_lines($columns)),
-        'recoveries' => [['label' => '', 'amounts' => rdc_empty_amounts($recoveryCols)]],
+        'recoveries' => $prefilled['recoveries'],
         'expenses' => rdc_blank_expense_lines($columns),
-        'cash_out' => [['label' => '', 'amounts' => rdc_empty_amounts($recoveryCols)]],
+        'cash_out' => $prefilled['cash_out'],
         'cash_actual' => rdc_empty_amounts($cashCols),
         'expected_amount' => 0,
         'notes' => '',
     ], rdc_compute_totals([
         'sales' => rdc_enrich_sales_lines(rdc_blank_sales_lines($columns)),
-        'recoveries' => [],
+        'recoveries' => $prefilled['recoveries'],
         'expenses' => rdc_blank_expense_lines($columns),
         'cash_actual' => rdc_empty_amounts($cashCols),
         'expected_amount' => 0,
@@ -532,6 +537,7 @@ function rdc_apply_cadet_report_to_sheet(array &$sheet, int $vehicleId, array $r
  */
 function rdc_sync_cadet_reports_into_sheet(PDO $pdo, string $date, bool $persist = true): array
 {
+    require_once __DIR__ . '/cashouts.php';
     $columns = rdc_build_columns();
     $vehicleKeys = rdc_vehicle_column_keys($columns);
     $reports = rdc_cadet_reports_for_date($date);
@@ -640,6 +646,10 @@ function rdc_sync_cadet_reports_into_sheet(PDO $pdo, string $date, bool $persist
             'flags' => $report['flags'] ?? [],
         ];
     }
+
+    $prefilled = cashout_prefill_sheet_totals($sheet['recoveries'], $sheet['cash_out'], $date);
+    $sheet['recoveries'] = $prefilled['recoveries'];
+    $sheet['cash_out'] = $prefilled['cash_out'];
 
     $notes = trim($sheet['notes'] ?? '');
     $syncStamp = '[CADET_VEHICLE_SYNC] ' . date('Y-m-d H:i') . '  -  ' . count($vehiclesApplied) . ' vehicle(s)';
