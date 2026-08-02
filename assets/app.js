@@ -54,6 +54,34 @@ async function initApp() {
   await refreshDashboardData();
 }
 
+// Heartbeat: while this tab stays open, refresh the session's activity timestamp
+// so the idle timeout only triggers when the app is closed or left unattended.
+// The session cookie expires on browser close; a short SESSION_IDLE_TIMEOUT
+// covers the close-tab-and-reopen case. Refresh keeps you signed in.
+const HEARTBEAT_INTERVAL_MS = 30000; // 30 seconds
+setInterval(async () => {
+  try {
+    await LapokAPI.get('/api/auth/me.php');
+  } catch {
+    location.href = 'login.html';
+  }
+}, HEARTBEAT_INTERVAL_MS);
+
+// Inactivity timeout: log the user out after 10 minutes without mouse/keyboard
+// activity on this tab (configurable via INACTIVITY_TIMEOUT_MS below).
+const INACTIVITY_TIMEOUT_MS = 600000; // 10 minutes
+const INACTIVITY_CHECK_MS = 30000; // check every 30s
+let lastActivityAt = Date.now();
+['mousemove', 'mousedown', 'keydown', 'touchstart', 'wheel', 'scroll'].forEach((evt) => {
+  window.addEventListener(evt, () => { lastActivityAt = Date.now(); }, { passive: true });
+});
+setInterval(() => {
+  if (Date.now() - lastActivityAt > INACTIVITY_TIMEOUT_MS) {
+    try { LapokAPI.post('/api/auth/logout.php', {}); } catch (_) {}
+    location.href = 'login.html';
+  }
+}, INACTIVITY_CHECK_MS);
+
 window.addEventListener('hashchange', () => {
   const wanted = (location.hash || '').startsWith('#page-') ? (location.hash || '').slice(6) : '';
   if (wanted && currentUser && document.getElementById('page-' + wanted)) {

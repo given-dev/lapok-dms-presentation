@@ -37,6 +37,25 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 
 ## Log
 
+### 2026-08-02 · 13:50 (Africa/Kampala) · Session security for live deployment
+
+| | |
+|--|--|
+| **Who** | opencode |
+| **Push / ref** | `ft-live` |
+| **Area** | Auth · sessions · live deployment |
+
+**Changes**
+- System is now **live on Truehost** at `dms.afriboards.com` (subdomain of `afriboards.com`), DB `afriboar_lapok`, with a clean export (accounts + catalog + vehicles only, all operational data wiped locally before deploy).
+- **Session inactivity timeout**: default reduced from 8 hours to **5 minutes**, configurable via `SESSION_IDLE_TIMEOUT` in `.env` (`includes/auth.php`). Replaces the separate executive-only 30-minute rule.
+- **Frontend heartbeat**: while the app tab is open, `assets/app.js` pings `api/auth/me.php` every 30s so an open, actively-used tab never lapses; a closed tab lets the server session expire after the idle timeout.
+- **Inactivity auto-logout**: after **10 minutes** without mouse/keyboard input the app logs the user out and returns to `login.html` (`INACTIVITY_TIMEOUT_MS` in `assets/app.js`).
+- `api/auth/me.php` now uses `require_login()` so the heartbeat call refreshes the session's `last_seen_at` and enforces the idle timeout on page load.
+- Verified end-to-end locally (login → me → logout; session expiry after idle).
+
+**Notes**
+- Deployment files on host under `/home/afriboar/dms.afriboards.com`; host `.env` holds the cPanel DB credentials. No code changes were needed for hosting (API root is auto-detected from the URL).
+
 ### 2026-08-02 · SODA / WATER target packs defined per manager product list
 
 | | |

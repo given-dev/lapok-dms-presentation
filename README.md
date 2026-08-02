@@ -3,6 +3,7 @@
 **Product:** Outpost DMS (Depot Management System)  
 **Folder:** `lapok-dms-presentation` (legacy folder name; product brand is Outpost)  
 **Stack:** PHP APIs + MySQL + vanilla JS (`index.html`, `assets/*.js`)  
+**Live:** deployed on Truehost at **`https://dms.afriboards.com`** (DB `afriboar_lapok`); deploy notes in [`database/hosting/README.md`](database/hosting/README.md)  
 **Purpose:** Multi-depot stock, sales, cash handover, and leadership reporting. Cadet, accountant (RDC), manager, and admin workflows are live in this cleaned presentation build — including stock taking, RDC review, CCBA boards, PDF report chain, and role ownership guards.
 
 **Shared navigation:** every account uses the same off-canvas left menu. The dashboard remains full width until the three-bar button at the top left is hovered or clicked/tapped. A click pins the menu open; selecting a page, clicking outside, or pressing Escape closes it.
