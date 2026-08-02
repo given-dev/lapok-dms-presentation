@@ -2,6 +2,26 @@
 
 cPanel users cannot run `CREATE DATABASE` / `USE lapok_dms`.
 
+## Live deployment (2 Aug 2026) — how the running system was set up
+
+The production system (`dms.afriboards.com`, DB `afriboar_lapok`) was deployed
+with a **single full dump**, not the numbered pack below:
+
+1. Locally, all operational data was wiped (accounts + catalog + vehicles kept).
+2. Export via `mysqldump` using **`--result-file`** (plain UTF-8). Do **not**
+   redirect with PowerShell `>` — that writes UTF-16 and phpMyAdmin rejects it
+   with "#1064 … near '-' at line 1" / "Unexpected character" on every line.
+3. In cPanel: **MySQL Databases** → create DB + user (names get your cPanel
+   username prefix), grant ALL PRIVILEGES.
+4. phpMyAdmin → click the new DB on the left (select DB first) → Import →
+   upload the dump.
+5. Upload runtime files to the subdomain's document root, create `.env` with the
+   cPanel DB credentials, set PHP 8.2, make `storage/` writable.
+
+The numbered pack below remains the correct path for a **fresh install**.
+
+---
+
 **Before import:** in phpMyAdmin, click **your** database on the left (the one from Database Wizard).
 
 Then Import in number order:

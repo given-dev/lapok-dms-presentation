@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/response.php';
 
-const EXECUTIVE_SESSION_IDLE_TIMEOUT = 1800; // 30 minutes
-const DEFAULT_SESSION_IDLE_TIMEOUT = 28800; // 8 hours
+// Idle timeout (seconds) before an unattended session expires. The open tab
+// keeps the session alive via a heartbeat, so closing the tab (or leaving it)
+// lets the session lapse shortly after. Override with SESSION_IDLE_TIMEOUT in .env.
+const DEFAULT_SESSION_IDLE_TIMEOUT = 300; // 5 minutes
 
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
@@ -28,9 +30,7 @@ function require_login(): array
         json_error('Authentication required', 401);
     }
     $lastSeen = (int) ($_SESSION['last_seen_at'] ?? 0);
-    $timeout = ($user['role'] ?? '') === 'executive'
-        ? EXECUTIVE_SESSION_IDLE_TIMEOUT
-        : DEFAULT_SESSION_IDLE_TIMEOUT;
+    $timeout = (int) (env('SESSION_IDLE_TIMEOUT', (string) DEFAULT_SESSION_IDLE_TIMEOUT));
     if ($lastSeen > 0 && (time() - $lastSeen) > $timeout) {
         logout_user();
         json_error('Session expired. Please sign in again.', 401);
