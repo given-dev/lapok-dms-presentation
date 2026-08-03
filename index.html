@@ -1609,6 +1609,7 @@ td.skel{padding:.6rem .8rem}
     <button class="btn btn-sm" type="button" onclick="showPage('manager-stock')">← Stock taking</button>
     <span class="chip">Vehicle dispatch</span>
     <button class="btn btn-red" style="margin-left:auto" type="button" onclick="openModal('dispatchModal')">Dispatch vehicle</button>
+    <button class="btn btn-red" type="button" onclick="openModal('reloadModal')">Reload vehicle</button>
   </div>
   <div class="alert a-info" style="margin:0 0 1rem">
     <span>ℹ</span>
@@ -2051,6 +2052,17 @@ td.skel{padding:.6rem .8rem}
     <tbody id="dispatchLoadBody"><tr><td colspan="3" class="skel" style="text-align:center">Loading…</td></tr></tbody>
   </table></div>
   <div class="modal-actions"><button class="btn" onclick="closeModal('dispatchModal')">Cancel</button><button class="btn btn-red" onclick="saveDispatch(this)">Confirm dispatch</button></div>
+</div></div>
+
+<div class="modal-overlay" id="reloadModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Reload vehicle</div>
+  <div class="alert a-info"><span>ℹ</span><div>Adds more stock to the vehicle's open trip. Warehouse stock is deducted; nothing is returned to the warehouse until the trip's final report.</div></div>
+  <div class="form-row"><div class="form-group"><label>Vehicle (open trip)</label><select class="select-inp" id="reloadVehicle"><option value="">Loading…</option></select></div><div class="form-group" id="reloadTripInfo"><label>Current load</label><input class="input" id="reloadCurrentLoad" readonly value="—"></div></div>
+  <div class="tbl-wrap"><table class="dispatch-sales-table" style="margin-bottom:.8rem"><tr><th>Product</th><th>In warehouse</th><th>Crates to reload</th></tr>
+    <tbody id="reloadLoadBody"><tr><td colspan="3" class="skel" style="text-align:center">Loading…</td></tr></tbody>
+  </table></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('reloadModal')">Cancel</button><button class="btn btn-red" onclick="saveReload(this)">Confirm reload</button></div>
 </div></div>
 
 <div class="modal-overlay" id="addCustModal"><div class="modal">
@@ -2513,7 +2525,7 @@ window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementBy
 <script src="assets/app.js?v=20260803c"></script>
 <script src="assets/phase45.js?v=20260803b"></script>
 <script src="assets/report-exchange.js?v=20260731e"></script>
-<script src="assets/manager-ops.js?v=20260803d"></script>
+<script src="assets/manager-ops.js?v=20260803f"></script>
 <script src="assets/occd-boards.js?v=20260716g"></script>
 <script src="assets/ccba.js?v=20260716a"></script>
 <script src="assets/rdc-balancing.js?v=20260801c"></script>
