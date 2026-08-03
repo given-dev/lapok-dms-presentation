@@ -13,13 +13,13 @@ $body = read_json_body();
 $name = trim($body['full_name'] ?? '');
 $email = trim($body['email'] ?? '');
 $password = $body['password'] ?? '';
-$role = $body['role'] ?? 'field_user';
+$role = $body['role'] ?? 'cadet';
 $nationalId = trim($body['national_id'] ?? '') ?: null;
 $phone = trim($body['phone'] ?? '') ?: null;
 $vehicleId = !empty($body['vehicle_id']) ? (int) $body['vehicle_id'] : null;
 $defaultRoute = trim($body['default_route'] ?? '') ?: null;
 
-$validRoles = ['admin', 'executive', 'manager', 'accountant', 'field_user', 'driver', 'cadet'];
+$validRoles = ['admin', 'executive', 'manager', 'accountant', 'cadet'];
 if ($name === '' || $email === '' || $password === '' || !in_array($role, $validRoles, true)) {
     json_error('full_name, email, password, and valid role are required');
 }
