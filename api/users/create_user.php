@@ -37,7 +37,7 @@ $id = (int) db()->lastInsertId();
 audit_log($user['id'], 'users', $id, 'create', null, ['email' => $email, 'role' => $role]);
 
 if (in_array($role, ['cadet', 'field_user'], true)) {
-    sync_user_vehicle_assignment(db(), $id, $vehicleId, $defaultRoute, $user['id']);
+    sync_user_vehicle_assignment(db(), $id, $vehicleId, $defaultRoute);
 }
 
 json_ok(['user_id' => $id], 201);

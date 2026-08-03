@@ -37,6 +37,34 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 
 ## Log
 
+### 2026-08-03 · Vehicle route assignments simplified to one route per vehicle
+
+| | |
+|--|--|
+| **Who** | opencode |
+| **Push / ref** | `ft-live` |
+| **Area** | Assignments · dispatch |
+
+**Why**
+- Live cadets had a vehicle set on their user (`users.vehicle_id`), but manager dispatch showed "Unassigned" because it read the per-day `vehicle_route_assignments` grid, which was empty. Each vehicle follows **one particular route every day** and it is not strict, so the Mon–Sat grid was the wrong model.
+
+**Changes**
+- New migration `022_vehicle_route_simplification.sql`: adds `vehicles.route_area`; backfills `vehicles.cadet_id` from `users.vehicle_id`; backfills routes from any existing assignment or the vehicle's current route; labels any remaining empty route `Route A`, `Route B`, ... The old `vehicle_route_assignments` table is deprecated (optional `DROP` at the end of the migration).
+- `api/assignments/save.php` now saves one **cadet + route** per vehicle (`vehicles.cadet_id`, `vehicles.route_area`, `users.vehicle_id`) — no day loop.
+- `api/assignments/fetch.php` returns one row per vehicle (vehicle, cadet, cadet_name, `route_area`); removed `today_day_number`.
+- `api/vehicles/dispatch.php` uses the vehicle's own `cadet_id` + `route_area` (fallback `current_route`); no more Sunday/per-day guards.
+- `includes/vehicle_assignments.php`: `sync_user_vehicle_assignment()` now syncs `vehicles.cadet_id` + `users.vehicle_id` only (route untouched when blank); dropped `assignment_day_number()` / `vehicle_assignment_for_day()`.
+- `api/users/create_user.php` / `api/users/edit_user.php` call the simplified sync so assigning a vehicle to a cadet keeps dispatch working.
+- `assets/phase45.js` admin **Vehicle Assignment** table is now Vehicle / Cadet / **Route (e.g. Route A)** / Save — no Mon–Sat columns.
+- `assets/manager-ops.js` dispatch dropdown reads cadet + route straight from `fetch_vehicles.php`; dropped the per-day `assignments` fetch.
+- Cache busters bumped: `phase45.js?v=20260803h`, `manager-ops.js?v=20260803h`.
+
+**Verify**
+- `php -l` and `node --check` clean; verified over HTTP: save assignment (cadet 4 → vehicle 1, Route A), dispatch created a trip with cadet 4 / Route A and split/deducted stock, unassigned vehicle correctly rejected ("This vehicle has no cadet assigned."), create-user with a vehicle still links both sides. Test data cleaned up after.
+
+**Deploy to live (`dms.afriboards.com`)**
+- Apply `022_vehicle_route_simplification.sql` in phpMyAdmin, then deploy updated `assets/manager-ops.js`, `assets/phase45.js`, `index.html`, `api/assignments/save.php`, `api/assignments/fetch.php`, `api/vehicles/dispatch.php`, `api/users/create_user.php`, `api/users/edit_user.php`, `includes/vehicle_assignments.php`.
+
 ### 2026-08-02 · 13:50 (Africa/Kampala) · Session security for live deployment
 
 | | |

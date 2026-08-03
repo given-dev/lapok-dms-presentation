@@ -1,7 +1,7 @@
 /**
  * Lapok DMS — Manager operations polish (dashboard, stock, dispatch, exceptions)
  */
-let mgrDispatchData = { vehicles: [], routes: [], users: [], products: [], todayDayNumber: 0 };
+let mgrDispatchData = { vehicles: [], products: [] };
 const mgrDispatchCache = { loadedAt: 0, ttlMs: 120000 };
 
 function mgrTodayLocal() {
@@ -486,18 +486,14 @@ async function prepareDispatchModal() {
   if (!modal) return;
   try {
     const stale = !mgrDispatchCache.loadedAt || (Date.now() - mgrDispatchCache.loadedAt > mgrDispatchCache.ttlMs);
-    if (stale || !mgrDispatchData.vehicles.length || !mgrDispatchData.users.length || !mgrDispatchData.products.length) {
-      const [vehicles, assignments, stock] = await Promise.all([
+    if (stale || !mgrDispatchData.vehicles.length || !mgrDispatchData.products.length) {
+      const [vehicles, stock] = await Promise.all([
         LapokAPI.get('/api/vehicles/fetch_vehicles.php'),
-        LapokAPI.get('/api/assignments/fetch.php'),
         LapokAPI.get('/api/stock/fetch_stock.php'),
       ]);
       mgrDispatchData.vehicles = vehicles.vehicles || [];
-      mgrDispatchData.routes = assignments.assignments || [];
-      mgrDispatchData.users = assignments.cadets || [];
       mgrDispatchData.products = stock.stock || [];
       mgrDispatchData.packs = stock.packs || [];
-      mgrDispatchData.todayDayNumber = Number(assignments.today_day_number) || 0;
       mgrDispatchCache.loadedAt = Date.now();
     }
 
@@ -508,13 +504,8 @@ async function prepareDispatchModal() {
       } else {
         vSel.innerHTML = mgrDispatchData.vehicles.map((v) => {
           const icon = v.vehicle_type === 'truck' ? '[TRUCK]' : '[TUK]';
-          const today = mgrDispatchData.todayDayNumber
-            ? mgrDispatchData.routes.find((a) => Number(a.vehicle_id) === Number(v.id) && Number(a.day_of_week) === mgrDispatchData.todayDayNumber)
-            : undefined;
-          const crewName = today?.cadet_name || v.cadet_name || 'Unassigned';
-          const crewId = today?.cadet_id || v.cadet_id || '';
-          const route = today?.route_area || '';
-          return `<option value="${v.id}" data-driver="${v.driver_id || ''}" data-cadet="${mgrEscapeAttr(crewId)}" data-cadet-name="${mgrEscapeAttr(crewName)}" data-route="${mgrEscapeAttr(route)}">${icon} ${escMgr(v.registration)} - ${escMgr(crewName)}</option>`;
+          const crewName = v.cadet_name || 'Unassigned';
+          return `<option value="${v.id}" data-driver="${v.driver_id || ''}" data-cadet="${mgrEscapeAttr(v.cadet_id || '')}" data-cadet-name="${mgrEscapeAttr(crewName)}" data-route="${mgrEscapeAttr(v.route_area || '')}">${icon} ${escMgr(v.registration)} - ${escMgr(crewName)}</option>`;
         }).join('');
       }
     }

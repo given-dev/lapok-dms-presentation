@@ -968,8 +968,6 @@ async function loadUsersTable() {
   } catch (e) { console.warn('Users:', e.message); }
 }
 
-const assignmentDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
 async function loadVehicleAssignments() {
   const table = document.getElementById('vehicleAssignmentTable');
   if (!table || !['admin', 'executive'].includes(currentUser?.role)) return;
@@ -978,47 +976,36 @@ async function loadVehicleAssignments() {
     const canEdit = !!data.can_edit && currentUser?.role === 'admin';
     const cadetNames = {};
     (data.cadets || []).forEach((c) => { cadetNames[Number(c.id)] = c.full_name; });
-    const grouped = {};
-    (data.assignments || []).forEach((row) => {
-      const id = Number(row.vehicle_id);
-      if (!grouped[id]) grouped[id] = { vehicle_id: id, registration: row.registration, vehicle_type: row.vehicle_type, cadet_id: row.cadet_id || '', routes: {} };
-      if (row.day_of_week) grouped[id].routes[Number(row.day_of_week)] = row.route_area || '';
-      if (row.cadet_id) grouped[id].cadet_id = row.cadet_id;
-    });
     const cadetOptions = (selected) => '<option value="">Unassigned</option>' + (data.cadets || []).map((c) =>
       `<option value="${c.id}" ${Number(selected) === Number(c.id) ? 'selected' : ''}>${escMgr(c.full_name)}</option>`
     ).join('');
-    const rows = Object.values(grouped).map((v) => {
+    const rows = (data.assignments || []).map((v) => {
       const cadetCell = canEdit
         ? `<select class="select-inp" id="assignCadet${v.vehicle_id}">${cadetOptions(v.cadet_id)}</select>`
         : (v.cadet_id ? escMgr(cadetNames[Number(v.cadet_id)] || 'Assigned') : '<span class="badge bd">Unassigned</span>');
-      const routeCells = assignmentDays.map((day, i) => {
-        const val = v.routes[i + 1] || '';
-        return canEdit
-          ? `<td><textarea class="textarea-inp" aria-label="${day} route" id="assignRoute${v.vehicle_id}_${i + 1}" rows="4" style="min-width:170px">${escMgr(val)}</textarea></td>`
-          : `<td style="white-space:normal;font-size:12px">${escMgr(val) || '<span class="badge bd">—</span>'}</td>`;
-      }).join('');
+      const routeCell = canEdit
+        ? `<input class="input" id="assignRoute${v.vehicle_id}" value="${escMgr(v.route_area || '')}" placeholder="e.g. Route A">`
+        : (escMgr(v.route_area || '') || '<span class="badge bd">—</span>');
       const actionCell = canEdit
         ? `<td><button class="btn btn-sm btn-red" type="button" onclick="saveVehicleAssignment(${v.vehicle_id}, this)">Save</button></td>`
         : '';
-      return `<tr><td><strong>${escMgr(v.registration)}</strong><div style="font-size:11px;color:var(--gray-mid)">${escMgr(v.vehicle_type)}</div></td><td>${cadetCell}</td>${routeCells}${actionCell}</tr>`;
+      return `<tr><td><strong>${escMgr(v.registration)}</strong><div style="font-size:11px;color:var(--gray-mid)">${escMgr(v.vehicle_type)}</div></td><td>${cadetCell}</td><td>${routeCell}</td>${actionCell}</tr>`;
     }).join('');
     const actionHeader = canEdit ? '<th>Action</th>' : '';
-    const colSpan = canEdit ? 9 : 8;
-    table.innerHTML = `<tr><th>Vehicle</th><th>Cadet</th>${assignmentDays.map((d, i) => `<th>${d}${Number(data.today_day_number) === i + 1 ? ' (today)' : ''}</th>`).join('')}${actionHeader}</tr>${rows || `<tr><td colspan="${colSpan}">No active vehicles found.</td></tr>`}`;
+    const colSpan = canEdit ? 4 : 3;
+    table.innerHTML = `<tr><th>Vehicle</th><th>Cadet</th><th>Route (e.g. Route A)</th>${actionHeader}</tr>${rows || `<tr><td colspan="${colSpan}">No active vehicles found.</td></tr>`}`;
   } catch (e) {
     table.innerHTML = `<tr><td style="color:var(--red)">${escMgr(e.message || 'Could not load assignments')}</td></tr>`;
   }
 }
 
 async function saveVehicleAssignment(vehicleId, button) {
-  const routes = {};
-  assignmentDays.forEach((_, i) => { routes[String(i + 1)] = document.getElementById(`assignRoute${vehicleId}_${i + 1}`)?.value.trim() || ''; });
   const cadetId = document.getElementById(`assignCadet${vehicleId}`)?.value || null;
+  const routeArea = document.getElementById(`assignRoute${vehicleId}`)?.value.trim() || '';
   const restore = typeof mgrSetBusy === 'function' ? mgrSetBusy(button, 'Saving...') : () => {};
   try {
-    await LapokAPI.post('/api/assignments/save.php', { vehicle_id: vehicleId, cadet_id: cadetId, routes });
-    adminToast('Vehicle, cadet and routes assigned');
+    await LapokAPI.post('/api/assignments/save.php', { vehicle_id: vehicleId, cadet_id: cadetId, route_area: routeArea });
+    adminToast('Vehicle, cadet and route saved');
     await loadUsersTable();
   } catch (e) {
     adminToast(e.message || 'Could not save assignment', true);

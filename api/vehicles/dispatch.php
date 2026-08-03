@@ -4,7 +4,6 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/includes/stock.php';
 require_once dirname(__DIR__, 2) . '/includes/depot_catalog.php';
-require_once dirname(__DIR__, 2) . '/includes/vehicle_assignments.php';
 
 $user = require_roles(['admin', 'manager']);
 
@@ -51,16 +50,11 @@ try {
         throw new RuntimeException('Vehicle is not available for dispatch');
     }
 
-    $dayNumber = assignment_day_number();
-    if ($dayNumber > 6) {
-        throw new RuntimeException('No Sunday route is configured. Ask the main Admin to update the weekly assignment.');
+    if (empty($vehicle['cadet_id'])) {
+        throw new RuntimeException('This vehicle has no cadet assigned. Ask the main Admin to assign one.');
     }
-    $assignment = vehicle_assignment_for_day($pdo, $vehicleId, $dayNumber);
-    if (!$assignment || empty($assignment['cadet_id'])) {
-        throw new RuntimeException('This vehicle has no Admin-approved cadet assignment for today.');
-    }
-    $cadetId = (int) $assignment['cadet_id'];
-    $routeArea = trim((string) $assignment['route_area']);
+    $cadetId = (int) $vehicle['cadet_id'];
+    $routeArea = trim((string) ($vehicle['route_area'] ?: $vehicle['current_route'] ?: ''));
 
     $tripStmt = $pdo->prepare(
         'INSERT INTO delivery_trips (vehicle_id, driver_id, cadet_id, route_id, route_area, status, odometer_start, notes)

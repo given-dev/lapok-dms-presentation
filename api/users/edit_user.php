@@ -86,10 +86,9 @@ try {
     }
 
     if (in_array($role, ['cadet', 'field_user'], true)) {
-        sync_user_vehicle_assignment($pdo, $id, $vehicleId, $defaultRoute, $user['id']);
+        sync_user_vehicle_assignment($pdo, $id, $vehicleId, $defaultRoute);
     } else {
         $pdo->prepare('UPDATE vehicles SET cadet_id = NULL WHERE cadet_id = ?')->execute([$id]);
-        $pdo->prepare('DELETE FROM vehicle_route_assignments WHERE cadet_id = ?')->execute([$id]);
         $pdo->prepare('UPDATE users SET vehicle_id = NULL WHERE id = ?')->execute([$id]);
     }
 
