@@ -258,7 +258,7 @@ const LapokAPI = (() => {
         { id: 'admin-reports', l: 'Reports & analytics', i: 'chart' },
         { section: 'Monitoring' },
         { id: 'admin-exceptions', l: 'Exception center', i: 'chart' },
-        { id: 'admin-users', l: 'Freeze accounts', i: 'users' },
+        { id: 'admin-users', l: 'Account management', i: 'users' },
         { id: 'accountant-welfare', l: 'Staff welfare', i: 'edit' },
       ],
       field_user: [
