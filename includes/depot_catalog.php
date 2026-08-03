@@ -201,6 +201,46 @@ function depot_trip_loaded_by_rdc_key(int $tripId): array
     return $loaded;
 }
 
+/**
+ * Unsold remainder (qty_returned) of the vehicle's most recent completed trip,
+ * per rdc_key. Items are counted back into warehouse at close-out but stay on the
+ * vehicle, so the next dispatch pre-fills these so the cadet only adds extra stock.
+ *
+ * @return array<string, int> rdc_key => unsold remainder
+ */
+function depot_vehicle_remains_by_rdc_key(int $vehicleId): array
+{
+    if ($vehicleId <= 0) {
+        return [];
+    }
+    $tripStmt = db()->prepare(
+        "SELECT id FROM delivery_trips
+         WHERE vehicle_id = ? AND status = 'returned'
+         ORDER BY returned_at DESC, id DESC LIMIT 1"
+    );
+    $tripStmt->execute([$vehicleId]);
+    $trip = $tripStmt->fetch();
+    if (!$trip) {
+        return [];
+    }
+    $stmt = db()->prepare(
+        'SELECT tli.qty_returned, p.name, p.sku
+         FROM trip_load_items tli
+         JOIN products p ON p.id = tli.product_id
+         WHERE tli.trip_id = ?'
+    );
+    $stmt->execute([(int) $trip['id']]);
+    $remains = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $key = depot_map_product_to_rdc_key((string) $row['name'], (string) $row['sku']);
+        if (!$key) {
+            continue;
+        }
+        $remains[$key] = ($remains[$key] ?? 0) + (int) $row['qty_returned'];
+    }
+    return $remains;
+}
+
 /** @return list<array<string, mixed>> */
 function depot_cadet_product_groups(?int $tripId): array
 {

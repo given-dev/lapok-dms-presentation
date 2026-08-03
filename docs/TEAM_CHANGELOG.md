@@ -42,6 +42,24 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 
 ## Log
 
+### 2026-08-03 · Dispatch pre-fills yesterday's unsold stock
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | `ft-live` |
+| **Area** | Manager dispatch · Vehicle stock carry-over |
+
+**Changes**
+- Vehicles are closed out at the end of the day without offloading: the unsold remainder is counted back into the warehouse (`qty_returned`, via `cadet_apply_trip_sales()`). The next day that same stock is still physically on the vehicle.
+- New `depot_vehicle_remains_by_rdc_key($vehicleId)` in `includes/depot_catalog.php` — returns the unsold remainder per pack from the vehicle's most recent returned trip.
+- `api/vehicles/fetch_vehicles.php` now includes a `remains` map per vehicle when called with `?include_remains=1` (used only by the dispatch modal; other callers unaffected).
+- `assets/manager-ops.js` — the **Dispatch vehicle** modal pre-fills each pack's "Crates to load" with the vehicle's carried-over stock the moment a vehicle is selected, and shows an info note ("N crates carried over from yesterday's close…"). The manager simply adds today's extra items on top. `index.html` bumped `manager-ops.js?v=20260803j` and added the carry-over note element.
+
+**Notes**
+- Deploy: upload `includes/depot_catalog.php`, `api/vehicles/fetch_vehicles.php`, `assets/manager-ops.js`, `index.html`. No DB change.
+- Verified locally: helper returns correct per-pack remainders (incl. SHELLS/BOTTLES) against a seeded returned trip.
+
 ### 2026-08-03 · Product order aligned to the LAPOK / RDC book
 
 | | |

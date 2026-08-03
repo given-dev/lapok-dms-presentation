@@ -488,7 +488,7 @@ async function prepareDispatchModal() {
     const stale = !mgrDispatchCache.loadedAt || (Date.now() - mgrDispatchCache.loadedAt > mgrDispatchCache.ttlMs);
     if (stale || !mgrDispatchData.vehicles.length || !mgrDispatchData.products.length) {
       const [vehicles, stock] = await Promise.all([
-        LapokAPI.get('/api/vehicles/fetch_vehicles.php'),
+        LapokAPI.get('/api/vehicles/fetch_vehicles.php?include_remains=1'),
         LapokAPI.get('/api/stock/fetch_stock.php'),
       ]);
       mgrDispatchData.vehicles = vehicles.vehicles || [];
@@ -537,6 +537,8 @@ async function prepareDispatchModal() {
       if (cadetName) cadetName.value = opt.dataset.cadetName || 'Unassigned';
       const area = document.getElementById('dispatchRouteArea');
       if (area) area.value = opt.dataset.route || '';
+      const vehicle = mgrDispatchData.vehicles.find((v) => String(v.id) === opt.value) || null;
+      prefillDispatchRemains(vehicle && vehicle.remains ? vehicle.remains : null);
     };
     if (vSel) vSel.onchange();
   } catch (e) {
@@ -546,6 +548,23 @@ async function prepareDispatchModal() {
     if (tbody) tbody.innerHTML = `<tr><td colspan="3" style="color:var(--red)">${escMgr(e.message || 'Load failed')}</td></tr>`;
     mgrNotify(e.message, 'error');
   }
+}
+
+function prefillDispatchRemains(remains) {
+  const note = document.getElementById('dispatchCarryNote');
+  const total = remains ? Object.values(remains).reduce((s, v) => s + (parseInt(v, 10) || 0), 0) : 0;
+  if (note) {
+    note.style.display = total > 0 ? '' : 'none';
+    const txt = note.querySelector('div');
+    if (txt) txt.textContent = total > 0
+      ? `${total} crates carried over from yesterday's close are pre-filled for this vehicle - add today's extra items on top.`
+      : '';
+  }
+  document.querySelectorAll('.dispatch-qty').forEach((inp) => {
+    const key = inp.dataset.rdcKey;
+    const r = remains && Object.prototype.hasOwnProperty.call(remains, key) ? (parseInt(remains[key], 10) || 0) : 0;
+    inp.value = Math.max(0, r);
+  });
 }
 
 async function saveDispatch(btn) {

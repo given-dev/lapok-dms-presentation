@@ -2,10 +2,12 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
+require_once dirname(__DIR__, 2) . '/includes/depot_catalog.php';
 
 require_login();
 
 $includeInactive = (int) ($_GET['include_inactive'] ?? 0) === 1;
+$includeRemains = (int) ($_GET['include_remains'] ?? 0) === 1;
 $where = $includeInactive ? '1=1' : 'v.is_active = 1';
 
 $stmt = db()->query(
@@ -19,4 +21,12 @@ $stmt = db()->query(
      ORDER BY v.vehicle_type, v.registration"
 );
 
-json_ok(['vehicles' => $stmt->fetchAll()]);
+$vehicles = $stmt->fetchAll();
+if ($includeRemains) {
+    foreach ($vehicles as &$v) {
+        $v['remains'] = depot_vehicle_remains_by_rdc_key((int) $v['id']);
+    }
+    unset($v);
+}
+
+json_ok(['vehicles' => $vehicles]);
