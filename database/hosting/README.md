@@ -28,7 +28,7 @@ Then Import in number order:
 
 1. `01_schema.sql`
 2. `02_seed.sql`
-3. `03_…` through `21_018_…` (skip `22_fix_encoding.sql`)
+3. `03_…` through `25_023_…` (skip `22_fix_encoding.sql`)
 
 `.env` on the server uses your cPanel DB name/user/password — not `lapok_dms` unless that is literally your DB name.
 
@@ -41,7 +41,7 @@ it uses `CREATE TABLE IF NOT EXISTS` and does not touch existing data.
 
 If Month-end / welfare still error afterwards, later migrations are probably
 missing too. Import the remaining hosting files **in number order**
-(`16_013_…` → `21_018_…`). Two notes:
+(`16_013_…` → `25_023_…`). Two notes:
 
 - `16_013_…` uses `ADD COLUMN IF NOT EXISTS` (safe to re-run).
 - `20_017_…` deletes demo operational data (orders/trips/packets) — run it only

@@ -20,14 +20,15 @@ function depot_rdc_sales_catalog(): array
         ['key' => '300ml', 'label' => '300ML RGB', 'price' => 18500, 'category' => 'CSD'],
         ['key' => 'pet_330', 'label' => '300ML PET', 'price' => 10000, 'category' => 'CSD'],
         ['key' => 'pet_500', 'label' => 'PET-500ML', 'price' => 15000, 'category' => 'CSD'],
-        ['key' => 'pet_1l', 'label' => '1L COCA-COLA', 'price' => 12500, 'category' => 'CSD'],
+        ['key' => 'pet_1l', 'label' => '1L COCA-COLA', 'price' => 15000, 'category' => 'CSD'],
         ['key' => 'pet_2000', 'label' => 'PET-2000ML', 'price' => 25500, 'category' => 'CSD'],
         // ENERGY — one sales row for cadet/RDC; manager tracks variants on OCCD / dispatch
         ['key' => 'energy', 'label' => 'ENERGY', 'price' => 17500, 'category' => 'ENERGY'],
         // JUICE
-        ['key' => 'mm_400', 'label' => '400ML M.MAIDS', 'price' => 25500, 'category' => 'JUICE'],
+        ['key' => 'mm_400', 'label' => '400ML M.MAIDS', 'price' => 25000, 'category' => 'JUICE'],
         ['key' => 'mm_1l', 'label' => '1LITRES M/MAIDS', 'price' => 25500, 'category' => 'JUICE'],
         ['key' => 'refresh_250', 'label' => 'REFRESH-250ML', 'price' => 10000, 'category' => 'JUICE'],
+        ['key' => 'refresh_500', 'label' => 'REFRESH-500ML', 'price' => 10000, 'category' => 'JUICE'],
         // WATER (Rwenzori + jumbo)
         ['key' => 'rw_500_box', 'label' => 'RWENZORI 500MLS-BOX', 'price' => 17400, 'category' => 'WATER'],
         ['key' => 'rw_500_shrink', 'label' => 'RWENZORI 500MLS-SHRINKS', 'price' => 10000, 'category' => 'WATER'],
@@ -86,7 +87,8 @@ function depot_map_product_to_rdc_key(string $name, string $sku = ''): ?string
         // CSD — RGB before generic 300 / PET.
         '300ml' => ['300ML RGB', '300 RGB', 'R&B', 'RB', 'RGB', '300-COKE', '300-FANTA', '300-SPRITE'],
         'pet_330' => ['300ML PET', 'PET-330', 'PET 330', '330-', 'CK-330', 'FT-330', 'SP-330'],
-        'pet_500' => ['PET-500', 'PET 500', '500ML PET', '500-COKE', '500-FANTA', '500-SPRITE', 'REFRESH-500', 'REFRESH 500', 'CK-500', 'SP-500'],
+        'refresh_500' => ['REFRESH-500', 'REFRESH 500', '500-RF', 'RF-500', '500 REFRESH'],
+        'pet_500' => ['PET-500', 'PET 500', '500ML PET', '500-COKE', '500-FANTA', '500-SPRITE', 'CK-500', 'SP-500'],
         'pet_1l' => ['1L-COKE', '1L COCA', '1L COKE', '1 LITRE COKE', 'CK-1L'],
         'pet_2000' => ['PET-2000', 'PET 2L', '2L-', '2 LITRE', '2000', 'CK-2L', 'SP-2L'],
         // ENERGY
@@ -146,7 +148,6 @@ function depot_normalize_rdc_key(string $key): string
         'predator' => 'energy',
         'predator_mango' => 'energy',
         'powerplay' => 'energy',
-        'refresh_500' => 'pet_500',
         'vad_supershake' => '',
     ];
     return $legacy[$key] ?? $key;
@@ -275,10 +276,10 @@ function depot_manager_warehouse_catalog(): array
         $row('300ML PET', 'NOVIDA', '330-NOVIDA', 'pet_330', 10000, 40, 40),
         $row('300ML PET', 'NOVIDA ZERO', '330-NOVIDA-Z', 'pet_330', 10000, 40, 40),
         // 400ML — Minute Maid
-        $row('400ML', 'MM MANGO', '400-MM-MANGO', 'mm_400', 25500, 40, 50),
-        $row('400ML', 'MM BERRY', '400-MM-BERRY', 'mm_400', 25500, 40, 50),
-        $row('400ML', 'MM APPLE', '400-MM-APPLE', 'mm_400', 25500, 40, 50),
-        $row('400ML', 'MM ORANGE', '400-MM-ORANGE', 'mm_400', 25500, 40, 50),
+        $row('400ML', 'MM MANGO', '400-MM-MANGO', 'mm_400', 25000, 40, 50),
+        $row('400ML', 'MM BERRY', '400-MM-BERRY', 'mm_400', 25000, 40, 50),
+        $row('400ML', 'MM APPLE', '400-MM-APPLE', 'mm_400', 25000, 40, 50),
+        $row('400ML', 'MM ORANGE', '400-MM-ORANGE', 'mm_400', 25000, 40, 50),
         // ENERGY — Predator Gold + Mango, and Power Play
         $row('ENERGY', 'PREDATOR GOLD', 'EN-GOLD', 'energy', 17500, 40, 60),
         $row('ENERGY', 'PREDATOR MANGO', 'EN-MANGO', 'energy', 17500, 40, 60),
@@ -286,13 +287,13 @@ function depot_manager_warehouse_catalog(): array
         // 500ML PET (CSD + Refresh)
         $row('500ML PET', 'COKE', '500-COKE', 'pet_500', 15000, 80, 80),
         $row('500ML PET', 'FANTA', '500-FANTA', 'pet_500', 15000, 80, 80),
-        $row('500ML PET', 'REFRESH MANGO', '500-RF-MANGO', 'pet_500', 15000, 40, 50),
-        $row('500ML PET', 'REFRESH ORANGE', '500-RF-ORANGE', 'pet_500', 15000, 40, 50),
+        $row('500ML PET', 'REFRESH MANGO', '500-RF-MANGO', 'refresh_500', 10000, 40, 50),
+        $row('500ML PET', 'REFRESH ORANGE', '500-RF-ORANGE', 'refresh_500', 10000, 40, 50),
         $row('500ML PET', 'SPRITE', '500-SPRITE', 'pet_500', 15000, 80, 80),
         $row('500ML PET', 'KREST', '500-KREST', 'pet_500', 15000, 40, 40),
         $row('500ML PET', 'NOVIDA', '500-NOVIDA', 'pet_500', 15000, 40, 40),
         // 1L PET CSD
-        $row('1L PET', 'COKE', '1L-COKE', 'pet_1l', 12500, 40, 50),
+        $row('1L PET', 'COKE', '1L-COKE', 'pet_1l', 15000, 40, 50),
         // 280ML — Refresh
         $row('280ML', 'REFRESH MANGO', '280-RF-MANGO', 'refresh_250', 10000, 40, 50),
         $row('280ML', 'REFRESH APPLE', '280-RF-APPLE', 'refresh_250', 10000, 40, 50),

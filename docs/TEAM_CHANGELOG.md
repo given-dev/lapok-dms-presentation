@@ -1,5 +1,10 @@
 # Team change log
 
+> ## ! RECENT CHANGES — last edited by **Ekiz** (2026-08-03)
+>
+> Someone has made changes since you last looked. Newest entry: [Log](#log) below.
+> When **you** make the next edit, change the name above to yours — **Ekiz** or **Given256** — so the other person knows at a glance who last touched the code.
+
 **Purpose:** Track what you and your colleague change in this codebase.  
 **When to update:** After you finish a set of edits (or before / after a code push), add a new entry at the **top** of the log (newest first).
 
@@ -36,6 +41,25 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 ---
 
 ## Log
+
+### 2026-08-03 · Prices updated to the new price list
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | `ft-live` |
+| **Area** | Product prices · RDC / cadet / revenue |
+
+**Changes**
+- New price list applied in **both** places prices live:
+  - `includes/depot_catalog.php` — `depot_rdc_sales_catalog()` (pack prices for cadet/RDC/revenue): **400ML M.MAIDS 25,500 → 25,000**; **PET-1L 12,500 → 15,000**; added new **REFRESH-500ML pack @ 10,000** (`refresh_500`, JUICE). 500ML Refresh is no longer rolled into PET-500ML.
+  - `depot_manager_warehouse_catalog()` — per-SKU prices synced to `products.unit_price` (4 × `400-MM-*` → 25,000; `1L-COKE` → 15,000; `500-RF-MANGO`/`500-RF-ORANGE` → 10,000, mapped to `refresh_500`).
+- `depot_map_product_to_rdc_key()`: added `refresh_500` name rules (`REFRESH-500`, `REFRESH 500`, `500-RF`, `RF-500`, `500 REFRESH`); removed those needles from `pet_500`. `depot_normalize_rdc_key()` no longer folds `refresh_500` → `pet_500`.
+- Migration `023_update_unit_prices.sql` sets `products.unit_price` directly (also in `database/hosting/25_023_update_unit_prices.sql`).
+- Verified locally end-to-end: catalog prices, SKU→pack mapping, `depot_ensure_warehouse_products()` sync, `products.unit_price` rows, and the dispatch load now showing REFRESH-500ML @ 10,000.
+
+**Notes**
+- To go live: run `023_update_unit_prices.sql` in phpMyAdmin **and** upload the updated `includes/depot_catalog.php`. No JS/cache-buster change needed — prices are served from PHP/DB.
 
 ### 2026-08-03 · Vehicle route assignments simplified to one route per vehicle
 
