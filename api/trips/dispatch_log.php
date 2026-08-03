@@ -8,7 +8,7 @@ require_roles(['admin', 'manager']);
 $date = trim($_GET['date'] ?? date('Y-m-d'));
 
 $stmt = db()->prepare(
-    "SELECT dt.id, dt.status, dt.dispatched_at, dt.acknowledged_at, dt.returned_at, dt.route_area,
+    "SELECT dt.id, dt.vehicle_id, dt.status, dt.dispatched_at, dt.acknowledged_at, dt.returned_at, dt.route_area,
             v.registration, v.vehicle_type,
             COALESCE(driver.full_name, cadet.full_name) AS crew_name,
             driver.full_name AS driver_name, cadet.full_name AS cadet_name,

@@ -522,8 +522,12 @@ async function prepareDispatchModal() {
         if (!g.packs?.length) return;
         html += `<tr class="cadet-cat-row"><td colspan="3"><strong>${escMgr(g.category)}</strong></td></tr>`;
         g.packs.forEach((p) => {
-          if (Number(p.warehouse_qty || 0) <= 0) return;
-          html += `<tr data-rdc-key="${escMgr(p.rdc_key)}"><td>${escMgr(p.label)}</td><td>${Number(p.warehouse_qty || 0).toLocaleString('en-UG')}</td>
+          const pqty = Number(p.warehouse_qty || 0);
+          if (pqty <= 0) {
+            html += `<tr class="dispatch-out" data-rdc-key="${escMgr(p.rdc_key)}"><td>${escMgr(p.label)}</td><td>0</td><td style="color:var(--gray-mid);font-size:11px">Out of stock</td></tr>`;
+            return;
+          }
+          html += `<tr data-rdc-key="${escMgr(p.rdc_key)}"><td>${escMgr(p.label)}</td><td>${pqty.toLocaleString('en-UG')}</td>
           <td><input class="qty-inp dispatch-qty" type="number" min="0" value="0" data-rdc-key="${escMgr(p.rdc_key)}"></td></tr>`;
         });
       });
@@ -659,8 +663,12 @@ async function prepareReloadModal() {
         if (!g.packs?.length) return;
         html += `<tr class="cadet-cat-row"><td colspan="3"><strong>${escMgr(g.category)}</strong></td></tr>`;
         g.packs.forEach((p) => {
-          if (Number(p.warehouse_qty || 0) <= 0) return;
-          html += `<tr data-rdc-key="${escMgr(p.rdc_key)}"><td>${escMgr(p.label)}</td><td>${Number(p.warehouse_qty || 0).toLocaleString('en-UG')}</td>
+          const pqty = Number(p.warehouse_qty || 0);
+          if (pqty <= 0) {
+            html += `<tr class="dispatch-out" data-rdc-key="${escMgr(p.rdc_key)}"><td>${escMgr(p.label)}</td><td>0</td><td style="color:var(--gray-mid);font-size:11px">Out of stock</td></tr>`;
+            return;
+          }
+          html += `<tr data-rdc-key="${escMgr(p.rdc_key)}"><td>${escMgr(p.label)}</td><td>${pqty.toLocaleString('en-UG')}</td>
           <td><input class="qty-inp reload-qty" type="number" min="0" value="0" data-rdc-key="${escMgr(p.rdc_key)}"></td></tr>`;
         });
       });

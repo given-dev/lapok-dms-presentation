@@ -23,8 +23,8 @@ function depot_rdc_sales_catalog(): array
         ['key' => 'pet_1l', 'label' => '1L COCA-COLA', 'price' => 15000, 'category' => 'CSD'],
         ['key' => 'pet_2000', 'label' => 'PET-2000ML', 'price' => 25500, 'category' => 'CSD'],
         // MINUTE MAID
-        ['key' => 'mm_400', 'label' => '400ML M.MAIDS', 'price' => 25000, 'category' => 'MINUTE MAID'],
-        ['key' => 'mm_1l', 'label' => '1LITRES M/MAIDS', 'price' => 25500, 'category' => 'MINUTE MAID'],
+        ['key' => 'mm_400', 'label' => '400ML M.MAID', 'price' => 25000, 'category' => 'MINUTE MAID'],
+        ['key' => 'mm_1l', 'label' => '1LITRES M/MAID', 'price' => 25500, 'category' => 'MINUTE MAID'],
         // ENERGY — one sales row for cadet/RDC; manager tracks variants on OCCD / dispatch
         ['key' => 'energy', 'label' => 'ENERGY', 'price' => 17500, 'category' => 'ENERGY'],
         // REFRESH 250ML
@@ -322,6 +322,9 @@ function depot_manager_warehouse_catalog(): array
         $row('400ML', 'MM BERRY', '400-MM-BERRY', 'mm_400', 25000, 40, 50),
         $row('400ML', 'MM APPLE', '400-MM-APPLE', 'mm_400', 25000, 40, 50),
         $row('400ML', 'MM ORANGE', '400-MM-ORANGE', 'mm_400', 25000, 40, 50),
+        // 1L — Minute Maid
+        $row('1L MM', 'MM MANGO 1L', '1L-MM-MANGO', 'mm_1l', 25500, 40, 50),
+        $row('1L MM', 'MM BERRY 1L', '1L-MM-BERRY', 'mm_1l', 25500, 40, 50),
         // ENERGY — Predator Gold + Mango, and Power Play
         $row('ENERGY', 'PREDATOR GOLD', 'EN-GOLD', 'energy', 17500, 40, 60),
         $row('ENERGY', 'PREDATOR MANGO', 'EN-MANGO', 'energy', 17500, 40, 60),
@@ -476,7 +479,7 @@ function depot_split_pack_qty(string $rdcKey, int $qty): array
 /** Brand section order on manager stock / dispatch sheet. */
 function depot_stock_brand_order(): array
 {
-    return ['300ML RGB', '300ML PET', '400ML', 'ENERGY', '500ML PET', '1L PET', '280ML', '2L PET', 'RWENZORI WATER', 'EMPTIES'];
+    return ['300ML RGB', '300ML PET', '400ML', '1L MM', 'ENERGY', '500ML PET', '1L PET', '280ML', '2L PET', 'RWENZORI WATER', 'EMPTIES'];
 }
 
 /**
@@ -542,7 +545,7 @@ function depot_ensure_warehouse_products(): array
         'MM-400', 'MM-1L', 'RF-250',
         'RW-500-BOX', 'RW-500-SHR', 'RW-1500',
         'JUMBO-20', 'JUMBO-10', 'BOTTLES', 'SHELLS',
-        '1L-MM-MANGO', '1L-MM-BERRY', '500-STONEY',
+        '500-STONEY',
     ];
     $deactivate = $pdo->prepare('UPDATE products SET is_active = 0 WHERE sku = ?');
     foreach ($legacySkus as $legacy) {

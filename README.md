@@ -252,9 +252,10 @@ C:\xampp\php\php.exe scripts\setup_passwords.php --confirm-local-reset
 | **020** | `020_exec_kpi_targets.sql` | `sales_targets` (monthly SODA/WATER targets) + `exec_kpi_config` (CSO opening carry-forward); seeds July 2026 |
 | **021** | `021_sales_targets_per_cadet.sql` | `sales_targets.vehicle_id` — one target row per sales unit (NULL = DEPOT, else cadet vehicle); overall = SUM |
 | **022** | `022_vehicle_route_simplification.sql` | One route per vehicle — adds `vehicles.route_area`, backfills cadet + route from existing links, labels any empty route `Route A/B/...`. Replaces the Mon–Sat weekly grid (`vehicle_route_assignments` is deprecated) |
-| **023** | `023_update_unit_prices.sql` | Sets `products.unit_price` to the 2026-08-03 price list — 400ML M.MAIDS 25,000; PET-1L 15,000; REFRESH-500ML 10,000. Keep in sync with `includes/depot_catalog.php` |
+| **023** | `023_update_unit_prices.sql` | Sets `products.unit_price` to the 2026-08-03 price list — 400ML M.MAID 25,000; PET-1L 15,000; REFRESH-500ML 10,000. Keep in sync with `includes/depot_catalog.php` |
+| **024** | `024_1l_minute_maid.sql` | Re-adds 1L Minute Maid (`1L-MM-MANGO`, `1L-MM-BERRY` @ 25,500) so the `1LITRES M/MAID` pack appears in the dispatch list after 400ML M.MAID |
 
-**Required for this build:** apply **001–023**, including both `004_efris_integration.sql` and `004_fleet_tracking.sql`. Migration `017` is the no-demo cleanup and intentionally preserves the six accounts, fleet master, product catalogue, and genuine operational records.
+**Required for this build:** apply **001–024**, including both `004_efris_integration.sql` and `004_fleet_tracking.sql`. Migration `017` is the no-demo cleanup and intentionally preserves the six accounts, fleet master, product catalogue, and genuine operational records.
 
 Verify core tables:
 
