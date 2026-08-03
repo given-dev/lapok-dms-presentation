@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
+require_once dirname(__DIR__, 2) . '/includes/vehicle_assignments.php';
 
 $user = require_roles(['admin', 'executive']);
 
@@ -72,22 +73,39 @@ if ($emailStmt->fetch()) {
     json_error('Email is already in use');
 }
 
-db()->prepare(
-    'UPDATE users SET full_name = ?, email = ?, role = ?, national_id = ?, phone = ?, vehicle_id = ?, default_route = ?, is_active = ? WHERE id = ?'
-)->execute([$name, $email, $role, $nationalId, $phone, $vehicleId, $defaultRoute, $isActive, $id]);
+$pdo = db();
+$pdo->beginTransaction();
+try {
+    $pdo->prepare(
+        'UPDATE users SET full_name = ?, email = ?, role = ?, national_id = ?, phone = ?, vehicle_id = ?, default_route = ?, is_active = ? WHERE id = ?'
+    )->execute([$name, $email, $role, $nationalId, $phone, $vehicleId, $defaultRoute, $isActive, $id]);
 
-if (!empty($body['password'])) {
-    $hash = password_hash($body['password'], PASSWORD_BCRYPT);
-    db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([$hash, $id]);
+    if (!empty($body['password'])) {
+        $hash = password_hash($body['password'], PASSWORD_BCRYPT);
+        $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([$hash, $id]);
+    }
+
+    if (in_array($role, ['cadet', 'field_user'], true)) {
+        sync_user_vehicle_assignment($pdo, $id, $vehicleId, $defaultRoute, $user['id']);
+    } else {
+        $pdo->prepare('UPDATE vehicles SET cadet_id = NULL WHERE cadet_id = ?')->execute([$id]);
+        $pdo->prepare('DELETE FROM vehicle_route_assignments WHERE cadet_id = ?')->execute([$id]);
+        $pdo->prepare('UPDATE users SET vehicle_id = NULL WHERE id = ?')->execute([$id]);
+    }
+
+    audit_log(
+        $user['id'],
+        'users',
+        $id,
+        'update',
+        ['email' => $old['email'], 'role' => $old['role'], 'is_active' => (int) $old['is_active']],
+        ['email' => $email, 'role' => $role, 'is_active' => $isActive]
+    );
+
+    $pdo->commit();
+} catch (Throwable $e) {
+    $pdo->rollBack();
+    json_error($e->getMessage(), 500);
 }
-
-audit_log(
-    $user['id'],
-    'users',
-    $id,
-    'update',
-    ['email' => $old['email'], 'role' => $old['role'], 'is_active' => (int) $old['is_active']],
-    ['email' => $email, 'role' => $role, 'is_active' => $isActive]
-);
 
 json_ok(['user_id' => $id]);

@@ -1,7 +1,7 @@
 /**
  * Lapok DMS — Manager operations polish (dashboard, stock, dispatch, exceptions)
  */
-let mgrDispatchData = { vehicles: [], routes: [], users: [], products: [] };
+let mgrDispatchData = { vehicles: [], routes: [], users: [], products: [], todayDayNumber: 0 };
 const mgrDispatchCache = { loadedAt: 0, ttlMs: 120000 };
 
 function mgrTodayLocal() {
@@ -497,6 +497,7 @@ async function prepareDispatchModal() {
       mgrDispatchData.users = assignments.cadets || [];
       mgrDispatchData.products = stock.stock || [];
       mgrDispatchData.packs = stock.packs || [];
+      mgrDispatchData.todayDayNumber = Number(assignments.today_day_number) || 0;
       mgrDispatchCache.loadedAt = Date.now();
     }
 
@@ -507,9 +508,13 @@ async function prepareDispatchModal() {
       } else {
         vSel.innerHTML = mgrDispatchData.vehicles.map((v) => {
           const icon = v.vehicle_type === 'truck' ? '[TRUCK]' : '[TUK]';
-          const today = mgrDispatchData.routes.find((a) => Number(a.vehicle_id) === Number(v.id) && Number(a.day_of_week) === Number(new Date().getDay()));
-          const crew = today?.cadet_name || 'Unassigned';
-          return `<option value="${v.id}" data-driver="${v.driver_id || ''}" data-cadet="${today?.cadet_id || ''}" data-cadet-name="${mgrEscapeAttr(today?.cadet_name || 'Unassigned')}" data-route="${mgrEscapeAttr(today?.route_area || '')}">${icon} ${escMgr(v.registration)} - ${escMgr(crew)}</option>`;
+          const today = mgrDispatchData.todayDayNumber
+            ? mgrDispatchData.routes.find((a) => Number(a.vehicle_id) === Number(v.id) && Number(a.day_of_week) === mgrDispatchData.todayDayNumber)
+            : undefined;
+          const crewName = today?.cadet_name || v.cadet_name || 'Unassigned';
+          const crewId = today?.cadet_id || v.cadet_id || '';
+          const route = today?.route_area || '';
+          return `<option value="${v.id}" data-driver="${v.driver_id || ''}" data-cadet="${mgrEscapeAttr(crewId)}" data-cadet-name="${mgrEscapeAttr(crewName)}" data-route="${mgrEscapeAttr(route)}">${icon} ${escMgr(v.registration)} - ${escMgr(crewName)}</option>`;
         }).join('');
       }
     }

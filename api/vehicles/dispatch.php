@@ -56,8 +56,8 @@ try {
         throw new RuntimeException('No Sunday route is configured. Ask the main Admin to update the weekly assignment.');
     }
     $assignment = vehicle_assignment_for_day($pdo, $vehicleId, $dayNumber);
-    if (!$assignment || empty($assignment['cadet_id']) || trim((string) $assignment['route_area']) === '') {
-        throw new RuntimeException('This vehicle has no complete Admin-approved cadet and route assignment for today.');
+    if (!$assignment || empty($assignment['cadet_id'])) {
+        throw new RuntimeException('This vehicle has no Admin-approved cadet assignment for today.');
     }
     $cadetId = (int) $assignment['cadet_id'];
     $routeArea = trim((string) $assignment['route_area']);

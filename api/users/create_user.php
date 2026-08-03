@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
+require_once dirname(__DIR__, 2) . '/includes/vehicle_assignments.php';
 
 $user = require_roles(['admin']);
 
@@ -34,5 +35,9 @@ $stmt->execute([$name, $email, $hash, $role, $nationalId, $phone, $vehicleId, $d
 $id = (int) db()->lastInsertId();
 
 audit_log($user['id'], 'users', $id, 'create', null, ['email' => $email, 'role' => $role]);
+
+if (in_array($role, ['cadet', 'field_user'], true)) {
+    sync_user_vehicle_assignment(db(), $id, $vehicleId, $defaultRoute, $user['id']);
+}
 
 json_ok(['user_id' => $id], 201);

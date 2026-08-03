@@ -20,3 +20,22 @@ function vehicle_assignment_for_day(PDO $pdo, int $vehicleId, int $dayNumber): ?
     $row = $stmt->fetch();
     return $row ?: null;
 }
+
+function sync_user_vehicle_assignment(PDO $pdo, int $userId, ?int $vehicleId, ?string $routeArea, int $actorId): void
+{
+    $route = trim((string) ($routeArea ?? ''));
+    $pdo->prepare('UPDATE vehicles SET cadet_id = NULL WHERE cadet_id = ?')->execute([$userId]);
+    $pdo->prepare('DELETE FROM vehicle_route_assignments WHERE cadet_id = ?')->execute([$userId]);
+    if (!$vehicleId) {
+        return;
+    }
+    $pdo->prepare('UPDATE vehicles SET cadet_id = ? WHERE id = ?')->execute([$userId, $vehicleId]);
+    $upsert = $pdo->prepare(
+        'INSERT INTO vehicle_route_assignments (vehicle_id, cadet_id, day_of_week, route_area, updated_by)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE cadet_id = VALUES(cadet_id), route_area = VALUES(route_area), updated_by = VALUES(updated_by)'
+    );
+    for ($day = 1; $day <= 6; $day++) {
+        $upsert->execute([$vehicleId, $userId, $day, $route, $actorId]);
+    }
+}
