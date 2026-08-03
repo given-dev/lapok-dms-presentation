@@ -5,6 +5,9 @@ require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 
 require_login();
 
+$includeInactive = (int) ($_GET['include_inactive'] ?? 0) === 1;
+$where = $includeInactive ? '1=1' : 'v.is_active = 1';
+
 $stmt = db()->query(
     "SELECT v.*,
             d.full_name AS driver_name,
@@ -12,7 +15,7 @@ $stmt = db()->query(
      FROM vehicles v
      LEFT JOIN users d ON d.id = v.driver_id
      LEFT JOIN users c ON c.id = v.cadet_id
-     WHERE v.is_active = 1
+     WHERE {$where}
      ORDER BY v.vehicle_type, v.registration"
 );
 

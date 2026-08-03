@@ -431,6 +431,75 @@ async function loadAdminConsole() {
 }
 window.loadAdminConsole = loadAdminConsole;
 
+async function loadAdminFleet() {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  const body = document.getElementById('fleetTableBody');
+  if (!body) return;
+  body.innerHTML = '<tr><td colspan="8" class="skel" style="text-align:center">Loading…</td></tr>';
+  try {
+    const data = await LapokAPI.get('/api/vehicles/fetch_vehicles.php?include_inactive=1');
+    const vs = data.vehicles || [];
+    if (!vs.length) {
+      body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--gray-mid)">No vehicles registered. Add your first vehicle above.</td></tr>';
+      return;
+    }
+    const typeLabel = (t) => (t === 'truck' ? 'Truck' : 'Tuktuk');
+    const statusBadge = (v) => {
+      if (!v.is_active) return '<span class="badge bg">Retired</span>';
+      return { available: '<span class="badge bs">Available</span>', on_route: '<span class="badge bw">On route</span>' }[v.status] || '<span class="badge bw">' + escMgr(v.status || 'unknown') + '</span>';
+    };
+    const actionBtn = (v) => v.is_active
+      ? `<button class="btn btn-sm" onclick="retireVehicle(${v.id}, 0)">Retire</button>`
+      : `<button class="btn btn-sm" onclick="retireVehicle(${v.id}, 1)">Reactivate</button>`;
+    body.innerHTML = vs.map((v) => `<tr>
+      <td><strong>${escMgr(v.registration)}</strong></td>
+      <td>${typeLabel(v.vehicle_type)}</td>
+      <td>${escMgr(v.make_model || '—')}</td>
+      <td>${Number(v.capacity || 0)}</td>
+      <td>${statusBadge(v)}</td>
+      <td>${escMgr(v.cadet_name || '—')}</td>
+      <td>${escMgr(v.driver_name || '—')}</td>
+      <td>${actionBtn(v)}</td>
+    </tr>`).join('');
+  } catch (e) {
+    body.innerHTML = `<tr><td colspan="8" style="color:var(--red)">${escMgr(e.message || 'Could not load fleet')}</td></tr>`;
+  }
+}
+window.loadAdminFleet = loadAdminFleet;
+
+async function submitAddVehicle() {
+  const err = document.getElementById('addVehicleErr');
+  if (err) err.style.display = 'none';
+  const payload = {
+    registration: document.getElementById('addVehicleReg')?.value?.trim() || '',
+    vehicle_type: document.getElementById('addVehicleType')?.value || 'truck',
+    make_model: document.getElementById('addVehicleMake')?.value?.trim() || '',
+    capacity: Number(document.getElementById('addVehicleCapacity')?.value || 0),
+  };
+  try {
+    await LapokAPI.post('/api/vehicles/create_vehicle.php', payload);
+    closeModal('addVehicleModal');
+    ['addVehicleReg', 'addVehicleMake'].forEach((id) => { const el = document.getElementById(id); if (el) el.value = ''; });
+    adminToast('Vehicle added');
+    await loadAdminFleet();
+  } catch (e) {
+    if (err) { err.style.display = 'block'; err.textContent = e.message; }
+  }
+}
+window.submitAddVehicle = submitAddVehicle;
+
+async function retireVehicle(id, isActive) {
+  if (!confirm(isActive ? 'Reactivate this vehicle?' : 'Retire this vehicle? It will be removed from dispatch and assignments.')) return;
+  try {
+    await LapokAPI.post('/api/vehicles/update_vehicle.php', { id, is_active: isActive });
+    adminToast(isActive ? 'Vehicle reactivated' : 'Vehicle retired');
+    await loadAdminFleet();
+  } catch (e) {
+    adminToast(e.message, true);
+  }
+}
+window.retireVehicle = retireVehicle;
+
 async function loadAdminHomeExtras(cachedDashboard = null) {
   if (!currentUser || currentUser.role !== 'admin') return;
   const checklist = document.getElementById('adminDailyChecklist');
@@ -1308,6 +1377,18 @@ if (_origOpenModal) {
       if (vehicle) vehicle.value = '';
       hydrateUserVehicleOptions();
     }
+    if (id === 'addVehicleModal') {
+      const err = document.getElementById('addVehicleErr');
+      if (err) err.style.display = 'none';
+      const reg = document.getElementById('addVehicleReg');
+      if (reg) reg.value = '';
+      const make = document.getElementById('addVehicleMake');
+      if (make) make.value = '';
+      const type = document.getElementById('addVehicleType');
+      if (type) type.value = 'truck';
+      const cap = document.getElementById('addVehicleCapacity');
+      if (cap) cap.value = '40';
+    }
     _origOpenModal(id);
   };
 }
@@ -1344,6 +1425,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     'accountant-welfare': () => loadAccountantWelfarePage(),
     'admin-users': () => loadUsersTable(),
+    'admin-fleet': () => loadAdminFleet(),
     'admin-exceptions': () => loadExceptionsPage(),
     'admin-editreqs': () => loadEditRequests(),
     'manager-stock': () => {

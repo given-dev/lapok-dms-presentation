@@ -644,6 +644,7 @@ td.skel{padding:.6rem .8rem}
     <button class="btn" onclick="showPage('admin-editreqs')">Edit requests</button>
     <button class="btn" onclick="showPage('admin-exceptions')">Exception center</button>
     <button class="btn" onclick="showPage('admin-audit')">Audit log</button>
+    <button class="btn" onclick="showPage('admin-fleet')">Fleet registry</button>
     <button class="btn" onclick="showPage('report-exchange')">PDF reports</button>
   </div>
 </div>
@@ -787,6 +788,19 @@ td.skel{padding:.6rem .8rem}
     </div>
     <div class="tbl-wrap"><table id="vehicleAssignmentTable"><tr><td style="color:var(--gray-mid)">Loading assignments&hellip;</td></tr></table></div>
   </div>
+</div>
+
+<!-- ADMIN FLEET REGISTRY -->
+<div class="page" id="page-admin-fleet">
+  <div class="alert a-info"><span>ℹ</span><div><strong>Fleet registry.</strong> Register trucks and tuktuk motorcycles here. Only the main Admin can add or retire vehicles.</div></div>
+  <div class="btn-group">
+    <button class="btn btn-red" onclick="openModal('addVehicleModal')">+ Add vehicle</button>
+    <button class="btn btn-sm" onclick="loadAdminFleet()">Refresh</button>
+  </div>
+  <div class="card" style="margin-top:.8rem"><div class="tbl-wrap"><table>
+    <tr><th>Registration</th><th>Type</th><th>Make / model</th><th>Capacity</th><th>Status</th><th>Assigned cadet</th><th>Assigned driver</th><th>Actions</th></tr>
+    <tbody id="fleetTableBody"><tr><td colspan="8" class="skel" style="text-align:center">Loading…</td></tr></tbody>
+  </table></div></div>
 </div>
 
 <!-- ADMIN EDIT REQUESTS -->
@@ -2011,6 +2025,15 @@ td.skel{padding:.6rem .8rem}
   <div class="modal-actions"><button class="btn" onclick="closeModal('editUserModal')">Cancel</button><button class="btn" onclick="deactivateEditingUser()">Deactivate</button><button class="btn btn-red" onclick="submitEditUser()">Save changes</button></div>
 </div></div>
 
+<div class="modal-overlay" id="addVehicleModal"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Add vehicle</div>
+  <div class="alert a-danger" id="addVehicleErr" style="display:none"></div>
+  <div class="form-row"><div class="form-group"><label>Registration</label><input class="input" id="addVehicleReg" placeholder="e.g. KCA 123T"></div><div class="form-group"><label>Type</label><select class="select-inp" id="addVehicleType"><option value="truck">Truck</option><option value="tuktuk">Tuktuk / motorcycle</option></select></div></div>
+  <div class="form-row"><div class="form-group"><label>Make / model</label><input class="input" id="addVehicleMake" placeholder="e.g. Isuzu NQR"></div><div class="form-group"><label>Capacity (cartons)</label><input class="input" id="addVehicleCapacity" type="number" min="1" value="40"></div></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal('addVehicleModal')">Cancel</button><button class="btn btn-red" onclick="submitAddVehicle()">Add vehicle</button></div>
+</div></div>
+
 <div class="modal-overlay" id="auditDetailModal"><div class="modal">
   <div class="modal-handle"></div>
   <div class="modal-title">Audit entry details</div>
@@ -2159,7 +2182,7 @@ td.skel{padding:.6rem .8rem}
 </div></div>
 
 <script src="assets/presentation-config.js?v=20260629"></script>
-<script src="assets/api.js?v=20260803a"></script>
+<script src="assets/api.js?v=20260803b"></script>
 <script>
 const ICONS={
   home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
@@ -2180,6 +2203,7 @@ const ROLES={
   admin:{name:'John Okello',email:'admin@ccoutlet.ug',pill:'rp-admin',badge:'Admin',nav:[
     {id:'admin-console',l:'System console',i:'home'},
     {id:'admin-users',l:'User management',i:'users'},
+    {id:'admin-fleet',l:'Fleet registry',i:'fleet'},
     {id:'admin-editreqs',l:'Edit requests',i:'edit'},
     {id:'admin-exceptions',l:'Exception center',i:'chart'},
     {id:'admin-reports',l:'Reports & analytics',i:'chart'}
@@ -2487,7 +2511,7 @@ window.addEventListener('resize',()=>{chartsDrawn=false;if(document.getElementBy
 
 </script>
 <script src="assets/app.js?v=20260801f"></script>
-<script src="assets/phase45.js?v=20260803a"></script>
+<script src="assets/phase45.js?v=20260803b"></script>
 <script src="assets/report-exchange.js?v=20260731e"></script>
 <script src="assets/manager-ops.js?v=20260731d"></script>
 <script src="assets/occd-boards.js?v=20260716g"></script>
