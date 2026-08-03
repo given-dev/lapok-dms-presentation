@@ -389,6 +389,117 @@ async function refreshAdminHome() {
 }
 window.refreshAdminHome = refreshAdminHome;
 
+async function loadAdminConsole() {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  const body = document.getElementById('admConsoleChecklist');
+  if (!body) return;
+  try {
+    const d = await LapokAPI.get('/api/dashboard/admin.php');
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('admConsoleWarehouse', Number(d.warehouse_cartons).toLocaleString());
+    set('admConsoleRequests', Number(d.pending_requests || 0).toLocaleString());
+    set('admConsoleExceptions', Number(d.exception_count || 0).toLocaleString());
+    set('admConsoleRdc', Number(d.rdc_pending_review || 0).toLocaleString());
+    set('admConsoleCash', Number(d.cash_pending || 0).toLocaleString());
+    set('admConsoleAudit', Number(d.audit_today || 0).toLocaleString());
+    set('admConsoleLowStock', Number(d.low_stock_count ?? (d.low_stock || []).length).toLocaleString());
+    set('admConsoleUsers', Number(d.active_users || 0).toLocaleString());
+    set('admConsoleWelfare', Number(d.welfare_open_count || 0).toLocaleString());
+    set('admConsoleVehicles', `${Number(d.vehicles_out || 0)}/${Number(d.vehicles_total || 0)}`);
+    const excSub = document.getElementById('admConsoleExceptionsSub');
+    if (excSub) excSub.textContent = `stock ${Number(d.low_stock_count ?? 0)} · cash ${Number(d.cash_pending ?? 0)} · reqs ${Number(d.pending_requests ?? 0)}`;
+    const usersSub = document.getElementById('admConsoleUsersSub');
+    if (usersSub) usersSub.textContent = `${Number(d.inactive_users || 0).toLocaleString()} inactive`;
+    const countBadge = (n) => `<span class="badge ${Number(n) ? 'bd' : 'bs'}">${Number(n || 0).toLocaleString()}</span>`;
+    const rows = [
+      [1, 'Account management', `${Number(d.active_users || 0).toLocaleString()} active · ${Number(d.inactive_users || 0).toLocaleString()} inactive`, 'admin-users', 'Open'],
+      [2, 'Edit requests', countBadge(d.pending_requests), 'admin-editreqs', 'Review'],
+      [3, 'Exception center', countBadge(d.exception_count), 'admin-exceptions', 'Resolve'],
+      [4, 'Audit log today', `${Number(d.audit_today || 0).toLocaleString()} events logged`, 'admin-audit', 'View'],
+      [5, 'RDC sheets under review', countBadge(d.rdc_pending_review), 'admin-exceptions', 'Monitor'],
+      [6, 'Cash pending confirmation', countBadge(d.cash_pending), 'admin-exceptions', 'Monitor'],
+      [7, 'Executive briefs open', countBadge(d.exec_briefs_open), 'report-exchange', 'Open'],
+      [8, 'Low stock products', countBadge(d.low_stock_count), 'admin-exceptions', 'View'],
+      [9, 'Staff welfare open', countBadge(d.welfare_open_count), 'accountant-welfare', 'Review'],
+    ];
+    body.innerHTML = rows.map(([n, s, st, page, action]) =>
+      `<tr><td>${n}</td><td>${s}</td><td>${st}</td><td><button class="btn btn-sm" onclick="showPage('${page}')">${action}</button></td></tr>`
+    ).join('');
+  } catch (e) {
+    body.innerHTML = `<tr><td colspan="4" style="color:var(--red)">${escMgr(e.message || 'Could not load console')}</td></tr>`;
+  }
+}
+window.loadAdminConsole = loadAdminConsole;
+
+async function loadAdminFleet() {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  const body = document.getElementById('fleetTableBody');
+  if (!body) return;
+  body.innerHTML = '<tr><td colspan="8" class="skel" style="text-align:center">Loading…</td></tr>';
+  try {
+    const data = await LapokAPI.get('/api/vehicles/fetch_vehicles.php?include_inactive=1');
+    const vs = data.vehicles || [];
+    if (!vs.length) {
+      body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--gray-mid)">No vehicles registered. Add your first vehicle above.</td></tr>';
+      return;
+    }
+    const typeLabel = (t) => (t === 'truck' ? 'Truck' : 'Tuktuk');
+    const statusBadge = (v) => {
+      if (!v.is_active) return '<span class="badge bg">Retired</span>';
+      return { available: '<span class="badge bs">Available</span>', on_route: '<span class="badge bw">On route</span>' }[v.status] || '<span class="badge bw">' + escMgr(v.status || 'unknown') + '</span>';
+    };
+    const actionBtn = (v) => v.is_active
+      ? `<button class="btn btn-sm" onclick="retireVehicle(${v.id}, 0)">Retire</button>`
+      : `<button class="btn btn-sm" onclick="retireVehicle(${v.id}, 1)">Reactivate</button>`;
+    body.innerHTML = vs.map((v) => `<tr>
+      <td><strong>${escMgr(v.registration)}</strong></td>
+      <td>${typeLabel(v.vehicle_type)}</td>
+      <td>${escMgr(v.make_model || '—')}</td>
+      <td>${Number(v.capacity || 0)}</td>
+      <td>${statusBadge(v)}</td>
+      <td>${escMgr(v.cadet_name || '—')}</td>
+      <td>${escMgr(v.driver_name || '—')}</td>
+      <td>${actionBtn(v)}</td>
+    </tr>`).join('');
+  } catch (e) {
+    body.innerHTML = `<tr><td colspan="8" style="color:var(--red)">${escMgr(e.message || 'Could not load fleet')}</td></tr>`;
+  }
+}
+window.loadAdminFleet = loadAdminFleet;
+
+async function submitAddVehicle() {
+  const err = document.getElementById('addVehicleErr');
+  if (err) err.style.display = 'none';
+  const payload = {
+    registration: document.getElementById('addVehicleReg')?.value?.trim() || '',
+    vehicle_type: document.getElementById('addVehicleType')?.value || 'truck',
+    make_model: document.getElementById('addVehicleMake')?.value?.trim() || '',
+    capacity: Number(document.getElementById('addVehicleCapacity')?.value || 0),
+  };
+  try {
+    await LapokAPI.post('/api/vehicles/create_vehicle.php', payload);
+    closeModal('addVehicleModal');
+    ['addVehicleReg', 'addVehicleMake'].forEach((id) => { const el = document.getElementById(id); if (el) el.value = ''; });
+    adminToast('Vehicle added');
+    await loadAdminFleet();
+  } catch (e) {
+    if (err) { err.style.display = 'block'; err.textContent = e.message; }
+  }
+}
+window.submitAddVehicle = submitAddVehicle;
+
+async function retireVehicle(id, isActive) {
+  if (!confirm(isActive ? 'Reactivate this vehicle?' : 'Retire this vehicle? It will be removed from dispatch and assignments.')) return;
+  try {
+    await LapokAPI.post('/api/vehicles/update_vehicle.php', { id, is_active: isActive });
+    adminToast(isActive ? 'Vehicle reactivated' : 'Vehicle retired');
+    await loadAdminFleet();
+  } catch (e) {
+    adminToast(e.message, true);
+  }
+}
+window.retireVehicle = retireVehicle;
+
 async function loadAdminHomeExtras(cachedDashboard = null) {
   if (!currentUser || currentUser.role !== 'admin') return;
   const checklist = document.getElementById('adminDailyChecklist');
@@ -848,50 +959,53 @@ async function loadUsersTable() {
     const d = await LapokAPI.get('/api/users/fetch_users.php');
     adminUsersCache = d.users || [];
     applyUsersFilter();
-    if (!isExec) {
+    if (isExec) {
+      loadVehicleAssignments();
+    } else {
       hydrateUserVehicleOptions();
       loadVehicleAssignments();
     }
   } catch (e) { console.warn('Users:', e.message); }
 }
 
-const assignmentDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
 async function loadVehicleAssignments() {
   const table = document.getElementById('vehicleAssignmentTable');
-  if (!table || currentUser?.role !== 'admin') return;
+  if (!table || !['admin', 'executive'].includes(currentUser?.role)) return;
   try {
     const data = await LapokAPI.get('/api/assignments/fetch.php');
-    const grouped = {};
-    (data.assignments || []).forEach((row) => {
-      const id = Number(row.vehicle_id);
-      if (!grouped[id]) grouped[id] = { vehicle_id: id, registration: row.registration, vehicle_type: row.vehicle_type, cadet_id: row.cadet_id || '', routes: {} };
-      if (row.day_of_week) grouped[id].routes[Number(row.day_of_week)] = row.route_area || '';
-      if (row.cadet_id) grouped[id].cadet_id = row.cadet_id;
-    });
+    const canEdit = !!data.can_edit && currentUser?.role === 'admin';
+    const cadetNames = {};
+    (data.cadets || []).forEach((c) => { cadetNames[Number(c.id)] = c.full_name; });
     const cadetOptions = (selected) => '<option value="">Unassigned</option>' + (data.cadets || []).map((c) =>
       `<option value="${c.id}" ${Number(selected) === Number(c.id) ? 'selected' : ''}>${escMgr(c.full_name)}</option>`
     ).join('');
-    const rows = Object.values(grouped).map((v) => `<tr>
-      <td><strong>${escMgr(v.registration)}</strong><div style="font-size:11px;color:var(--gray-mid)">${escMgr(v.vehicle_type)}</div></td>
-      <td><select class="select-inp" id="assignCadet${v.vehicle_id}">${cadetOptions(v.cadet_id)}</select></td>
-      ${assignmentDays.map((day, i) => `<td><textarea class="textarea-inp" aria-label="${day} route" id="assignRoute${v.vehicle_id}_${i + 1}" rows="4" style="min-width:170px">${escMgr(v.routes[i + 1] || '')}</textarea></td>`).join('')}
-      <td><button class="btn btn-sm btn-red" type="button" onclick="saveVehicleAssignment(${v.vehicle_id}, this)">Save</button></td>
-    </tr>`).join('');
-    table.innerHTML = `<tr><th>Vehicle</th><th>Cadet</th>${assignmentDays.map((d, i) => `<th>${d}${Number(data.today_day_number) === i + 1 ? ' (today)' : ''}</th>`).join('')}<th>Action</th></tr>${rows || '<tr><td colspan="9">No active vehicles found.</td></tr>'}`;
+    const rows = (data.assignments || []).map((v) => {
+      const cadetCell = canEdit
+        ? `<select class="select-inp" id="assignCadet${v.vehicle_id}">${cadetOptions(v.cadet_id)}</select>`
+        : (v.cadet_id ? escMgr(cadetNames[Number(v.cadet_id)] || 'Assigned') : '<span class="badge bd">Unassigned</span>');
+      const routeCell = canEdit
+        ? `<input class="input" id="assignRoute${v.vehicle_id}" value="${escMgr(v.route_area || '')}" placeholder="e.g. Route A">`
+        : (escMgr(v.route_area || '') || '<span class="badge bd">—</span>');
+      const actionCell = canEdit
+        ? `<td><button class="btn btn-sm btn-red" type="button" onclick="saveVehicleAssignment(${v.vehicle_id}, this)">Save</button></td>`
+        : '';
+      return `<tr><td><strong>${escMgr(v.registration)}</strong><div style="font-size:11px;color:var(--gray-mid)">${escMgr(v.vehicle_type)}</div></td><td>${cadetCell}</td><td>${routeCell}</td>${actionCell}</tr>`;
+    }).join('');
+    const actionHeader = canEdit ? '<th>Action</th>' : '';
+    const colSpan = canEdit ? 4 : 3;
+    table.innerHTML = `<tr><th>Vehicle</th><th>Cadet</th><th>Route (e.g. Route A)</th>${actionHeader}</tr>${rows || `<tr><td colspan="${colSpan}">No active vehicles found.</td></tr>`}`;
   } catch (e) {
     table.innerHTML = `<tr><td style="color:var(--red)">${escMgr(e.message || 'Could not load assignments')}</td></tr>`;
   }
 }
 
 async function saveVehicleAssignment(vehicleId, button) {
-  const routes = {};
-  assignmentDays.forEach((_, i) => { routes[String(i + 1)] = document.getElementById(`assignRoute${vehicleId}_${i + 1}`)?.value.trim() || ''; });
   const cadetId = document.getElementById(`assignCadet${vehicleId}`)?.value || null;
+  const routeArea = document.getElementById(`assignRoute${vehicleId}`)?.value.trim() || '';
   const restore = typeof mgrSetBusy === 'function' ? mgrSetBusy(button, 'Saving...') : () => {};
   try {
-    await LapokAPI.post('/api/assignments/save.php', { vehicle_id: vehicleId, cadet_id: cadetId, routes });
-    adminToast('Vehicle, cadet and routes assigned');
+    await LapokAPI.post('/api/assignments/save.php', { vehicle_id: vehicleId, cadet_id: cadetId, route_area: routeArea });
+    adminToast('Vehicle, cadet and route saved');
     await loadUsersTable();
   } catch (e) {
     adminToast(e.message || 'Could not save assignment', true);
@@ -905,7 +1019,7 @@ function applyUsersFilter() {
   const q = (document.getElementById('adminUserSearch')?.value || '').toLowerCase();
   const roleFilter = document.getElementById('adminUserRoleFilter')?.value || '';
   const roleBadge = (r) => `<span class="badge ${r === 'admin' || r === 'executive' ? 'br' : r === 'manager' ? 'bw' : 'bi'}">${LapokAPI.roleLabel[r] || r}</span>`;
-  const filtered = adminUsersCache.filter((u) => {
+  const filtered = adminUsersCache.filter((u) => u.role !== 'admin').filter((u) => {
     const text = [u.full_name, u.email, u.national_id, u.phone, u.role].join(' ').toLowerCase();
     return (!q || text.includes(q)) && (!roleFilter || u.role === roleFilter);
   });
@@ -959,7 +1073,15 @@ function openEditUserModal(id) {
   document.getElementById('editUserId').value = String(u.id);
   document.getElementById('editUserFullName').value = u.full_name || '';
   document.getElementById('editUserEmail').value = u.email || '';
-  document.getElementById('editUserRole').value = u.role || 'field_user';
+  const roleSel = document.getElementById('editUserRole');
+  if (roleSel) {
+    const available = ['admin', 'executive', 'manager', 'accountant', 'cadet'];
+    const legacy = u.role && !available.includes(u.role);
+    const opts = available.map((r) => `<option value="${r}">${LapokAPI.roleLabel[r] || r}</option>`);
+    if (legacy) opts.push(`<option value="${u.role}">${LapokAPI.roleLabel[u.role] || u.role} (legacy)</option>`);
+    roleSel.innerHTML = opts.join('');
+    roleSel.value = u.role || 'cadet';
+  }
   document.getElementById('editUserNationalId').value = u.national_id || '';
   document.getElementById('editUserPhone').value = u.phone || '';
   document.getElementById('editUserDefaultRoute').value = u.default_route || '';
@@ -977,7 +1099,7 @@ async function submitAddUser() {
     full_name: document.getElementById('addUserFullName')?.value?.trim() || '',
     email: document.getElementById('addUserEmail')?.value?.trim() || '',
     password: document.getElementById('addUserPassword')?.value || '',
-    role: document.getElementById('addUserRole')?.value || 'field_user',
+    role: document.getElementById('addUserRole')?.value || 'cadet',
     national_id: document.getElementById('addUserNationalId')?.value?.trim() || '',
     phone: document.getElementById('addUserPhone')?.value?.trim() || '',
     vehicle_id: document.getElementById('addUserVehicleId')?.value || null,
@@ -1002,7 +1124,7 @@ async function submitEditUser() {
     id,
     full_name: document.getElementById('editUserFullName')?.value?.trim() || '',
     email: document.getElementById('editUserEmail')?.value?.trim() || '',
-    role: document.getElementById('editUserRole')?.value || 'field_user',
+    role: document.getElementById('editUserRole')?.value || 'cadet',
     national_id: document.getElementById('editUserNationalId')?.value?.trim() || '',
     phone: document.getElementById('editUserPhone')?.value?.trim() || '',
     vehicle_id: document.getElementById('editUserVehicleId')?.value || null,
@@ -1237,10 +1359,22 @@ if (_origOpenModal) {
       ['addUserFullName', 'addUserNationalId', 'addUserPhone', 'addUserEmail', 'addUserDefaultRoute', 'addUserPassword']
         .forEach((field) => { const el = document.getElementById(field); if (el) el.value = ''; });
       const role = document.getElementById('addUserRole');
-      if (role) role.value = 'field_user';
+      if (role) role.value = 'cadet';
       const vehicle = document.getElementById('addUserVehicleId');
       if (vehicle) vehicle.value = '';
       hydrateUserVehicleOptions();
+    }
+    if (id === 'addVehicleModal') {
+      const err = document.getElementById('addVehicleErr');
+      if (err) err.style.display = 'none';
+      const reg = document.getElementById('addVehicleReg');
+      if (reg) reg.value = '';
+      const make = document.getElementById('addVehicleMake');
+      if (make) make.value = '';
+      const type = document.getElementById('addVehicleType');
+      if (type) type.value = 'truck';
+      const cap = document.getElementById('addVehicleCapacity');
+      if (cap) cap.value = '40';
     }
     _origOpenModal(id);
   };
@@ -1253,6 +1387,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const phase45Pages = {
     'admin-dashboard': () => { execMonthbarInit(); loadAdminDashboard(); loadLiveCharts(); },
+    'admin-console': () => loadAdminConsole(),
     'manager-dashboard': () => { loadAdminDashboard(); loadManagerDashboardExtras(); },
     'report-exchange': () => loadReportExchangePage(),
     'user-dashboard': () => loadFieldDashboard(),
@@ -1277,6 +1412,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     'accountant-welfare': () => loadAccountantWelfarePage(),
     'admin-users': () => loadUsersTable(),
+    'admin-fleet': () => loadAdminFleet(),
     'admin-exceptions': () => loadExceptionsPage(),
     'admin-editreqs': () => loadEditRequests(),
     'manager-stock': () => {

@@ -86,12 +86,15 @@
   }
 
   function depotBrandOrder() {
-    return ['300ML RGB', '330ML', 'ENERGY', '500ML', '1 LITRE', 'JUICE', '2 LITRE', 'RWENZORI WATER', 'EMPTIES'];
+    return ['300ML RGB', '300ML PET', '400ML', 'ENERGY', '500ML PET', '1L PET', '280ML', '2L PET', 'RWENZORI WATER', 'EMPTIES'];
   }
 
   function depotCategoryOrder() {
     return depotBrandOrder();
   }
+
+  // Sections counted separately (their own TOTAL row) but never folded into GRAND TOTAL.
+  const GRAND_TOTAL_EXCLUDED_BRANDS = ['EMPTIES'];
 
   function todayHuman() {
     return new Date().toLocaleDateString('en-UG', {
@@ -114,6 +117,7 @@
       sku: line.sku || '—',
       brand: line.brand || line.category || '',
       category: line.brand || line.category || '',
+      sort: Number(line.sort ?? 99999),
       openingQty: Number(line.opening ?? line.qty ?? 0),
       purchaseQty: Number(line.purchase ?? 0),
       salesQty: Number(line.sales ?? 0),
@@ -161,6 +165,9 @@
       const ai = order.indexOf(a.brand || a.category || '');
       const bi = order.indexOf(b.brand || b.category || '');
       if (ai !== bi) return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+      const sa = Number(a.sort ?? 99999);
+      const sb = Number(b.sort ?? 99999);
+      if (sa !== sb) return sa - sb;
       return String(a.product_name || '').localeCompare(String(b.product_name || ''));
     });
   }
@@ -194,7 +201,8 @@
     if (!table) return;
     const totals = stockBookBrandTotals();
     const grand = { opening: 0, purchase: 0, sales: 0, closing: 0 };
-    Object.values(totals).forEach((t) => {
+    Object.entries(totals).forEach(([brand, t]) => {
+      if (GRAND_TOTAL_EXCLUDED_BRANDS.includes(brand)) return;
       grand.opening += t.opening;
       grand.purchase += t.purchase;
       grand.sales += t.sales;
@@ -274,7 +282,8 @@
         <td><strong>${t.sales}</strong></td><td><strong>${t.closing}</strong></td></tr>`;
     }
     const grand = { opening: 0, purchase: 0, sales: 0, closing: 0 };
-    Object.values(brandTotals).forEach((bt) => {
+    Object.entries(brandTotals).forEach(([brand, bt]) => {
+      if (GRAND_TOTAL_EXCLUDED_BRANDS.includes(brand)) return;
       grand.opening += bt.opening;
       grand.purchase += bt.purchase;
       grand.sales += bt.sales;

@@ -22,6 +22,7 @@ function rdc_enrich_sales_lines(array $sales): array
     require_once __DIR__ . '/depot_catalog.php';
     $byLabel = depot_catalog_by_label();
     $order = array_flip(depot_category_order());
+    $keyOrder = array_flip(array_map(fn(array $r) => (string) $r['key'], depot_rdc_sales_catalog()));
 
     foreach ($sales as &$line) {
         $labelKey = strtoupper(trim((string) ($line['label'] ?? '')));
@@ -34,7 +35,14 @@ function rdc_enrich_sales_lines(array $sales): array
     }
     unset($line);
 
-    usort($sales, function ($a, $b) use ($order) {
+    usort($sales, function ($a, $b) use ($order, $keyOrder) {
+        $ka = (string) ($a['rdc_key'] ?? '');
+        $kb = (string) ($b['rdc_key'] ?? '');
+        $ia = $keyOrder[$ka] ?? null;
+        $ib = $keyOrder[$kb] ?? null;
+        if ($ia !== null && $ib !== null && $ia !== $ib) {
+            return $ia <=> $ib;
+        }
         $ca = $order[$a['category'] ?? 'OTHER'] ?? 99;
         $cb = $order[$b['category'] ?? 'OTHER'] ?? 99;
         if ($ca !== $cb) {

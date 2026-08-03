@@ -251,8 +251,10 @@ C:\xampp\php\php.exe scripts\setup_passwords.php --confirm-local-reset
 | **019** | `019_cadet_confirm_receive.sql` | `delivery_trips.acknowledged_at` — cadet confirms dispatch before going on route |
 | **020** | `020_exec_kpi_targets.sql` | `sales_targets` (monthly SODA/WATER targets) + `exec_kpi_config` (CSO opening carry-forward); seeds July 2026 |
 | **021** | `021_sales_targets_per_cadet.sql` | `sales_targets.vehicle_id` — one target row per sales unit (NULL = DEPOT, else cadet vehicle); overall = SUM |
+| **022** | `022_vehicle_route_simplification.sql` | One route per vehicle — adds `vehicles.route_area`, backfills cadet + route from existing links, labels any empty route `Route A/B/...`. Replaces the Mon–Sat weekly grid (`vehicle_route_assignments` is deprecated) |
+| **023** | `023_update_unit_prices.sql` | Sets `products.unit_price` to the 2026-08-03 price list — 400ML M.MAIDS 25,000; PET-1L 15,000; REFRESH-500ML 10,000. Keep in sync with `includes/depot_catalog.php` |
 
-**Required for this build:** apply **001–021**, including both `004_efris_integration.sql` and `004_fleet_tracking.sql`. Migration `017` is the no-demo cleanup and intentionally preserves the six accounts, fleet master, product catalogue, and genuine operational records.
+**Required for this build:** apply **001–023**, including both `004_efris_integration.sql` and `004_fleet_tracking.sql`. Migration `017` is the no-demo cleanup and intentionally preserves the six accounts, fleet master, product catalogue, and genuine operational records.
 
 Verify core tables:
 
@@ -271,7 +273,7 @@ C:\xampp\mysql\bin\mysql.exe -u root lapok_dms -e "SHOW TABLES LIKE 'rdc_%'; SHO
 | Cadet notifications empty | Run migration **011** |
 | RDC comments panel warns | Run migration **014** |
 | Director brief / stock snapshots missing | Run migration **010** |
-| Weekly assignments **Request failed (500)** | Run migration **018** (`vehicle_route_assignments`) |
+| Weekly assignments **Request failed (500)** | Run migration **018** (`vehicle_route_assignments`) — deprecated in **022**; single route per vehicle now lives on `vehicles.route_area` |
 | Balancing save/submit 500 | Confirm `rdc_daily_sheets` exists |
 | Cadet report not in RDC sheet | Vehicle must be dispatched; sheet must not be locked (submitted) |
 | Stale UI after edits | Hard refresh **Ctrl+F5** (scripts use `?v=` cache bust) |

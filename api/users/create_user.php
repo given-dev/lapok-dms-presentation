@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
+require_once dirname(__DIR__, 2) . '/includes/vehicle_assignments.php';
 
 $user = require_roles(['admin']);
 
@@ -13,13 +14,13 @@ $body = read_json_body();
 $name = trim($body['full_name'] ?? '');
 $email = trim($body['email'] ?? '');
 $password = $body['password'] ?? '';
-$role = $body['role'] ?? 'field_user';
+$role = $body['role'] ?? 'cadet';
 $nationalId = trim($body['national_id'] ?? '') ?: null;
 $phone = trim($body['phone'] ?? '') ?: null;
 $vehicleId = !empty($body['vehicle_id']) ? (int) $body['vehicle_id'] : null;
 $defaultRoute = trim($body['default_route'] ?? '') ?: null;
 
-$validRoles = ['admin', 'executive', 'manager', 'accountant', 'field_user', 'driver', 'cadet'];
+$validRoles = ['admin', 'executive', 'manager', 'accountant', 'cadet'];
 if ($name === '' || $email === '' || $password === '' || !in_array($role, $validRoles, true)) {
     json_error('full_name, email, password, and valid role are required');
 }
@@ -34,5 +35,9 @@ $stmt->execute([$name, $email, $hash, $role, $nationalId, $phone, $vehicleId, $d
 $id = (int) db()->lastInsertId();
 
 audit_log($user['id'], 'users', $id, 'create', null, ['email' => $email, 'role' => $role]);
+
+if (in_array($role, ['cadet', 'field_user'], true)) {
+    sync_user_vehicle_assignment(db(), $id, $vehicleId, $defaultRoute);
+}
 
 json_ok(['user_id' => $id], 201);

@@ -1,7 +1,7 @@
 /**
  * Lapok DMS — Manager operations polish (dashboard, stock, dispatch, exceptions)
  */
-let mgrDispatchData = { vehicles: [], routes: [], users: [], products: [] };
+let mgrDispatchData = { vehicles: [], products: [] };
 const mgrDispatchCache = { loadedAt: 0, ttlMs: 120000 };
 
 function mgrTodayLocal() {
@@ -452,7 +452,7 @@ async function loadDispatchLog() {
   try {
     const d = await LapokAPI.get('/api/trips/dispatch_log.php');
     const trips = d.trips || [];
-    table.innerHTML = '<tr><th>Vehicle</th><th>Type</th><th>Crew</th><th>Departed</th><th>Load</th><th>Route</th><th>Returned</th><th>Status</th></tr>' +
+    table.innerHTML = '<tr><th>Vehicle</th><th>Type</th><th>Crew</th><th>Departed</th><th>Load</th><th>Route</th><th>Returned</th><th>Status</th><th>Action</th></tr>' +
       trips.map((t) => {
         const crew = [t.driver_name, t.cadet_name].filter(Boolean).join(' / ') || '—';
         const badge = t.vehicle_type === 'truck' ? 'b-truck' : 'b-tuk';
@@ -465,12 +465,17 @@ async function loadDispatchLog() {
           st = 'bs';
           label = 'On route';
         }
+        const open = t.status === 'dispatched' || t.status === 'on_route';
+        const action = open
+          ? `<button class="btn btn-sm btn-red" type="button" onclick="openReloadModalFor(${t.vehicle_id})">Reload</button>`
+          : '<span style="color:var(--gray-mid);font-size:12px">—</span>';
         return `<tr><td>${escMgr(t.registration)}</td><td><span class="badge ${badge}">${t.vehicle_type}</span></td>
           <td>${escMgr(crew)}</td><td>${t.dispatched_at ? LapokAPI.formatTime(t.dispatched_at) : '—'}</td>
           <td>${t.load_qty || 0}</td><td>${escMgr(t.route_area || '—')}</td>
           <td>${t.returned_at ? LapokAPI.formatTime(t.returned_at) : '—'}</td>
-          <td><span class="badge ${st}">${label}${t.acknowledged_at && t.status !== 'dispatched' ? ' ✓' : ''}</span></td></tr>`;
-      }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--gray-mid)">No dispatches today</td></tr>';
+          <td><span class="badge ${st}">${label}${t.acknowledged_at && t.status !== 'dispatched' ? ' ✓' : ''}</span></td>
+          <td>${action}</td></tr>`;
+      }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--gray-mid)">No dispatches today</td></tr>';
   } catch (e) {
     console.warn('Dispatch log:', e.message);
   }
@@ -481,15 +486,12 @@ async function prepareDispatchModal() {
   if (!modal) return;
   try {
     const stale = !mgrDispatchCache.loadedAt || (Date.now() - mgrDispatchCache.loadedAt > mgrDispatchCache.ttlMs);
-    if (stale || !mgrDispatchData.vehicles.length || !mgrDispatchData.users.length || !mgrDispatchData.products.length) {
-      const [vehicles, assignments, stock] = await Promise.all([
-        LapokAPI.get('/api/vehicles/fetch_vehicles.php'),
-        LapokAPI.get('/api/assignments/fetch.php'),
+    if (stale || !mgrDispatchData.vehicles.length || !mgrDispatchData.products.length) {
+      const [vehicles, stock] = await Promise.all([
+        LapokAPI.get('/api/vehicles/fetch_vehicles.php?include_remains=1'),
         LapokAPI.get('/api/stock/fetch_stock.php'),
       ]);
       mgrDispatchData.vehicles = vehicles.vehicles || [];
-      mgrDispatchData.routes = assignments.assignments || [];
-      mgrDispatchData.users = assignments.cadets || [];
       mgrDispatchData.products = stock.stock || [];
       mgrDispatchData.packs = stock.packs || [];
       mgrDispatchCache.loadedAt = Date.now();
@@ -502,9 +504,8 @@ async function prepareDispatchModal() {
       } else {
         vSel.innerHTML = mgrDispatchData.vehicles.map((v) => {
           const icon = v.vehicle_type === 'truck' ? '[TRUCK]' : '[TUK]';
-          const today = mgrDispatchData.routes.find((a) => Number(a.vehicle_id) === Number(v.id) && Number(a.day_of_week) === Number(new Date().getDay()));
-          const crew = today?.cadet_name || 'Unassigned';
-          return `<option value="${v.id}" data-driver="${v.driver_id || ''}" data-cadet="${today?.cadet_id || ''}" data-cadet-name="${mgrEscapeAttr(today?.cadet_name || 'Unassigned')}" data-route="${mgrEscapeAttr(today?.route_area || '')}">${icon} ${escMgr(v.registration)} - ${escMgr(crew)}</option>`;
+          const crewName = v.cadet_name || 'Unassigned';
+          return `<option value="${v.id}" data-driver="${v.driver_id || ''}" data-cadet="${mgrEscapeAttr(v.cadet_id || '')}" data-cadet-name="${mgrEscapeAttr(crewName)}" data-route="${mgrEscapeAttr(v.route_area || '')}">${icon} ${escMgr(v.registration)} - ${escMgr(crewName)}</option>`;
         }).join('');
       }
     }
@@ -536,6 +537,8 @@ async function prepareDispatchModal() {
       if (cadetName) cadetName.value = opt.dataset.cadetName || 'Unassigned';
       const area = document.getElementById('dispatchRouteArea');
       if (area) area.value = opt.dataset.route || '';
+      const vehicle = mgrDispatchData.vehicles.find((v) => String(v.id) === opt.value) || null;
+      prefillDispatchRemains(vehicle && vehicle.remains ? vehicle.remains : null);
     };
     if (vSel) vSel.onchange();
   } catch (e) {
@@ -545,6 +548,23 @@ async function prepareDispatchModal() {
     if (tbody) tbody.innerHTML = `<tr><td colspan="3" style="color:var(--red)">${escMgr(e.message || 'Load failed')}</td></tr>`;
     mgrNotify(e.message, 'error');
   }
+}
+
+function prefillDispatchRemains(remains) {
+  const note = document.getElementById('dispatchCarryNote');
+  const total = remains ? Object.values(remains).reduce((s, v) => s + (parseInt(v, 10) || 0), 0) : 0;
+  if (note) {
+    note.style.display = total > 0 ? '' : 'none';
+    const txt = note.querySelector('div');
+    if (txt) txt.textContent = total > 0
+      ? `${total} crates carried over from yesterday's close are pre-filled for this vehicle - add today's extra items on top.`
+      : '';
+  }
+  document.querySelectorAll('.dispatch-qty').forEach((inp) => {
+    const key = inp.dataset.rdcKey;
+    const r = remains && Object.prototype.hasOwnProperty.call(remains, key) ? (parseInt(remains[key], 10) || 0) : 0;
+    inp.value = Math.max(0, r);
+  });
 }
 
 async function saveDispatch(btn) {
@@ -590,6 +610,102 @@ async function saveDispatch(btn) {
   }
 }
 
+let reloadPendingVehicleId = 0;
+
+function openReloadModalFor(vehicleId) {
+  reloadPendingVehicleId = parseInt(vehicleId || '0', 10) || 0;
+  openModal('reloadModal');
+}
+
+async function prepareReloadModal() {
+  const modal = document.getElementById('reloadModal');
+  if (!modal) return;
+  try {
+    const [d, stock] = await Promise.all([
+      LapokAPI.get('/api/trips/dispatch_log.php'),
+      LapokAPI.get('/api/stock/fetch_stock.php'),
+    ]);
+    const openTrips = (d.trips || []).filter((t) => t.status === 'on_route' || t.status === 'dispatched');
+
+    const vSel = document.getElementById('reloadVehicle');
+    if (vSel) {
+      if (!openTrips.length) {
+        vSel.innerHTML = '<option value="">No vehicles on route</option>';
+      } else {
+        vSel.innerHTML = openTrips.map((t) => {
+          const crew = [t.driver_name, t.cadet_name].filter(Boolean).join(' / ') || '—';
+          const icon = t.vehicle_type === 'truck' ? '[TRUCK]' : '[TUK]';
+          return `<option value="${t.vehicle_id}" data-trip="${t.id}" data-load="${t.load_qty || 0}">${icon} ${escMgr(t.registration)} - ${escMgr(crew)}</option>`;
+        }).join('');
+      }
+      vSel.onchange = () => {
+        const opt = vSel.selectedOptions[0];
+        const loadEl = document.getElementById('reloadCurrentLoad');
+        if (loadEl) loadEl.value = opt ? `${opt.dataset.load || '0'} crates` : '—';
+      };
+      if (reloadPendingVehicleId) {
+        const match = Array.from(vSel.options).find((o) => Number(o.value) === reloadPendingVehicleId);
+        if (match) vSel.value = String(reloadPendingVehicleId);
+        reloadPendingVehicleId = 0;
+      }
+      vSel.onchange();
+    }
+
+    const tbody = document.getElementById('reloadLoadBody');
+    if (tbody) {
+      const packs = stock.packs || [];
+      let html = '';
+      packs.forEach((g) => {
+        if (!g.packs?.length) return;
+        html += `<tr class="cadet-cat-row"><td colspan="3"><strong>${escMgr(g.category)}</strong></td></tr>`;
+        g.packs.forEach((p) => {
+          if (Number(p.warehouse_qty || 0) <= 0) return;
+          html += `<tr data-rdc-key="${escMgr(p.rdc_key)}"><td>${escMgr(p.label)}</td><td>${Number(p.warehouse_qty || 0).toLocaleString('en-UG')}</td>
+          <td><input class="qty-inp reload-qty" type="number" min="0" value="0" data-rdc-key="${escMgr(p.rdc_key)}"></td></tr>`;
+        });
+      });
+      tbody.innerHTML = html || '<tr><td colspan="3" style="color:var(--gray-mid)">No warehouse stock. Refresh the page.</td></tr>';
+    }
+  } catch (e) {
+    const vSel = document.getElementById('reloadVehicle');
+    if (vSel) vSel.innerHTML = '<option value="">Could not load</option>';
+    mgrNotify(e.message || 'Could not load reload options', 'error');
+  }
+}
+
+async function saveReload(btn) {
+  const vSel = document.getElementById('reloadVehicle');
+  const opt = vSel?.selectedOptions[0];
+  const vehicleId = parseInt(opt?.value || '0', 10);
+  const loadItems = [];
+  document.querySelectorAll('.reload-qty').forEach((inp) => {
+    const qty = parseInt(inp.value || '0', 10);
+    if (qty > 0) loadItems.push({ rdc_key: inp.dataset.rdcKey, qty });
+  });
+  if (!vehicleId || !loadItems.length) {
+    mgrNotify('Select a vehicle and enter reload quantities.', 'error');
+    return;
+  }
+  if (loadItems.some((x) => !Number.isInteger(x.qty) || x.qty <= 0)) {
+    mgrNotify('Reload quantities must be positive integers.', 'error');
+    return;
+  }
+  const restoreBtn = mgrSetBusy(btn, 'Saving...');
+  try {
+    await LapokAPI.post('/api/vehicles/reload.php', {
+      vehicle_id: vehicleId,
+      load_items: loadItems,
+    });
+    closeModal('reloadModal');
+    mgrNotify('Reload added to trip. Warehouse stock deducted.', 'success');
+    await Promise.allSettled([loadDispatchLog(), loadStockTable()]);
+  } catch (e) {
+    mgrNotify(e.message, 'error');
+  } finally {
+    restoreBtn();
+  }
+}
+
 async function loadManagerDeliveryPage() {
   const dateInp = document.getElementById('incomingDate');
   if (dateInp) dateInp.value = mgrTodayLocal();
@@ -608,7 +724,7 @@ async function loadManagerDeliveryPage() {
     const tbody = document.getElementById('incomingProductBody');
     const countEl = document.getElementById('incomingProductCount');
     if (tbody) {
-      const cats = ['300ML RGB', '330ML', 'ENERGY', '500ML', '1 LITRE', 'JUICE', '2 LITRE', 'RWENZORI WATER', 'EMPTIES'];
+      const cats = ['300ML RGB', '300ML PET', '400ML', 'ENERGY', '500ML PET', '1L PET', '280ML', '2L PET', 'RWENZORI WATER', 'EMPTIES'];
       const byCat = {};
       productCatalog.forEach((p) => {
         const cat = p.category || p.brand || 'OTHER';
@@ -736,4 +852,5 @@ function mgrWatchModalOpen(id, onOpen) {
 
 document.addEventListener('DOMContentLoaded', () => {
   mgrWatchModalOpen('dispatchModal', prepareDispatchModal);
+  mgrWatchModalOpen('reloadModal', prepareReloadModal);
 });

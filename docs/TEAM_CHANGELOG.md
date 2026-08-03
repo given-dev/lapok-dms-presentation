@@ -1,5 +1,10 @@
 # Team change log
 
+> ## ! RECENT CHANGES — last edited by **Ekiz** (2026-08-03)
+>
+> Someone has made changes since you last looked. Newest entry: [Log](#log) below.
+> When **you** make the next edit, change the name above to yours — **Ekiz** or **Given256** — so the other person knows at a glance who last touched the code.
+
 **Purpose:** Track what you and your colleague change in this codebase.  
 **When to update:** After you finish a set of edits (or before / after a code push), add a new entry at the **top** of the log (newest first).
 
@@ -36,6 +41,89 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 ---
 
 ## Log
+
+### 2026-08-03 · Dispatch pre-fills yesterday's unsold stock
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | `ft-live` |
+| **Area** | Manager dispatch · Vehicle stock carry-over |
+
+**Changes**
+- Vehicles are closed out at the end of the day without offloading: the unsold remainder is counted back into the warehouse (`qty_returned`, via `cadet_apply_trip_sales()`). The next day that same stock is still physically on the vehicle.
+- New `depot_vehicle_remains_by_rdc_key($vehicleId)` in `includes/depot_catalog.php` — returns the unsold remainder per pack from the vehicle's most recent returned trip.
+- `api/vehicles/fetch_vehicles.php` now includes a `remains` map per vehicle when called with `?include_remains=1` (used only by the dispatch modal; other callers unaffected).
+- `assets/manager-ops.js` — the **Dispatch vehicle** modal pre-fills each pack's "Crates to load" with the vehicle's carried-over stock the moment a vehicle is selected, and shows an info note ("N crates carried over from yesterday's close…"). The manager simply adds today's extra items on top. `index.html` bumped `manager-ops.js?v=20260803j` and added the carry-over note element.
+
+**Notes**
+- Deploy: upload `includes/depot_catalog.php`, `api/vehicles/fetch_vehicles.php`, `assets/manager-ops.js`, `index.html`. No DB change.
+- Verified locally: helper returns correct per-pack remainders (incl. SHELLS/BOTTLES) against a seeded returned trip.
+
+### 2026-08-03 · Product order aligned to the LAPOK / RDC book
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | `ft-live` |
+| **Area** | Dispatch · Cadet daily sales · RDC balancing |
+
+**Changes**
+- Reordered the depot sales book to the physical workbook order: **300ML RGB → 300ML PET → PET-500ML → 1L PET → PET-2000ML → 400ML M.MAIDS → 1LITRES M/MAIDS → ENERGY → REFRESH-250ML → RWENZORI 500MLS-BOX → 500MLS-SHRINKS → 1.5MLS-BOX → JUMBO 20L → JUMBO 10L → REFRESH-500ML → SHELLS → BOTTLES**.
+- Categories split to match that book: `depot_category_order()` is now **CSD · MINUTE MAID · ENERGY · REFRESH-250ML · RWENZORI WATER · REFRESH-500ML · EMPTIES** (was CSD/ENERGY/JUICE/WATER/OTHER). Applies automatically to the manager **dispatch list** (`depot_dispatch_pack_groups()`), **cadet daily sales** (`depot_cadet_product_groups()`), cadet load table, and the **RDC balancing sheet** (server passes `product_categories`).
+- `includes/rdc_balancing.php` — `rdc_enrich_sales_lines()` now sorts by catalog key order (was alphabetical by label within category), so old + new RDC sheets display in book order.
+- `assets/rdc-balancing.js` — `RDC_PRODUCT_CATEGORIES` fallback updated to the new list. `index.html` bumped `rdc-balancing.js?v=20260803i`.
+- Money totals unaffected: RDC sales/grand totals sum every line regardless of category; sales targets key off `rdc_key` (CSD/water lists unchanged); finance/stock-book grand total exclusion still keys off the manager catalog `EMPTIES` brand.
+
+**Notes**
+- Deploy: upload `includes/depot_catalog.php`, `includes/rdc_balancing.php`, `assets/rdc-balancing.js`, `index.html`. No DB change.
+
+### 2026-08-03 · Prices updated to the new price list
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | `ft-live` |
+| **Area** | Product prices · RDC / cadet / revenue |
+
+**Changes**
+- New price list applied in **both** places prices live:
+  - `includes/depot_catalog.php` — `depot_rdc_sales_catalog()` (pack prices for cadet/RDC/revenue): **400ML M.MAIDS 25,500 → 25,000**; **PET-1L 12,500 → 15,000**; added new **REFRESH-500ML pack @ 10,000** (`refresh_500`, JUICE). 500ML Refresh is no longer rolled into PET-500ML.
+  - `depot_manager_warehouse_catalog()` — per-SKU prices synced to `products.unit_price` (4 × `400-MM-*` → 25,000; `1L-COKE` → 15,000; `500-RF-MANGO`/`500-RF-ORANGE` → 10,000, mapped to `refresh_500`).
+- `depot_map_product_to_rdc_key()`: added `refresh_500` name rules (`REFRESH-500`, `REFRESH 500`, `500-RF`, `RF-500`, `500 REFRESH`); removed those needles from `pet_500`. `depot_normalize_rdc_key()` no longer folds `refresh_500` → `pet_500`.
+- Migration `023_update_unit_prices.sql` sets `products.unit_price` directly (also in `database/hosting/25_023_update_unit_prices.sql`).
+- Verified locally end-to-end: catalog prices, SKU→pack mapping, `depot_ensure_warehouse_products()` sync, `products.unit_price` rows, and the dispatch load now showing REFRESH-500ML @ 10,000.
+
+**Notes**
+- To go live: run `023_update_unit_prices.sql` in phpMyAdmin **and** upload the updated `includes/depot_catalog.php`. No JS/cache-buster change needed — prices are served from PHP/DB.
+
+### 2026-08-03 · Vehicle route assignments simplified to one route per vehicle
+
+| | |
+|--|--|
+| **Who** | opencode |
+| **Push / ref** | `ft-live` |
+| **Area** | Assignments · dispatch |
+
+**Why**
+- Live cadets had a vehicle set on their user (`users.vehicle_id`), but manager dispatch showed "Unassigned" because it read the per-day `vehicle_route_assignments` grid, which was empty. Each vehicle follows **one particular route every day** and it is not strict, so the Mon–Sat grid was the wrong model.
+
+**Changes**
+- New migration `022_vehicle_route_simplification.sql`: adds `vehicles.route_area`; backfills `vehicles.cadet_id` from `users.vehicle_id`; backfills routes from any existing assignment or the vehicle's current route; labels any remaining empty route `Route A`, `Route B`, ... The old `vehicle_route_assignments` table is deprecated (optional `DROP` at the end of the migration).
+- `api/assignments/save.php` now saves one **cadet + route** per vehicle (`vehicles.cadet_id`, `vehicles.route_area`, `users.vehicle_id`) — no day loop.
+- `api/assignments/fetch.php` returns one row per vehicle (vehicle, cadet, cadet_name, `route_area`); removed `today_day_number`.
+- `api/vehicles/dispatch.php` uses the vehicle's own `cadet_id` + `route_area` (fallback `current_route`); no more Sunday/per-day guards.
+- `includes/vehicle_assignments.php`: `sync_user_vehicle_assignment()` now syncs `vehicles.cadet_id` + `users.vehicle_id` only (route untouched when blank); dropped `assignment_day_number()` / `vehicle_assignment_for_day()`.
+- `api/users/create_user.php` / `api/users/edit_user.php` call the simplified sync so assigning a vehicle to a cadet keeps dispatch working.
+- `assets/phase45.js` admin **Vehicle Assignment** table is now Vehicle / Cadet / **Route (e.g. Route A)** / Save — no Mon–Sat columns.
+- `assets/manager-ops.js` dispatch dropdown reads cadet + route straight from `fetch_vehicles.php`; dropped the per-day `assignments` fetch.
+- Cache busters bumped: `phase45.js?v=20260803h`, `manager-ops.js?v=20260803h`.
+
+**Verify**
+- `php -l` and `node --check` clean; verified over HTTP: save assignment (cadet 4 → vehicle 1, Route A), dispatch created a trip with cadet 4 / Route A and split/deducted stock, unassigned vehicle correctly rejected ("This vehicle has no cadet assigned."), create-user with a vehicle still links both sides. Test data cleaned up after.
+
+**Deploy to live (`dms.afriboards.com`)**
+- Apply `022_vehicle_route_simplification.sql` in phpMyAdmin, then deploy updated `assets/manager-ops.js`, `assets/phase45.js`, `index.html`, `api/assignments/save.php`, `api/assignments/fetch.php`, `api/vehicles/dispatch.php`, `api/users/create_user.php`, `api/users/edit_user.php`, `includes/vehicle_assignments.php`.
 
 ### 2026-08-02 · 13:50 (Africa/Kampala) · Session security for live deployment
 
