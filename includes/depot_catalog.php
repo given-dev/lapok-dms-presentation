@@ -3,13 +3,13 @@ declare(strict_types=1);
 
 /**
  * Depot product catalog — matches LAPOK book / RDC balancing workbook.
- * Grouped: CSD, ENERGY, JUICE, WATER, OTHER.
+ * Grouped: CSD, MINUTE MAID, ENERGY, REFRESH-250ML, RWENZORI WATER, REFRESH-500ML, EMPTIES.
  */
 
 /** @return list<string> */
 function depot_category_order(): array
 {
-    return ['CSD', 'ENERGY', 'JUICE', 'WATER', 'OTHER'];
+    return ['CSD', 'MINUTE MAID', 'ENERGY', 'REFRESH-250ML', 'RWENZORI WATER', 'REFRESH-500ML', 'EMPTIES'];
 }
 
 /** @return list<array<string, mixed>> */
@@ -22,22 +22,24 @@ function depot_rdc_sales_catalog(): array
         ['key' => 'pet_500', 'label' => 'PET-500ML', 'price' => 15000, 'category' => 'CSD'],
         ['key' => 'pet_1l', 'label' => '1L COCA-COLA', 'price' => 15000, 'category' => 'CSD'],
         ['key' => 'pet_2000', 'label' => 'PET-2000ML', 'price' => 25500, 'category' => 'CSD'],
+        // MINUTE MAID
+        ['key' => 'mm_400', 'label' => '400ML M.MAIDS', 'price' => 25000, 'category' => 'MINUTE MAID'],
+        ['key' => 'mm_1l', 'label' => '1LITRES M/MAIDS', 'price' => 25500, 'category' => 'MINUTE MAID'],
         // ENERGY — one sales row for cadet/RDC; manager tracks variants on OCCD / dispatch
         ['key' => 'energy', 'label' => 'ENERGY', 'price' => 17500, 'category' => 'ENERGY'],
-        // JUICE
-        ['key' => 'mm_400', 'label' => '400ML M.MAIDS', 'price' => 25000, 'category' => 'JUICE'],
-        ['key' => 'mm_1l', 'label' => '1LITRES M/MAIDS', 'price' => 25500, 'category' => 'JUICE'],
-        ['key' => 'refresh_250', 'label' => 'REFRESH-250ML', 'price' => 10000, 'category' => 'JUICE'],
-        ['key' => 'refresh_500', 'label' => 'REFRESH-500ML', 'price' => 10000, 'category' => 'JUICE'],
-        // WATER (Rwenzori + jumbo)
-        ['key' => 'rw_500_box', 'label' => 'RWENZORI 500MLS-BOX', 'price' => 17400, 'category' => 'WATER'],
-        ['key' => 'rw_500_shrink', 'label' => 'RWENZORI 500MLS-SHRINKS', 'price' => 10000, 'category' => 'WATER'],
-        ['key' => 'rw_1500_box', 'label' => 'RWENZORI 1.5MLS-BOX', 'price' => 18600, 'category' => 'WATER'],
-        ['key' => 'jumbo_big', 'label' => 'JUMBO 20L', 'price' => 10800, 'category' => 'WATER'],
-        ['key' => 'jumbo_small', 'label' => 'JUMBO 10L', 'price' => 5500, 'category' => 'WATER'],
-        // OTHER (empties only)
-        ['key' => 'bottles', 'label' => 'BOTTLES', 'price' => 400, 'category' => 'OTHER'],
-        ['key' => 'shell', 'label' => 'SHELLS', 'price' => 6400, 'category' => 'OTHER'],
+        // REFRESH 250ML
+        ['key' => 'refresh_250', 'label' => 'REFRESH-250ML', 'price' => 10000, 'category' => 'REFRESH-250ML'],
+        // RWENZORI WATER (500ml box, shrink, 1.5L, jumbo)
+        ['key' => 'rw_500_box', 'label' => 'RWENZORI 500MLS-BOX', 'price' => 17400, 'category' => 'RWENZORI WATER'],
+        ['key' => 'rw_500_shrink', 'label' => 'RWENZORI 500MLS-SHRINKS', 'price' => 10000, 'category' => 'RWENZORI WATER'],
+        ['key' => 'rw_1500_box', 'label' => 'RWENZORI 1.5MLS-BOX', 'price' => 18600, 'category' => 'RWENZORI WATER'],
+        ['key' => 'jumbo_big', 'label' => 'JUMBO 20L', 'price' => 10800, 'category' => 'RWENZORI WATER'],
+        ['key' => 'jumbo_small', 'label' => 'JUMBO 10L', 'price' => 5500, 'category' => 'RWENZORI WATER'],
+        // REFRESH 500ML
+        ['key' => 'refresh_500', 'label' => 'REFRESH-500ML', 'price' => 10000, 'category' => 'REFRESH-500ML'],
+        // EMPTIES (shells + bottles)
+        ['key' => 'shell', 'label' => 'SHELLS', 'price' => 6400, 'category' => 'EMPTIES'],
+        ['key' => 'bottles', 'label' => 'BOTTLES', 'price' => 400, 'category' => 'EMPTIES'],
     ];
 }
 

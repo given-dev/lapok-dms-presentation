@@ -435,7 +435,7 @@ function rdcSalesRowHtml(line, li, cols) {
   </tr>`;
 }
 
-const RDC_PRODUCT_CATEGORIES = ['CSD', 'ENERGY', 'JUICE', 'WATER', 'OTHER'];
+const RDC_PRODUCT_CATEGORIES = ['CSD', 'MINUTE MAID', 'ENERGY', 'REFRESH-250ML', 'RWENZORI WATER', 'REFRESH-500ML', 'EMPTIES'];
 
 function rdcRenderSalesTable() {
   const el = document.getElementById('rdcSalesBody');

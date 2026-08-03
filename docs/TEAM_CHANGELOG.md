@@ -42,6 +42,24 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 
 ## Log
 
+### 2026-08-03 · Product order aligned to the LAPOK / RDC book
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | `ft-live` |
+| **Area** | Dispatch · Cadet daily sales · RDC balancing |
+
+**Changes**
+- Reordered the depot sales book to the physical workbook order: **300ML RGB → 300ML PET → PET-500ML → 1L PET → PET-2000ML → 400ML M.MAIDS → 1LITRES M/MAIDS → ENERGY → REFRESH-250ML → RWENZORI 500MLS-BOX → 500MLS-SHRINKS → 1.5MLS-BOX → JUMBO 20L → JUMBO 10L → REFRESH-500ML → SHELLS → BOTTLES**.
+- Categories split to match that book: `depot_category_order()` is now **CSD · MINUTE MAID · ENERGY · REFRESH-250ML · RWENZORI WATER · REFRESH-500ML · EMPTIES** (was CSD/ENERGY/JUICE/WATER/OTHER). Applies automatically to the manager **dispatch list** (`depot_dispatch_pack_groups()`), **cadet daily sales** (`depot_cadet_product_groups()`), cadet load table, and the **RDC balancing sheet** (server passes `product_categories`).
+- `includes/rdc_balancing.php` — `rdc_enrich_sales_lines()` now sorts by catalog key order (was alphabetical by label within category), so old + new RDC sheets display in book order.
+- `assets/rdc-balancing.js` — `RDC_PRODUCT_CATEGORIES` fallback updated to the new list. `index.html` bumped `rdc-balancing.js?v=20260803i`.
+- Money totals unaffected: RDC sales/grand totals sum every line regardless of category; sales targets key off `rdc_key` (CSD/water lists unchanged); finance/stock-book grand total exclusion still keys off the manager catalog `EMPTIES` brand.
+
+**Notes**
+- Deploy: upload `includes/depot_catalog.php`, `includes/rdc_balancing.php`, `assets/rdc-balancing.js`, `index.html`. No DB change.
+
 ### 2026-08-03 · Prices updated to the new price list
 
 | | |
