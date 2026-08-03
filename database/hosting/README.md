@@ -50,3 +50,36 @@ missing too. Import the remaining hosting files **in number order**
 
 You can verify from the app via the RDC health endpoint
 (`api/rdc/health.php`) — it reports `rdc_ops_sync: true` once both tables exist.
+
+---
+
+## Keeping live code in sync with local (git workflow)
+
+The repo is on GitHub (`given-dev/lapok-dms-presentation`, branch **`ft-live`**).
+Local dev and live (`dms.afriboards.com`) are both meant to run that branch, so
+the app you debug locally is the same code that is live.
+
+> **Never let `.env` be overwritten on the server** — it holds the `afriboar_lapok`
+> DB credentials. Both options below preserve it.
+
+**Option A — GitHub ZIP + cPanel File Manager (no SSH needed, recommended):**
+
+1. Local: commit, then `git push origin ft-live`.
+2. On GitHub: **Code → Download ZIP** (or use
+   `https://github.com/given-dev/lapok-dms-presentation/archive/refs/heads/ft-live.zip`).
+3. Unzip locally, then in cPanel **File Manager** upload the ZIP's contents over
+   the subdomain's document root — every file **except `.env`** (keep the live one).
+4. Apply any new DB migration files from `database/hosting/` via phpMyAdmin,
+   in order (migrations are never handled by a file upload).
+5. Hard refresh the browser (**Ctrl+F5**) — cache-busted assets then load the new JS.
+
+**Option B — git directly on the server (only if cPanel Terminal + git exist):**
+
+1. One time only, protect the live `.env`:
+   `git update-index --skip-worktree .env`
+2. Each deploy afterwards:
+   `git fetch origin && git merge --ff-only origin/ft-live`
+
+Deploy only files that are part of `ft-live`. Anything local-only (a modified
+`.env`, scratch files) stays off the server.
+
