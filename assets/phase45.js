@@ -848,7 +848,9 @@ async function loadUsersTable() {
     const d = await LapokAPI.get('/api/users/fetch_users.php');
     adminUsersCache = d.users || [];
     applyUsersFilter();
-    if (!isExec) {
+    if (isExec) {
+      loadVehicleAssignments();
+    } else {
       hydrateUserVehicleOptions();
       loadVehicleAssignments();
     }
@@ -859,9 +861,12 @@ const assignmentDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
 
 async function loadVehicleAssignments() {
   const table = document.getElementById('vehicleAssignmentTable');
-  if (!table || currentUser?.role !== 'admin') return;
+  if (!table || !['admin', 'executive'].includes(currentUser?.role)) return;
   try {
     const data = await LapokAPI.get('/api/assignments/fetch.php');
+    const canEdit = !!data.can_edit && currentUser?.role === 'admin';
+    const cadetNames = {};
+    (data.cadets || []).forEach((c) => { cadetNames[Number(c.id)] = c.full_name; });
     const grouped = {};
     (data.assignments || []).forEach((row) => {
       const id = Number(row.vehicle_id);
@@ -872,13 +877,24 @@ async function loadVehicleAssignments() {
     const cadetOptions = (selected) => '<option value="">Unassigned</option>' + (data.cadets || []).map((c) =>
       `<option value="${c.id}" ${Number(selected) === Number(c.id) ? 'selected' : ''}>${escMgr(c.full_name)}</option>`
     ).join('');
-    const rows = Object.values(grouped).map((v) => `<tr>
-      <td><strong>${escMgr(v.registration)}</strong><div style="font-size:11px;color:var(--gray-mid)">${escMgr(v.vehicle_type)}</div></td>
-      <td><select class="select-inp" id="assignCadet${v.vehicle_id}">${cadetOptions(v.cadet_id)}</select></td>
-      ${assignmentDays.map((day, i) => `<td><textarea class="textarea-inp" aria-label="${day} route" id="assignRoute${v.vehicle_id}_${i + 1}" rows="4" style="min-width:170px">${escMgr(v.routes[i + 1] || '')}</textarea></td>`).join('')}
-      <td><button class="btn btn-sm btn-red" type="button" onclick="saveVehicleAssignment(${v.vehicle_id}, this)">Save</button></td>
-    </tr>`).join('');
-    table.innerHTML = `<tr><th>Vehicle</th><th>Cadet</th>${assignmentDays.map((d, i) => `<th>${d}${Number(data.today_day_number) === i + 1 ? ' (today)' : ''}</th>`).join('')}<th>Action</th></tr>${rows || '<tr><td colspan="9">No active vehicles found.</td></tr>'}`;
+    const rows = Object.values(grouped).map((v) => {
+      const cadetCell = canEdit
+        ? `<select class="select-inp" id="assignCadet${v.vehicle_id}">${cadetOptions(v.cadet_id)}</select>`
+        : (v.cadet_id ? escMgr(cadetNames[Number(v.cadet_id)] || 'Assigned') : '<span class="badge bd">Unassigned</span>');
+      const routeCells = assignmentDays.map((day, i) => {
+        const val = v.routes[i + 1] || '';
+        return canEdit
+          ? `<td><textarea class="textarea-inp" aria-label="${day} route" id="assignRoute${v.vehicle_id}_${i + 1}" rows="4" style="min-width:170px">${escMgr(val)}</textarea></td>`
+          : `<td style="white-space:normal;font-size:12px">${escMgr(val) || '<span class="badge bd">—</span>'}</td>`;
+      }).join('');
+      const actionCell = canEdit
+        ? `<td><button class="btn btn-sm btn-red" type="button" onclick="saveVehicleAssignment(${v.vehicle_id}, this)">Save</button></td>`
+        : '';
+      return `<tr><td><strong>${escMgr(v.registration)}</strong><div style="font-size:11px;color:var(--gray-mid)">${escMgr(v.vehicle_type)}</div></td><td>${cadetCell}</td>${routeCells}${actionCell}</tr>`;
+    }).join('');
+    const actionHeader = canEdit ? '<th>Action</th>' : '';
+    const colSpan = canEdit ? 9 : 8;
+    table.innerHTML = `<tr><th>Vehicle</th><th>Cadet</th>${assignmentDays.map((d, i) => `<th>${d}${Number(data.today_day_number) === i + 1 ? ' (today)' : ''}</th>`).join('')}${actionHeader}</tr>${rows || `<tr><td colspan="${colSpan}">No active vehicles found.</td></tr>`}`;
   } catch (e) {
     table.innerHTML = `<tr><td style="color:var(--red)">${escMgr(e.message || 'Could not load assignments')}</td></tr>`;
   }

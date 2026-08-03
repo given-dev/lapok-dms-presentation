@@ -3,7 +3,8 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 
-$user = require_roles(['admin', 'manager']);
+// Executives get a read-only view; only the admin can change assignments.
+$user = require_roles(['admin', 'manager', 'executive']);
 $pdo = db();
 $rows = $pdo->query(
     "SELECT v.id AS vehicle_id, v.registration, v.vehicle_type,
