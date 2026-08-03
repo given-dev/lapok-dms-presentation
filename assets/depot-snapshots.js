@@ -117,6 +117,7 @@
       sku: line.sku || '—',
       brand: line.brand || line.category || '',
       category: line.brand || line.category || '',
+      sort: Number(line.sort ?? 99999),
       openingQty: Number(line.opening ?? line.qty ?? 0),
       purchaseQty: Number(line.purchase ?? 0),
       salesQty: Number(line.sales ?? 0),
@@ -164,6 +165,9 @@
       const ai = order.indexOf(a.brand || a.category || '');
       const bi = order.indexOf(b.brand || b.category || '');
       if (ai !== bi) return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+      const sa = Number(a.sort ?? 99999);
+      const sb = Number(b.sort ?? 99999);
+      if (sa !== sb) return sa - sb;
       return String(a.product_name || '').localeCompare(String(b.product_name || ''));
     });
   }

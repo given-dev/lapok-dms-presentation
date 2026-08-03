@@ -230,10 +230,11 @@ function depot_cadet_product_groups(?int $tripId): array
  * Manager stock book / dispatch — LAPOK BOOK page 1 (Brand + exact flavor SKUs).
  * Cadet/RDC sales still roll flavors into pack rows via rdc_key.
  *
- * @return list<array{sku: string, name: string, brand: string, price: float, category: string, rdc_key: string, min_stock: int, starter_qty: int}>
+ * @return list<array{sku: string, name: string, brand: string, price: float, category: string, rdc_key: string, min_stock: int, starter_qty: int, sort: int}>
  */
 function depot_manager_warehouse_catalog(): array
 {
+    $i = 0;
     $row = static function (
         string $brand,
         string $flavor,
@@ -242,7 +243,7 @@ function depot_manager_warehouse_catalog(): array
         float $price,
         int $min = 40,
         int $starter = 50
-    ): array {
+    ) use (&$i): array {
         return [
             'sku' => $sku,
             'name' => $flavor,
@@ -252,6 +253,7 @@ function depot_manager_warehouse_catalog(): array
             'rdc_key' => $rdcKey,
             'min_stock' => $min,
             'starter_qty' => $starter,
+            'sort' => $i++,
         ];
     };
 
@@ -485,6 +487,7 @@ function depot_ensure_warehouse_products(): array
             'category' => (string) ($row['brand'] ?? $row['category'] ?? 'OTHER'),
             'brand' => (string) ($row['brand'] ?? $row['category'] ?? ''),
             'rdc_key' => (string) ($row['rdc_key'] ?? ''),
+            'sort' => (int) ($row['sort'] ?? 999),
         ];
     }
 

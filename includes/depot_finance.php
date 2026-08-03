@@ -162,6 +162,7 @@ function depot_stock_lines_from_warehouse(?string $date = null, bool $includeCad
             'category' => $brand,
             'unit_price' => (float) ($row['unit_price'] ?? 0),
             'rdc_key' => (string) ($row['rdc_key'] ?? ''),
+            'sort' => (int) ($row['sort'] ?? 999),
             'purchase_source' => 'coca_cola_delivery',
         ];
     }
@@ -363,6 +364,11 @@ function depot_sort_lines_by_category(array $lines): array
         $ib = $brandOrder[$cb] ?? 99;
         if ($ia !== $ib) {
             return $ia <=> $ib;
+        }
+        $sa = (int) ($a['sort'] ?? PHP_INT_MAX);
+        $sb = (int) ($b['sort'] ?? PHP_INT_MAX);
+        if ($sa !== $sb) {
+            return $sa <=> $sb;
         }
         return strcasecmp(
             (string) ($a['product_name'] ?? $a['name'] ?? ''),
