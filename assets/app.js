@@ -69,7 +69,7 @@ setInterval(async () => {
 
 // Inactivity timeout: log the user out after 10 minutes without mouse/keyboard
 // activity on this tab (configurable via INACTIVITY_TIMEOUT_MS below).
-const INACTIVITY_TIMEOUT_MS = 600000; // 10 minutes
+const INACTIVITY_TIMEOUT_MS = Number(window.LAPOK_INACTIVITY_TIMEOUT_MS) || 600000; // 10 minutes default
 const INACTIVITY_CHECK_MS = 30000; // check every 30s
 let lastActivityAt = Date.now();
 ['mousemove', 'mousedown', 'keydown', 'touchstart', 'wheel', 'scroll'].forEach((evt) => {

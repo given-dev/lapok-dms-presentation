@@ -9,6 +9,7 @@ window.LAPOK_PRESENTATION = true; // legacy flag kept for older scripts
 window.LAPOK_ACCOUNTANT_MODULE_LIVE = true;
 window.LAPOK_ALLOWED_ROLES = ['admin', 'manager', 'accountant', 'executive', 'cadet'];
 window.LAPOK_DISABLED_ROLES = ['driver'];
+window.LAPOK_INACTIVITY_TIMEOUT_MS = 10000; // TEST ONLY: force 10s inactivity logout. Remove/revert for production.
 window.LAPOK_API_ROOT = (() => {
   const path = window.location.pathname || '';
   const idx = path.indexOf('/index.html');
