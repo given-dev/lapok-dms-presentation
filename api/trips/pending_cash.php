@@ -6,7 +6,8 @@ require_once dirname(__DIR__, 2) . '/includes/permissions.php';
 
 $user = require_permission('cash_confirm');
 
-$stmt = db()->query(
+[$dayFrom, $dayUntil] = day_bounds(date('Y-m-d'));
+$stmt = db()->prepare(
     "SELECT dt.id, dt.dispatched_at, dt.returned_at, dt.cash_reported, dt.cash_collected,
             dt.route_area, dt.status, dt.fuel_cost,
             v.registration AS vehicle_reg,
@@ -19,11 +20,12 @@ $stmt = db()->query(
      WHERE dt.status IN ('returned', 'completed')
        AND (
          dt.cash_collected IS NULL
-         OR DATE(dt.returned_at) = CURDATE()
+         OR (dt.returned_at >= ? AND dt.returned_at < ?)
        )
      ORDER BY dt.returned_at DESC
      LIMIT 80"
 );
+$stmt->execute([$dayFrom, $dayUntil]);
 
 $trips = $stmt->fetchAll();
 foreach ($trips as &$t) {

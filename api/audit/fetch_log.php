@@ -34,23 +34,24 @@ if ($userQuery !== '') {
     $params[] = $like;
 }
 if ($from !== '') {
-    $sql .= ' AND DATE(a.created_at) >= ?';
-    $params[] = $from;
+    $sql .= ' AND a.created_at >= ?';
+    $params[] = $from . ' 00:00:00';
 }
 if ($to !== '') {
-    $sql .= ' AND DATE(a.created_at) <= ?';
-    $params[] = $to;
+    $sql .= ' AND a.created_at < ?';
+    $params[] = date('Y-m-d 00:00:00', strtotime($to . ' +1 day'));
 }
 
 $sql .= ' ORDER BY a.created_at DESC';
 
-$stmt = db()->prepare($sql);
-$stmt->execute($params);
-$all = $stmt->fetchAll();
+$countStmt = db()->prepare(str_replace('SELECT a.*, u.full_name AS user_name', 'SELECT COUNT(*) AS total', $sql));
+$countStmt->execute($params);
+$total = (int) $countStmt->fetchColumn();
 
-$total = count($all);
 $offset = ($page - 1) * $perPage;
-$entries = array_slice($all, $offset, $perPage);
+$stmt = db()->prepare($sql . ' LIMIT ? OFFSET ?');
+$stmt->execute([...$params, $perPage, $offset]);
+$entries = $stmt->fetchAll();
 
 foreach ($entries as &$e) {
     $e['old_values'] = $e['old_values'] ? json_decode($e['old_values'], true) : null;

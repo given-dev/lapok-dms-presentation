@@ -60,14 +60,15 @@ if ($trip['status'] === 'returned') {
     json_error('You have already sent your report for this trip today.', 403);
 }
 
+[$dayFrom, $dayUntil] = day_bounds(date('Y-m-d'));
 $checkStmt = $pdo->prepare(
     "SELECT id FROM delivery_trips 
      WHERE (cadet_id = ? OR driver_id = ?) 
        AND status = 'returned' 
-       AND DATE(returned_at) = CURDATE()
+       AND returned_at >= ? AND returned_at < ?
        AND id != ?"
 );
-$checkStmt->execute([$user['id'], $user['id'], $tripId]);
+$checkStmt->execute([$user['id'], $user['id'], $dayFrom, $dayUntil, $tripId]);
 if ($checkStmt->fetch()) {
     json_error('You have already submitted a daily report today.', 403);
 }

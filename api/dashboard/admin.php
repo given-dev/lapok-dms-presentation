@@ -55,11 +55,14 @@ try {
 $cadetFlags = 0;
 try {
     require_once dirname(__DIR__, 2) . '/includes/cadet_reports.php';
-    $cadetTrips = $pdo->query(
+    [$dayFrom, $dayUntil] = day_bounds(date('Y-m-d'));
+    $cadetStmt = $pdo->prepare(
         "SELECT notes FROM delivery_trips
-         WHERE status = 'returned' AND DATE(returned_at) = CURDATE()
+         WHERE status = 'returned' AND returned_at >= ? AND returned_at < ?
          LIMIT 30"
-    )->fetchAll();
+    );
+    $cadetStmt->execute([$dayFrom, $dayUntil]);
+    $cadetTrips = $cadetStmt->fetchAll();
     foreach ($cadetTrips as $r) {
         $flags = cadet_parse_report_note($r['notes'] ?? null)['flags'] ?? [];
         if ($flags) {
@@ -106,9 +109,12 @@ try {
 
 $auditToday = 0;
 try {
-    $auditToday = (int) $pdo->query(
-        'SELECT COUNT(*) FROM audit_log WHERE DATE(created_at) = CURDATE()'
-    )->fetchColumn();
+    [$dayFrom, $dayUntil] = day_bounds(date('Y-m-d'));
+    $auditStmt = $pdo->prepare(
+        'SELECT COUNT(*) FROM audit_log WHERE created_at >= ? AND created_at < ?'
+    );
+    $auditStmt->execute([$dayFrom, $dayUntil]);
+    $auditToday = (int) $auditStmt->fetchColumn();
 } catch (Throwable) {
 }
 

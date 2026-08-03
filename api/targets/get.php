@@ -23,7 +23,7 @@ $targets = [];
 $stmt = $pdo->prepare('SELECT vehicle_id, category, target_units, target_revenue FROM sales_targets WHERE target_month = ?');
 $stmt->execute([$month]);
 foreach ($stmt->fetchAll() as $t) {
-    $unit = $t['vehicle_id'] === null ? 'DEPOT' : 'vehicle_' . (int) $t['vehicle_id'];
+    $unit = $t['vehicle_id'] === null ? 'DEPOT' : ((int) $t['vehicle_id'] === 0 ? 'KAMDINI' : 'vehicle_' . (int) $t['vehicle_id']);
     $targets[$unit][strtolower((string) $t['category'])] = [
         'units' => (float) $t['target_units'],
         'revenue' => (float) $t['target_revenue'],
@@ -40,6 +40,16 @@ $rows[] = [
     'is_depot' => true,
     'soda_units' => $targets['DEPOT']['soda']['units'] ?? 0.0,
     'water_units' => $targets['DEPOT']['water']['units'] ?? 0.0,
+];
+$rows[] = [
+    'key' => 'KAMDINI',
+    'vehicle_id' => 0,
+    'label' => 'KAMDINI',
+    'vehicle_type' => null,
+    'cadet_name' => null,
+    'is_depot' => true,
+    'soda_units' => $targets['KAMDINI']['soda']['units'] ?? 0.0,
+    'water_units' => $targets['KAMDINI']['water']['units'] ?? 0.0,
 ];
 foreach ($vehicles as $v) {
     $key = 'vehicle_' . $v['id'];

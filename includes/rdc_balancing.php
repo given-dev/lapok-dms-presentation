@@ -1,6 +1,21 @@
 <?php
 declare(strict_types=1);
 
+// Shared datetime range helpers (also defined in bootstrap.php for API endpoints);
+// guarded so this file is self-contained when loaded without bootstrap (CLI/cron).
+if (!function_exists('day_bounds')) {
+    function day_bounds(string $date): array
+    {
+        return [$date . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($date . ' +1 day'))];
+    }
+}
+if (!function_exists('period_bounds')) {
+    function period_bounds(string $from, string $to): array
+    {
+        return [$from . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($to . ' +1 day'))];
+    }
+}
+
 /** Default product/brand rows matching the depot Excel workbook. */
 function rdc_default_sales_lines(): array
 {
@@ -68,6 +83,7 @@ function rdc_build_columns(): array
 {
     $cols = [
         ['key' => 'depot', 'label' => 'DEPOT', 'section' => 'all'],
+        ['key' => 'kamdini', 'label' => 'KAMDINI', 'section' => 'sales'],
     ];
 
     $vehicles = db()->query(
@@ -131,7 +147,7 @@ function rdc_blank_sales_lines(array $columns): array
 {
     $salesCols = array_values(array_filter(
         $columns,
-        fn($c) => $c['key'] === 'depot' || str_starts_with($c['key'], 'vehicle_')
+        fn($c) => in_array($c['key'], ['depot', 'kamdini'], true) || str_starts_with($c['key'], 'vehicle_')
     ));
     $keys = array_column($salesCols, 'key');
 
@@ -256,7 +272,7 @@ function rdc_new_sheet_template(string $date): array
     $columns = rdc_build_columns();
     $salesCols = array_values(array_filter(
         $columns,
-        fn($c) => $c['key'] === 'depot' || str_starts_with($c['key'], 'vehicle_')
+        fn($c) => in_array($c['key'], ['depot', 'kamdini'], true) || str_starts_with($c['key'], 'vehicle_')
     ));
     $recoveryCols = array_values(array_filter(
         $columns,
@@ -329,15 +345,16 @@ function rdc_sheet_to_response(array $row): array
 /** Suggest sales qty from Lapok orders for a date. */
 function rdc_suggest_sales_from_orders(string $date): array
 {
+    [$dayFrom, $dayUntil] = day_bounds($date);
     $stmt = db()->prepare(
         "SELECT p.name AS product_name, o.vehicle_id, SUM(oi.qty) AS qty, AVG(oi.unit_price) AS unit_price
          FROM orders o
          JOIN order_items oi ON oi.order_id = o.id
          JOIN products p ON p.id = oi.product_id
-         WHERE DATE(o.created_at) = ? AND o.status NOT IN ('cancelled','draft')
+         WHERE o.created_at >= ? AND o.created_at < ? AND o.status NOT IN ('cancelled','draft')
          GROUP BY p.id, p.name, o.vehicle_id"
     );
-    $stmt->execute([$date]);
+    $stmt->execute([$dayFrom, $dayUntil]);
     $rows = $stmt->fetchAll();
 
     $depotStmt = db()->prepare(
@@ -345,10 +362,10 @@ function rdc_suggest_sales_from_orders(string $date): array
          FROM orders o
          JOIN order_items oi ON oi.order_id = o.id
          JOIN products p ON p.id = oi.product_id
-         WHERE DATE(o.created_at) = ? AND o.status NOT IN ('cancelled','draft') AND o.vehicle_id IS NULL
+         WHERE o.created_at >= ? AND o.created_at < ? AND o.status NOT IN ('cancelled','draft') AND o.vehicle_id IS NULL
          GROUP BY p.id, p.name"
     );
-    $depotStmt->execute([$date]);
+    $depotStmt->execute([$dayFrom, $dayUntil]);
     $depotRows = $depotStmt->fetchAll();
 
     return ['by_vehicle' => $rows, 'depot' => $depotRows];
@@ -922,17 +939,18 @@ function rdc_update_cadet_report(PDO $pdo, int $tripId, array $body, int $editor
 function rdc_cadet_reports_for_date(string $date): array
 {
     require_once __DIR__ . '/cadet_reports.php';
+    [$start, $end] = day_bounds($date);
     $stmt = db()->prepare(
         "SELECT dt.id, dt.vehicle_id, dt.cadet_id, dt.returned_at, dt.notes, dt.cash_reported,
                 v.registration, u.full_name AS cadet_name
          FROM delivery_trips dt
          JOIN vehicles v ON v.id = dt.vehicle_id
          LEFT JOIN users u ON u.id = dt.cadet_id
-         WHERE dt.status IN ('returned','completed') AND DATE(dt.returned_at) = ?
+         WHERE dt.status IN ('returned','completed') AND dt.returned_at >= ? AND dt.returned_at < ?
            AND dt.notes LIKE '%[CADET_REPORT]%'
          ORDER BY dt.returned_at ASC"
     );
-    $stmt->execute([$date]);
+    $stmt->execute([$start, $end]);
     $reports = [];
     foreach ($stmt->fetchAll() as $row) {
         $parsed = cadet_parse_report_note($row['notes'] ?? null);

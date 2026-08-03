@@ -1,6 +1,21 @@
 <?php
 declare(strict_types=1);
 
+// Shared datetime range helpers (also defined in bootstrap.php for API endpoints);
+// guarded so this file is self-contained when loaded without bootstrap (CLI/cron).
+if (!function_exists('day_bounds')) {
+    function day_bounds(string $date): array
+    {
+        return [$date . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($date . ' +1 day'))];
+    }
+}
+if (!function_exists('period_bounds')) {
+    function period_bounds(string $from, string $to): array
+    {
+        return [$from . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($to . ' +1 day'))];
+    }
+}
+
 /**
  * Daily deadline reminders:
  * - Cadets: submit sales report before 19:00
@@ -100,15 +115,16 @@ function deadline_format_clock(int $hm): string
 function deadline_already_sent_today(int $recipientId, string $key, string $date): bool
 {
     $titlePrefix = '[Deadline]';
+    [$dayFrom, $dayUntil] = day_bounds($date);
     $stmt = db()->prepare(
         "SELECT id FROM user_notifications
          WHERE recipient_id = ?
-           AND DATE(created_at) = ?
+           AND created_at >= ? AND created_at < ?
            AND title LIKE ?
            AND body LIKE ?
          LIMIT 1"
     );
-    $stmt->execute([$recipientId, $date, $titlePrefix . '%', '%#' . $key . '#%']);
+    $stmt->execute([$recipientId, $dayFrom, $dayUntil, $titlePrefix . '%', '%#' . $key . '#%']);
     return (bool) $stmt->fetchColumn();
 }
 

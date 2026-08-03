@@ -1,12 +1,28 @@
 <?php
 declare(strict_types=1);
 
+// Shared datetime range helpers (also defined in bootstrap.php for API endpoints);
+// guarded so this file is self-contained when loaded without bootstrap (CLI/cron).
+if (!function_exists('day_bounds')) {
+    function day_bounds(string $date): array
+    {
+        return [$date . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($date . ' +1 day'))];
+    }
+}
+if (!function_exists('period_bounds')) {
+    function period_bounds(string $from, string $to): array
+    {
+        return [$from . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($to . ' +1 day'))];
+    }
+}
+
 /**
  * Stock helper functions
  */
 
 function stock_summary_query(): string
 {
+    [$dayFrom, $dayUntil] = day_bounds(date('Y-m-d'));
     return "
         SELECT
             p.id AS product_id,
@@ -37,7 +53,7 @@ function stock_summary_query(): string
                 JOIN orders o ON o.id = oi.order_id
                 WHERE oi.product_id = p.id
                   AND o.status IN ('confirmed', 'delivered')
-                  AND DATE(o.created_at) = CURDATE()
+                  AND o.created_at >= '{$dayFrom}' AND o.created_at < '{$dayUntil}'
             ) AS sold_today
         FROM products p
         LEFT JOIN batches b ON b.product_id = p.id

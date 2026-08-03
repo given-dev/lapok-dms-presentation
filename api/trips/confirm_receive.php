@@ -14,6 +14,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 }
 
 $pdo = db();
+[$dayFrom, $dayUntil] = day_bounds(cadet_today_date());
 $stmt = $pdo->prepare(
     "SELECT dt.*, v.registration, v.vehicle_type, r.name AS route_name
      FROM delivery_trips dt
@@ -21,11 +22,11 @@ $stmt = $pdo->prepare(
      LEFT JOIN routes r ON r.id = dt.route_id
      WHERE (dt.cadet_id = ? OR dt.driver_id = ?)
        AND dt.status IN ('dispatched','on_route')
-       AND DATE(dt.dispatched_at) = ?
+       AND dt.dispatched_at >= ? AND dt.dispatched_at < ?
      ORDER BY dt.dispatched_at DESC
      LIMIT 1"
 );
-$stmt->execute([(int) $user['id'], (int) $user['id'], cadet_today_date()]);
+$stmt->execute([(int) $user['id'], (int) $user['id'], $dayFrom, $dayUntil]);
 $trip = $stmt->fetch();
 if (!$trip) {
     json_error('No dispatch to confirm. Ask the manager to dispatch your vehicle first.');

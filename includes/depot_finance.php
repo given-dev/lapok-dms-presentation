@@ -5,6 +5,21 @@ require_once __DIR__ . '/stock.php';
 require_once __DIR__ . '/depot_catalog.php';
 require_once __DIR__ . '/cadet_reports.php';
 
+// Shared datetime range helpers (also defined in bootstrap.php for API endpoints);
+// guarded so this file is self-contained when loaded without bootstrap (CLI/cron).
+if (!function_exists('day_bounds')) {
+    function day_bounds(string $date): array
+    {
+        return [$date . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($date . ' +1 day'))];
+    }
+}
+if (!function_exists('period_bounds')) {
+    function period_bounds(string $from, string $to): array
+    {
+        return [$from . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($to . ' +1 day'))];
+    }
+}
+
 function depot_snapshot_fetch(string $date, string $type): ?array
 {
     $stmt = db()->prepare(
@@ -172,14 +187,15 @@ function depot_stock_lines_from_warehouse(?string $date = null, bool $includeCad
 /** Total units each product's cadets returned on a given date (unsold evening stock). */
 function depot_cadet_returns_for_date(string $date): array
 {
+    [$start, $end] = day_bounds($date);
     $stmt = db()->prepare(
         "SELECT tli.product_id, COALESCE(SUM(tli.qty_returned), 0) AS ret
          FROM trip_load_items tli
          JOIN delivery_trips dt ON dt.id = tli.trip_id
-         WHERE dt.status IN ('returned','completed') AND DATE(dt.returned_at) = ?
+         WHERE dt.status IN ('returned','completed') AND dt.returned_at >= ? AND dt.returned_at < ?
          GROUP BY tli.product_id"
     );
-    $stmt->execute([$date]);
+    $stmt->execute([$start, $end]);
     $out = [];
     foreach ($stmt->fetchAll() as $row) {
         $out[(int) $row['product_id']] = (int) ($row['ret'] ?? 0);
@@ -190,14 +206,15 @@ function depot_cadet_returns_for_date(string $date): array
 /** Total units each product's cadets sold on a given date (from submitted trip reports). */
 function depot_cadet_sales_for_date(string $date): array
 {
+    [$start, $end] = day_bounds($date);
     $stmt = db()->prepare(
         "SELECT tli.product_id, COALESCE(SUM(tli.qty_sold), 0) AS sold
          FROM trip_load_items tli
          JOIN delivery_trips dt ON dt.id = tli.trip_id
-         WHERE dt.status IN ('returned','completed') AND DATE(dt.returned_at) = ?
+         WHERE dt.status IN ('returned','completed') AND dt.returned_at >= ? AND dt.returned_at < ?
          GROUP BY tli.product_id"
     );
-    $stmt->execute([$date]);
+    $stmt->execute([$start, $end]);
     $out = [];
     foreach ($stmt->fetchAll() as $row) {
         $out[(int) $row['product_id']] = (int) ($row['sold'] ?? 0);
@@ -223,11 +240,12 @@ function depot_sales_revenue_by_day(string $from, string $to): array
         $out[$row['balance_date']] = (float) $row['sales_total'];
     }
 
+    [$start, $end] = period_bounds($from, $to);
     $tStmt = $pdo->prepare(
         "SELECT DATE(returned_at) AS d, notes FROM delivery_trips
-         WHERE status IN ('returned','completed') AND DATE(returned_at) BETWEEN ? AND ?"
+         WHERE status IN ('returned','completed') AND returned_at >= ? AND returned_at < ?"
     );
-    $tStmt->execute([$from, $to]);
+    $tStmt->execute([$start, $end]);
     foreach ($tStmt->fetchAll() as $row) {
         $parsed = cadet_parse_report_note($row['notes'] ?? null);
         $revenue = (float) ($parsed['sales_total'] ?? 0);
@@ -244,14 +262,15 @@ function depot_sales_revenue_by_day(string $from, string $to): array
 function depot_cartons_sold_by_day(string $from, string $to): array
 {
     $pdo = db();
+    [$start, $end] = period_bounds($from, $to);
     $stmt = $pdo->prepare(
         "SELECT DATE(dt.returned_at) AS d, COALESCE(SUM(tli.qty_sold), 0) AS sold
          FROM trip_load_items tli
          JOIN delivery_trips dt ON dt.id = tli.trip_id
-         WHERE dt.status IN ('returned','completed') AND DATE(dt.returned_at) BETWEEN ? AND ?
+         WHERE dt.status IN ('returned','completed') AND dt.returned_at >= ? AND dt.returned_at < ?
          GROUP BY DATE(dt.returned_at)"
     );
-    $stmt->execute([$from, $to]);
+    $stmt->execute([$start, $end]);
     $out = [];
     foreach ($stmt->fetchAll() as $row) {
         $out[$row['d']] = (int) $row['sold'];
@@ -266,8 +285,9 @@ function depot_cartons_sold_by_day(string $from, string $to): array
  */
 function depot_trip_filter_where(string $from, string $to, int $routeId = 0, int $vehicleId = 0, int $userId = 0): array
 {
-    $where = ["dt.status IN ('returned','completed')", 'DATE(dt.returned_at) BETWEEN ? AND ?'];
-    $params = [$from, $to];
+    [$start, $end] = period_bounds($from, $to);
+    $where = ["dt.status IN ('returned','completed')", 'dt.returned_at >= ? AND dt.returned_at < ?'];
+    $params = [$start, $end];
     if ($routeId > 0) {
         $where[] = 'dt.route_id = ?';
         $params[] = $routeId;
@@ -447,7 +467,7 @@ function depot_sales_split_mtd(string $from, string $to): array
             $qty = 0.0;
             $qtyMap = is_array($line['qty'] ?? null) ? $line['qty'] : [];
             foreach ($qtyMap as $col => $q) {
-                if ($col === 'depot' || str_starts_with($col, 'vehicle_')) {
+                if ($col === 'depot' || $col === 'kamdini' || str_starts_with($col, 'vehicle_')) {
                     $qty += (float) $q;
                 }
             }
@@ -481,7 +501,7 @@ function depot_sales_split_by_unit_mtd(string $from, string $to): array
             $qtyMap = is_array($line['qty'] ?? null) ? $line['qty'] : [];
             foreach ($qtyMap as $col => $qty) {
                 $col = (string) $col;
-                if ($col !== 'depot' && !str_starts_with($col, 'vehicle_')) {
+                if ($col !== 'depot' && $col !== 'kamdini' && !str_starts_with($col, 'vehicle_')) {
                     continue;
                 }
                 $q = (float) $qty;
@@ -506,7 +526,7 @@ function depot_targets_for_month(string $month): array
     $stmt = db()->prepare('SELECT vehicle_id, category, target_units FROM sales_targets WHERE target_month = ?');
     $stmt->execute([$month]);
     foreach ($stmt->fetchAll() as $t) {
-        $unit = $t['vehicle_id'] === null ? 'DEPOT' : (string) (int) $t['vehicle_id'];
+        $unit = $t['vehicle_id'] === null ? 'DEPOT' : ((int) $t['vehicle_id'] === 0 ? 'KAMDINI' : (string) (int) $t['vehicle_id']);
         $out[$unit][strtolower((string) $t['category'])] = (float) $t['target_units'];
     }
     return $out;
@@ -531,7 +551,8 @@ function depot_sales_target_breakdown(string $from, string $to, string $month): 
     $targets = depot_targets_for_month($month);
 
     $rows = [];
-    $rows[] = depot_target_breakdown_row('DEPOT', null, 'DEPOT', null, $targets, $actuals);
+    $rows[] = depot_target_breakdown_row('depot', null, 'DEPOT', null, $targets, $actuals);
+    $rows[] = depot_target_breakdown_row('kamdini', 0, 'KAMDINI', null, $targets, $actuals, true);
     foreach ($vehicles as $v) {
         $short = '';
         if (!empty($v['cadet_name'])) {
@@ -552,9 +573,12 @@ function depot_sales_target_breakdown(string $from, string $to, string $month): 
 }
 
 /** @return array<string, mixed> */
-function depot_target_breakdown_row(string $key, ?int $vehicleId, string $label, ?string $vehicleType, array $targets, array $actuals): array
+function depot_target_breakdown_row(string $key, ?int $vehicleId, string $label, ?string $vehicleType, array $targets, array $actuals, ?bool $isDepotOverride = null): array
 {
-    $targetKey = $vehicleId === null ? 'DEPOT' : (string) $vehicleId;
+    $isDepot = $isDepotOverride ?? ($vehicleId === null);
+    $targetKey = $vehicleId === null
+        ? 'DEPOT'
+        : ((int) $vehicleId === 0 ? 'KAMDINI' : (string) $vehicleId);
     $actual = $actuals[$key] ?? ['soda' => 0.0, 'water' => 0.0];
     $sodaTarget = (float) ($targets[$targetKey]['soda'] ?? 0);
     $waterTarget = (float) ($targets[$targetKey]['water'] ?? 0);
@@ -568,7 +592,7 @@ function depot_target_breakdown_row(string $key, ?int $vehicleId, string $label,
         'vehicle_id' => $vehicleId,
         'label' => $label,
         'vehicle_type' => $vehicleType,
-        'is_depot' => $vehicleId === null,
+        'is_depot' => $isDepot,
         'soda_target' => $sodaTarget,
         'water_target' => $waterTarget,
         'soda_units' => $sodaUnits,
@@ -773,33 +797,35 @@ function depot_director_snapshot(string $date): array
     $netOperating = $bookRevenue - $totalExpenses;
     $expenseRatio = $bookRevenue > 0 ? round(($totalExpenses / $bookRevenue) * 100, 1) : 0.0;
 
+    [$start, $end] = day_bounds($date);
+
     $cashVarStmt = $pdo->prepare(
         "SELECT COALESCE(SUM(ABS(COALESCE(cash_collected, 0) - COALESCE(cash_reported, 0))), 0)
          FROM delivery_trips
-         WHERE status IN ('returned','completed') AND DATE(returned_at) = ?
+         WHERE status IN ('returned','completed') AND returned_at >= ? AND returned_at < ?
            AND cash_collected IS NOT NULL"
     );
-    $cashVarStmt->execute([$date]);
+    $cashVarStmt->execute([$start, $end]);
     $cashShortage = (float) $cashVarStmt->fetchColumn();
 
     $stockVarStmt = $pdo->prepare(
         "SELECT COALESCE(SUM(ABS((tli.qty_loaded - tli.qty_sold) - tli.qty_returned)), 0)
          FROM trip_load_items tli
          JOIN delivery_trips dt ON dt.id = tli.trip_id
-         WHERE dt.status = 'returned' AND DATE(dt.returned_at) = ?"
+         WHERE dt.status = 'returned' AND dt.returned_at >= ? AND dt.returned_at < ?"
     );
-    $stockVarStmt->execute([$date]);
+    $stockVarStmt->execute([$start, $end]);
     $stockShortageUnits = (int) $stockVarStmt->fetchColumn();
 
     $tripStmt = $pdo->prepare(
         "SELECT
             SUM(CASE WHEN status IN ('dispatched','on_route') THEN 1 ELSE 0 END) AS out_now,
-            SUM(CASE WHEN status = 'returned' AND DATE(returned_at) = ? THEN 1 ELSE 0 END) AS returned_today,
-            SUM(CASE WHEN status = 'returned' AND DATE(returned_at) = ? AND cash_collected IS NULL THEN 1 ELSE 0 END) AS cash_pending
+            SUM(CASE WHEN status = 'returned' AND returned_at >= ? AND returned_at < ? THEN 1 ELSE 0 END) AS returned_today,
+            SUM(CASE WHEN status = 'returned' AND returned_at >= ? AND returned_at < ? AND cash_collected IS NULL THEN 1 ELSE 0 END) AS cash_pending
          FROM delivery_trips
-         WHERE DATE(dispatched_at) = ? OR DATE(returned_at) = ?"
+         WHERE (dispatched_at >= ? AND dispatched_at < ?) OR (returned_at >= ? AND returned_at < ?)"
     );
-    $tripStmt->execute([$date, $date, $date, $date]);
+    $tripStmt->execute([$start, $end, $start, $end, $start, $end, $start, $end]);
     $tripStats = $tripStmt->fetch() ?: ['out_now' => 0, 'returned_today' => 0, 'cash_pending' => 0];
 
     $opening = depot_snapshot_fetch($date, 'opening');
@@ -919,22 +945,24 @@ function depot_director_snapshot_monthly(string $month): array
     $netOperating = $bookRevenue - $totalExpenses;
     $expenseRatio = $bookRevenue > 0 ? round(($totalExpenses / $bookRevenue) * 100, 1) : 0.0;
 
+    [$mStart, $mEnd] = period_bounds(substr($from, 0, 10), substr($to, 0, 10));
+
     $cashVarStmt = $pdo->prepare(
         "SELECT COALESCE(SUM(ABS(COALESCE(cash_collected, 0) - COALESCE(cash_reported, 0))), 0)
          FROM delivery_trips
-         WHERE status IN ('returned','completed') AND DATE(returned_at) BETWEEN ? AND ?
+         WHERE status IN ('returned','completed') AND returned_at >= ? AND returned_at < ?
            AND cash_collected IS NOT NULL"
     );
-    $cashVarStmt->execute([substr($from, 0, 10), substr($to, 0, 10)]);
+    $cashVarStmt->execute([$mStart, $mEnd]);
     $cashShortage = (float) $cashVarStmt->fetchColumn();
 
     $stockVarStmt = $pdo->prepare(
         "SELECT COALESCE(SUM(ABS((tli.qty_loaded - tli.qty_sold) - tli.qty_returned)), 0)
          FROM trip_load_items tli
          JOIN delivery_trips dt ON dt.id = tli.trip_id
-         WHERE dt.status = 'returned' AND DATE(dt.returned_at) BETWEEN ? AND ?"
+         WHERE dt.status = 'returned' AND dt.returned_at >= ? AND dt.returned_at < ?"
     );
-    $stockVarStmt->execute([substr($from, 0, 10), substr($to, 0, 10)]);
+    $stockVarStmt->execute([$mStart, $mEnd]);
     $stockShortageUnits = (int) $stockVarStmt->fetchColumn();
 
     return [

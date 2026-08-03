@@ -4,6 +4,21 @@ declare(strict_types=1);
 require_once __DIR__ . '/simple_pdf.php';
 require_once __DIR__ . '/occd_boards.php';
 
+// Shared datetime range helpers (also defined in bootstrap.php for API endpoints);
+// guarded so this file is self-contained when loaded without bootstrap (CLI/cron).
+if (!function_exists('day_bounds')) {
+    function day_bounds(string $date): array
+    {
+        return [$date . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($date . ' +1 day'))];
+    }
+}
+if (!function_exists('period_bounds')) {
+    function period_bounds(string $from, string $to): array
+    {
+        return [$from . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($to . ' +1 day'))];
+    }
+}
+
 const REPORT_LEADERSHIP_ROLES = ['accountant', 'manager', 'executive', 'admin'];
 
 const REPORT_TYPE_LABELS = [
@@ -84,12 +99,13 @@ function report_require_manager_ready(string $date): void
 function report_accountant_readiness(string $date): array
 {
     $pdo = db();
+    [$dayFrom, $dayUntil] = day_bounds($date);
     $reportTripsStmt = $pdo->prepare(
         "SELECT id, cash_collected FROM delivery_trips
-         WHERE DATE(returned_at) = ? AND status IN ('returned','completed')
+         WHERE returned_at >= ? AND returned_at < ? AND status IN ('returned','completed')
            AND notes LIKE '%[CADET_REPORT]%'"
     );
-    $reportTripsStmt->execute([$date]);
+    $reportTripsStmt->execute([$dayFrom, $dayUntil]);
     $reportTrips = $reportTripsStmt->fetchAll() ?: [];
     $tripIds = array_map('intval', array_column($reportTrips, 'id'));
 
@@ -107,18 +123,18 @@ function report_accountant_readiness(string $date): array
     $pendingCash = count(array_filter($reportTrips, static fn(array $trip): bool => $trip['cash_collected'] === null));
     $activeStmt = $pdo->prepare(
         "SELECT COUNT(*) FROM delivery_trips
-         WHERE DATE(dispatched_at) = ? AND status IN ('dispatched','on_route')
+         WHERE dispatched_at >= ? AND dispatched_at < ? AND status IN ('dispatched','on_route')
            AND (cadet_id IS NOT NULL OR driver_id IS NOT NULL)"
     );
-    $activeStmt->execute([$date]);
+    $activeStmt->execute([$dayFrom, $dayUntil]);
     $activeTrips = (int) $activeStmt->fetchColumn();
 
     $dispatchedStmt = $pdo->prepare(
         "SELECT COUNT(*) FROM delivery_trips
-         WHERE DATE(dispatched_at) = ?
+         WHERE dispatched_at >= ? AND dispatched_at < ?
            AND (cadet_id IS NOT NULL OR driver_id IS NOT NULL)"
     );
-    $dispatchedStmt->execute([$date]);
+    $dispatchedStmt->execute([$dayFrom, $dayUntil]);
     $dispatchedToday = (int) $dispatchedStmt->fetchColumn();
 
     $sheetStmt = $pdo->prepare('SELECT status, variance FROM rdc_daily_sheets WHERE balance_date = ? LIMIT 1');
@@ -407,6 +423,7 @@ function report_build_accountant_layout(string $date, ?string $preparedBy = null
     require_once __DIR__ . '/depot_finance.php';
 
     $pdo = db();
+    [$dayFrom, $dayUntil] = day_bounds($date);
     $sheetStmt = $pdo->prepare('SELECT * FROM rdc_daily_sheets WHERE balance_date = ? LIMIT 1');
     $sheetStmt->execute([$date]);
     $sheetRow = $sheetStmt->fetch() ?: null;
@@ -416,15 +433,17 @@ function report_build_accountant_layout(string $date, ?string $preparedBy = null
         "SELECT COUNT(*) AS cnt, COALESCE(SUM(cash_reported),0) AS reported,
                 COALESCE(SUM(cash_collected),0) AS collected,
                 COALESCE(SUM(CASE WHEN cash_collected IS NOT NULL THEN cash_reported ELSE 0 END),0) AS confirmed_reported
-         FROM delivery_trips WHERE DATE(returned_at) = " . $pdo->quote($date)
+         FROM delivery_trips WHERE returned_at >= " . $pdo->quote($dayFrom) . " AND returned_at < " . $pdo->quote($dayUntil)
     )->fetch();
     $pendingCash = (int) $pdo->query(
         "SELECT COUNT(*) FROM delivery_trips
-         WHERE status = 'returned' AND cash_collected IS NULL AND DATE(returned_at) = " . $pdo->quote($date)
+         WHERE status = 'returned' AND cash_collected IS NULL
+           AND returned_at >= " . $pdo->quote($dayFrom) . " AND returned_at < " . $pdo->quote($dayUntil)
     )->fetchColumn();
     $tripsOut = (int) $pdo->query(
         "SELECT COUNT(*) FROM delivery_trips
-         WHERE status IN ('dispatched','on_route') AND DATE(dispatched_at) = " . $pdo->quote($date)
+         WHERE status IN ('dispatched','on_route')
+           AND dispatched_at >= " . $pdo->quote($dayFrom) . " AND dispatched_at < " . $pdo->quote($dayUntil)
     )->fetchColumn();
 
     // Per-trip cash confirmation detail (core RDC control)
@@ -436,11 +455,14 @@ function report_build_accountant_layout(string $date, ?string $preparedBy = null
          JOIN vehicles v ON v.id = dt.vehicle_id
          LEFT JOIN users cadet ON cadet.id = dt.cadet_id
          LEFT JOIN users driver ON driver.id = dt.driver_id
-         WHERE DATE(COALESCE(dt.returned_at, dt.dispatched_at)) = ?
+         WHERE (
+                (dt.returned_at >= ? AND dt.returned_at < ?)
+                OR (dt.returned_at IS NULL AND dt.dispatched_at >= ? AND dt.dispatched_at < ?)
+              )
            AND dt.status IN ('returned','completed')
          ORDER BY dt.returned_at ASC, dt.id ASC"
     );
-    $cashTripStmt->execute([$date]);
+    $cashTripStmt->execute([$dayFrom, $dayUntil, $dayFrom, $dayUntil]);
     $cashTrips = $cashTripStmt->fetchAll();
     $cashConfirmLines = [];
     $confirmedTrips = 0;
@@ -1499,9 +1521,10 @@ function report_build_manager_layout(string $date, ?string $preparedBy = null): 
     require_once __DIR__ . '/cadet_reports.php';
 
     $pdo = db();
+    [$dayFrom, $dayUntil] = day_bounds($date);
     $sales = $pdo->query(
         "SELECT COUNT(*) AS orders, COALESCE(SUM(amount_total),0) AS revenue
-         FROM orders WHERE DATE(created_at) = " . $pdo->quote($date)
+         FROM orders WHERE created_at >= " . $pdo->quote($dayFrom) . " AND created_at < " . $pdo->quote($dayUntil)
          . " AND status NOT IN ('cancelled','draft')"
     )->fetch();
     $low = $pdo->query(
@@ -1516,11 +1539,13 @@ function report_build_manager_layout(string $date, ?string $preparedBy = null): 
     $onRoute = (int) $pdo->query("SELECT COUNT(*) FROM vehicles WHERE status = 'on_route'")->fetchColumn();
     $vehicles = (int) $pdo->query("SELECT COUNT(*) FROM vehicles WHERE is_active = 1")->fetchColumn();
     $tripsReturned = (int) $pdo->query(
-        "SELECT COUNT(*) FROM delivery_trips WHERE status = 'returned' AND DATE(returned_at) = " . $pdo->quote($date)
+        "SELECT COUNT(*) FROM delivery_trips WHERE status = 'returned'
+           AND returned_at >= " . $pdo->quote($dayFrom) . " AND returned_at < " . $pdo->quote($dayUntil)
     )->fetchColumn();
     $cashPending = (int) $pdo->query(
         "SELECT COUNT(*) FROM delivery_trips
-         WHERE status = 'returned' AND cash_collected IS NULL AND DATE(returned_at) = " . $pdo->quote($date)
+         WHERE status = 'returned' AND cash_collected IS NULL
+           AND returned_at >= " . $pdo->quote($dayFrom) . " AND returned_at < " . $pdo->quote($dayUntil)
     )->fetchColumn();
     $recv = $pdo->query(
         'SELECT COUNT(*) AS with_balance, COALESCE(SUM(credit_balance),0) AS total

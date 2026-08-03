@@ -2,8 +2,10 @@
 
 **Product:** Outpost DMS  
 **Build folder:** `lapok-dms-presentation` (accountant module **live**)  
-**Last updated:** 2 August 2026  
+**Last updated:** 3 August 2026  
 **Purpose:** Single place to track what is live, what is planned, and what we may add next. Update this when modules ship or scope changes.
+
+> ⏰ **Daily review:** this tracker is part of your **daily routine** — review it every morning before starting work to see what is **Live / Partial / Planned / Suggested** and what the current build focus is. Keep it in sync whenever a module ships or scope changes.
 
 **Status key**
 
@@ -188,6 +190,7 @@ Month-end (last 3 days): banner on Home → accountant-improvements
 | **CCBA warehouse snapshot / Sync stock** | **Deferred** | **Phase 2 integration** — removed from manager boards toolbar until CCBA stock sync ships. See blueprint §7.3 |
 | EFRIS fiscal | **Deferred** | Phase 2 — see `EFRIS_FISCAL_INTEGRATION_BLUEPRINT.md` |
 | Multi-branch (shared exec) | **Planned (design only)** | No branch model exists today — single-depot everywhere. Plan tracked in `docs/MULTI_BRANCH_BLUEPRINT.md` (Phase 0 insurance / Phase 1 full scope) |
+| **Depot onboarding / registration** (name, logo, branches) | **Suggested** | One-time setup page on first login — the depot registers with its **name, logo, number of branches** + other relevant details (region/location, contact, TIN/license, timezone, currency). After registration the system is **branded to the depot**: its name and logo appear across login, header, dashboards and PDFs. See `docs/MULTI_BRANCH_BLUEPRINT.md` |
 | PDF report chain | **Live** | Accountant → Manager → Executive. Brief = styled stock book + sellers + finance. **CCBA boards = separate styled companion PDF** (`ccba_boards`, migration **016**) |
 
 ---

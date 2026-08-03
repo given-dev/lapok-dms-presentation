@@ -30,6 +30,9 @@
 
   /** Closing stock entry unlocks at 6:30 PM local. */
   function isClosingStockWindowOpen(now = new Date()) {
+    if (typeof window.suppressTimeAlertsToday === 'function' && window.suppressTimeAlertsToday()) {
+      return true;
+    }
     const mins = now.getHours() * 60 + now.getMinutes();
     return mins >= (CLOSING_OPENS_HOUR * 60 + CLOSING_OPENS_MINUTE);
   }
@@ -408,6 +411,8 @@
           status.textContent = type === 'opening'
             ? 'Not submitted yet — manager enters opening stock at 7:00 AM'
             : 'Not submitted yet — manager enters closing stock from 6:30 PM';
+        } else if (typeof window.suppressTimeAlertsToday === 'function' && window.suppressTimeAlertsToday()) {
+          status.textContent = type === 'opening' ? 'Not submitted — enter when ready' : 'Open — enter closing stock when ready';
         } else if (type === 'closing' && !isClosingStockWindowOpen()) {
           status.textContent = `Locked until ${closingWindowLabel()} — then enter and save closing stock (target 7:00 PM)`;
         } else {

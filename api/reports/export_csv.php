@@ -145,8 +145,9 @@ if ($type === 'stock') {
 
 // default: sales (from submitted cadet / field trip reports)
 $headers = ['Date', 'Trip', 'Vehicle', 'Cadet', 'Sales (UGX)', 'Cash reported (UGX)', 'Status'];
-$where = ["dt.status IN ('returned','completed')", 'DATE(dt.returned_at) BETWEEN ? AND ?'];
-$params = [$from, $to];
+[$start, $end] = period_bounds($from, $to);
+$where = ["dt.status IN ('returned','completed')", 'dt.returned_at >= ? AND dt.returned_at < ?'];
+$params = [$start, $end];
 if ($routeId > 0) {
     $where[] = 'dt.route_id = ?';
     $params[] = $routeId;

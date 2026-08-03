@@ -17,8 +17,9 @@ $userId = (int) ($_GET['user_id'] ?? 0);
 $groupBy = $_GET['group_by'] ?? 'day';
 
 // Sales come from submitted cadet / field trip reports (returned/completed trips).
-$where = ["dt.status IN ('returned','completed')", 'DATE(dt.returned_at) BETWEEN ? AND ?'];
-$params = [$from, $to];
+[$start, $end] = period_bounds($from, $to);
+$where = ["dt.status IN ('returned','completed')", 'dt.returned_at >= ? AND dt.returned_at < ?'];
+$params = [$start, $end];
 
 if ($vehicleId > 0) {
     $where[] = 'dt.vehicle_id = ?';

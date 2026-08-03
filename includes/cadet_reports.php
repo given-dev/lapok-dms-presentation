@@ -1,6 +1,21 @@
 <?php
 declare(strict_types=1);
 
+// Shared datetime range helpers (also defined in bootstrap.php for API endpoints);
+// guarded so this file is self-contained when loaded without bootstrap (CLI/cron).
+if (!function_exists('day_bounds')) {
+    function day_bounds(string $date): array
+    {
+        return [$date . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($date . ' +1 day'))];
+    }
+}
+if (!function_exists('period_bounds')) {
+    function period_bounds(string $from, string $to): array
+    {
+        return [$from . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($to . ' +1 day'))];
+    }
+}
+
 /** LAPOK book page 2 — auxiliary information rows (per vehicle). */
 function cadet_auxiliary_defaults(): array
 {
@@ -288,6 +303,7 @@ function cadet_today_date(?DateTimeInterface $when = null): string
 function cadet_fetch_today_trip(PDO $pdo, int $userId, ?string $date = null): ?array
 {
     $date ??= cadet_today_date();
+    [$dayFrom, $dayUntil] = day_bounds($date);
     $stmt = $pdo->prepare(
         "SELECT dt.*, v.registration, v.vehicle_type, r.name AS route_name
          FROM delivery_trips dt
@@ -295,11 +311,14 @@ function cadet_fetch_today_trip(PDO $pdo, int $userId, ?string $date = null): ?a
          LEFT JOIN routes r ON r.id = dt.route_id
          WHERE (dt.cadet_id = ? OR dt.driver_id = ?)
            AND dt.status IN ('dispatched','on_route','returned')
-           AND (DATE(dt.dispatched_at) = ? OR DATE(dt.returned_at) = ?)
+           AND (
+                (dt.dispatched_at >= ? AND dt.dispatched_at < ?)
+                OR (dt.returned_at >= ? AND dt.returned_at < ?)
+           )
          ORDER BY FIELD(dt.status, 'on_route', 'dispatched', 'returned'), dt.dispatched_at DESC
          LIMIT 1"
     );
-    $stmt->execute([$userId, $userId, $date, $date]);
+    $stmt->execute([$userId, $userId, $dayFrom, $dayUntil, $dayFrom, $dayUntil]);
     $row = $stmt->fetch();
     return $row ?: null;
 }
@@ -321,13 +340,17 @@ function cadet_report_submitted_today(PDO $pdo, int $userId, ?string $date = nul
 /** Cadets who have a trip today but have not submitted today's report yet. */
 function cadet_pending_report_user_ids(PDO $pdo, string $date): array
 {
+    [$dayFrom, $dayUntil] = day_bounds($date);
     $stmt = $pdo->prepare(
         "SELECT DISTINCT u.id
          FROM users u
          JOIN delivery_trips dt ON dt.cadet_id = u.id
          WHERE u.is_active = 1
            AND u.role IN ('cadet','field_user')
-           AND (DATE(dt.dispatched_at) = ? OR DATE(dt.returned_at) = ?)
+           AND (
+                (dt.dispatched_at >= ? AND dt.dispatched_at < ?)
+                OR (dt.returned_at >= ? AND dt.returned_at < ?)
+           )
            AND (
                 dt.status IN ('dispatched','on_route')
                 OR (
@@ -336,6 +359,6 @@ function cadet_pending_report_user_ids(PDO $pdo, string $date): array
                 )
            )"
     );
-    $stmt->execute([$date, $date]);
+    $stmt->execute([$dayFrom, $dayUntil, $dayFrom, $dayUntil]);
     return array_map('intval', array_column($stmt->fetchAll(), 'id'));
 }

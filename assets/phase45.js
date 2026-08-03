@@ -91,7 +91,7 @@ function execMetricCard(index, label, value, sub) {  const card = document.query
   const subEl = card.querySelector('.metric-sub');
   if (lbl) lbl.textContent = label;
   if (val) val.textContent = value;
-  if (subEl) subEl.textContent = sub || '';
+  if (subEl) subEl.innerHTML = sub || '';
 }
 
 function execEscHtml(v) {
@@ -100,7 +100,13 @@ function execEscHtml(v) {
 
 function execPctBadge(p) {
   const n = Number(p || 0);
-  return `<span class="badge ${n >= 100 ? 'bs' : 'bw'}">${n.toFixed(1)}%</span>`;
+  return `<span class="badge ${n >= 100 ? 'bs' : 'bd'}">${n.toFixed(1)}%</span>`;
+}
+
+/** Colored percentage — green when the target is met, red otherwise. */
+function execPctSpan(p) {
+  const n = Number(p || 0);
+  return `<span style="color:${n >= 100 ? '#166534' : '#B91C1C'};font-weight:600">${n.toFixed(1)}%</span>`;
 }
 
 function renderExecutiveCso(d) {
@@ -356,8 +362,8 @@ async function loadAdminDashboard() {
       const card7 = document.querySelector('#page-admin-dashboard .metric-grid .metric-card:nth-child(7)');
       if (card7) card7.style.display = '';
       if (hasTargets) {
-        execMetricCard(5, 'SODA target', fmtN(ss.soda_target), `sold ${fmtN(ss.soda_units)} · ${ss.soda_pct ?? 0}%`);
-        execMetricCard(6, 'WATER target', fmtN(ss.water_target), `sold ${fmtN(ss.water_units)} · ${ss.water_pct ?? 0}%`);
+        execMetricCard(5, 'SODA target', fmtN(ss.soda_target), `sold ${fmtN(ss.soda_units)} · ${execPctSpan(ss.soda_pct)}`);
+        execMetricCard(6, 'WATER target', fmtN(ss.water_target), `sold ${fmtN(ss.water_units)} · ${execPctSpan(ss.water_pct)}`);
       } else {
         execMetricCard(5, 'SODA sold', fmtN(ss.soda_units), 'target not set');
         execMetricCard(6, 'WATER sold', fmtN(ss.water_units), 'target not set');
@@ -621,9 +627,10 @@ async function loadExecutiveHomeExtras(cachedDashboard = null) {
     const targetPct = ss.total_pct != null ? ss.total_pct : 0;
     const hasTargets = Number(ss.soda_target || 0) + Number(ss.water_target || 0) > 0;
     const fmtN = (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 });
+    const pctSpan = (p) => `<span style="color:${Number(p || 0) >= 100 ? '#166534' : '#B91C1C'};font-weight:600">${p ?? 0}%</span>`;
     const targetCell = hasTargets
-      ? `<span class="badge ${targetPct >= 100 ? 'bs' : 'bw'}">${targetPct}%</span>
-         <span style="font-size:11px;color:var(--gray-mid)"> · Soda ${fmtN(ss.soda_units)}/${fmtN(ss.soda_target)} (${ss.soda_pct ?? 0}%) · Water ${fmtN(ss.water_units)}/${fmtN(ss.water_target)} (${ss.water_pct ?? 0}%)</span>`
+      ? `<span class="badge ${targetPct >= 100 ? 'bs' : 'bd'}">${targetPct}%</span>
+         <span style="font-size:11px;color:var(--gray-mid)"> · Soda ${fmtN(ss.soda_units)}/${fmtN(ss.soda_target)} (${pctSpan(ss.soda_pct)}) · Water ${fmtN(ss.water_units)}/${fmtN(ss.water_target)} (${pctSpan(ss.water_pct)})</span>`
       : '<span class="badge bg">Targets not set</span>';
 
     const briefStatus = brief

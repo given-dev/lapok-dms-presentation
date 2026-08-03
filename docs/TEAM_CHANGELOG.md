@@ -8,6 +8,8 @@
 **Purpose:** Track what you and your colleague change in this codebase.  
 **When to update:** After you finish a set of edits (or before / after a code push), add a new entry at the **top** of the log (newest first).
 
+> ⏰ **Daily review:** this log is part of your **daily routine** — review it every morning before starting work (newest entry is at the top). It is not just a record; it tells you what shipped, what to re-test, and what needs a decision today.
+
 Use **Africa/Kampala** date and time (or your local time — say which). Be specific enough that someone else can find the files and understand the “why”.
 
 ---
@@ -41,6 +43,223 @@ Use **Africa/Kampala** date and time (or your local time — say which). Be spec
 ---
 
 ## Log
+
+### 2026-08-04 · Remaining `DATE()` filters → index-friendly ranges (+ cashout index)
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | local WIP on `ft-live`, not yet pushed |
+| **Area** | Orders / cashouts / cadet reports / report packs / admin dashboard / efris / trips |
+
+**Changes**
+- Converted the last scan-forcing `DATE(col) = ?` / `= CURDATE()` predicates to `col >= ? AND col < ?` ranges (via `day_bounds()`), so the existing indexes can be used:
+  - `includes/deadline_reminders.php` — `user_notifications.created_at`.
+  - `includes/fleet_tracking.php` — `orders.created_at` (trip progress estimate).
+  - `includes/stock.php` — `orders.created_at` in the stock-summary `sold_today` subquery (SQL-string query, so the range is interpolated from PHP-computed bounds).
+  - `includes/cashouts.php` — `customer_cashouts.created_at`.
+  - `includes/rdc_balancing.php` — `rdc_suggest_sales_from_orders` (`orders.created_at`).
+  - `includes/cadet_reports.php` — `cadet_fetch_today_trip` + `cadet_pending_report_user_ids` (`dispatched_at`/`returned_at` ranges).
+  - `includes/report_packets.php` — accountant-readiness + RDC pack + manager layout (`returned_at`, `dispatched_at`, `orders.created_at`; the `DATE(COALESCE(returned_at, dispatched_at))` filter became an OR of two ranges).
+  - `api/dashboard/admin.php` — `delivery_trips.returned_at` + `audit_log.created_at` today counts.
+  - `api/dashboard/field_user.php` — `orders.created_at`.
+  - `api/efris/fetch_pending.php` — `efris_receipts.fiscal_timestamp`.
+  - `api/trips/pending_cash.php` — `delivery_trips.returned_at`.
+  - `api/trips/confirm_receive.php` + `api/trips/eod_submit.php` — `dispatched_at` / `returned_at`.
+- **New migration `database/hosting/28_026_cashout_created_index.sql`** (+ mirror `database/migrations/026_...`) adds `idx_cashout_created` on `customer_cashouts.created_at` — the one table among these that had no usable index for its date lookup.
+
+**Notes**
+- Verified: `php -l` clean on all 13 touched files; every rewritten query path executed against the DB; endpoints return 401 (auth) not 500; EXPLAIN shows `range` scans on `idx_cashout_created`; existing indexes already cover the other columns (`idx_orders_created`, `idx_audit_created`, `idx_efris_rcpt_status`, `idx_dt_*`).
+- Deploy (when pushed): the migration file **must run on live before or with the code** (`ALTER TABLE ... ADD INDEX idx_cashout_created` — fails with duplicate-key error if already applied, which is fine). All 13 PHP files. No JS change.
+
+### 2026-08-04 · Removed orphaned endpoint `api/vehicles/reload.php`
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | local WIP on `ft-live`, not yet pushed |
+| **Area** | Vehicles |
+
+**Changes**
+- Deleted `api/vehicles/reload.php` — dead code from the old vehicle **Reload** button (removed earlier). Nothing in the UI or JS referenced it.
+- Deploy: this one file deletion, nothing else.
+
+### 2026-08-04 · Audit log — no longer loads the whole table for one page
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | local WIP on `ft-live`, not yet pushed |
+| **Area** | `api/audit/fetch_log.php` |
+
+**Changes**
+- The audit page used to `fetchAll()` the **entire** `audit_log` into memory, then slice out one page in PHP — gets slower and heavier as the log grows.
+- Now a `COUNT(*)` query gives the page total, and the page itself is fetched with `LIMIT ? OFFSET ?`. Filters, sort, and the API response shape are unchanged, so the UI needs no edits.
+- Verified: `php -l` clean, query path executed against the DB (`total` count correct, `LIMIT` page returns exactly `per_page` rows), endpoint returns 401 (auth) not 500.
+
+**Notes**
+- Deploy: this one file (`api/audit/fetch_log.php`), no SQL, no JS.
+
+### 2026-08-04 · DB performance — delivery_trips indexes + sargable date filters
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | local WIP on `ft-live`, not yet pushed |
+| **Area** | Database queries (dispatch log, dashboards, exceptions, reports) |
+
+**Changes**
+- Root cause: `delivery_trips` had **no indexes on `status` / `dispatched_at` / `returned_at`**, and many queries filtered with `DATE(col) = ?` (which can never use an index), so the most-used screens full-scanned the trips table — slow now, worse as it grows.
+- **New migration `database/hosting/27_025_delivery_trips_indexes.sql`** (+ mirror `database/migrations/025_...`) adds `idx_dt_status`, `idx_dt_dispatched`, `idx_dt_returned`, `idx_dt_status_returned`. Applied locally already.
+- **Date filters rewritten to index-friendly ranges** via two new helpers `day_bounds()` / `period_bounds()` in `includes/bootstrap.php` (guarded copies also in `depot_finance.php` / `rdc_balancing.php` so they load standalone in CLI):
+  - `api/trips/dispatch_log.php` — day range + UNION so each branch uses its index.
+  - `api/exceptions/fetch.php`, `api/dashboard/manager.php` — `returned_at` day range.
+  - `includes/depot_finance.php` — `depot_cadet_returns_for_date`, `depot_cadet_sales_for_date`, `depot_sales_revenue_by_day`, `depot_cartons_sold_by_day`, `depot_trip_filter_where`, director snapshot (daily + monthly).
+  - `includes/rdc_balancing.php` — `rdc_cadet_reports_for_date`.
+  - `api/reports/sales.php`, `api/reports/export_csv.php`, `api/reports/dashboard_charts.php` — period ranges.
+  - `api/audit/fetch_log.php` — `created_at` ranges.
+- **Dispatch log N+1 removed**: per-trip `trip_load_items` lookups batched into one `WHERE trip_id IN (...)` query (`dispatch_log.php`).
+
+**Notes**
+- Verified: `php -l` clean on all 10 touched files, indexes applied + EXPLAIN shows index range scans, all rewritten query paths executed against the DB, endpoints return 401 (auth) not 500, app loads 200.
+- Deploy (when pushed): the migration file **must run on live before or with the code** (queries only speed up; nothing breaks if it runs after). All 10 PHP files. No JS/DB data change otherwise.
+- Not touched (left as-is, lower frequency): `DATE()` filters on `orders.created_at` / `audit_log` outside the audit page / `report_packets` / `cashouts` / `efris` / `fleet` — same pattern if they ever get slow.
+
+### 2026-08-04 · UI polish pass 3.0 — depth, focus + accent
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | local WIP on `ft-live`, not yet pushed |
+| **Area** | Global CSS in `index.html` |
+
+**Changes**
+- Added a **POLISH 3.0** CSS block in `index.html` (same red/slate/gold palette, no layout changes):
+  - Page depth: `.content` gets soft red/blue radial corner glows; `.topbar` gets a stronger glass gradient + crisper shadow hairline.
+  - Tables: `th` gets a subtle white→slate gradient header + stronger bottom rule; row hover now a themed red tint (`rgba(229,62,62,.03)`).
+  - Accents: every `.card-title` now has a small red gradient bar (`.card-title::before`); `.modal-title` gets a red underline dash; badges `.bs/.bw/.bd/.bi/.bg` get soft color-matched glows; `.alert` gets a 4px left accent bar in the variant color; progress bars slightly taller with a colored glow.
+  - Motion: modal overlay fades in and the sheet pops up (`.modal-overlay.open`/`.modal` keyframes); `.chip` gets a hover state; `.cal-cell:hover` gets a red ring; `.notif-row:hover` gets a soft lift; `.btn-black` gets hover lift + shadow, `.btn-red` gets a press state.
+
+**Notes**
+- Deploy (when pushed): `index.html` only. No JS or DB change; no cache-buster bump needed.
+
+### 2026-08-04 · Targets color coding — green when achieved, red otherwise
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | local WIP on `ft-live`, not yet pushed |
+| **Area** | Targets displays (Manager · Executive · Cadet) |
+
+**Changes**
+- Every achieved-vs-target display now uses a strict **green = achieved (≥100%), red = otherwise** rule instead of amber:
+  - `assets/phase45.js` — `execPctBadge()` now returns green `bs` on ≥100% and red `bd` below (was amber `bw`). New `execPctSpan()` colors plain percentages. `execMetricCard()` now renders the sub-line as HTML so the SODA/WATER target metric cards show a colored pct. Executive dashboard "Sales vs target" row: red `bd` badge when below target and green/red soda & water sub-percentages.
+  - `assets/cadet-dashboard.js` — "My monthly targets" SODA/WATER cards: green badge + green tint when met, red `bd` badge + red tint and "not yet" in red when not.
+  - Manager dashboard targets card already used green/red inline (no change).
+- Bumped `phase45.js?v=20260804a`, `cadet-dashboard.js?v=20260804a`.
+
+**Notes**
+- Deploy (when pushed): `assets/phase45.js`, `assets/cadet-dashboard.js`, `index.html`. No DB change.
+
+### 2026-08-04 · Numbered "Daily" sections for every account (admin / accountant / executive)
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | local WIP on `ft-live`, not yet pushed |
+| **Area** | Sidebar navigation (all roles) |
+
+**Changes**
+- Every account now opens with the **same Daily-section design** the manager has (red-dot group accent + numbered step badges in `assets/app.js` renderer):
+  - **Admin (1–6):** System console → Exception center → Edit requests → Audit log → PDF reports → Staff welfare. **Administration** section (User management, Fleet registry, Reports & analytics) holds the non-daily items.
+  - **Accountant (1–5):** Home → Today's close → Cash handover → Manager pack → Depot alerts. **More** holds Month-end + Staff welfare.
+  - **Executive (1–5):** Executive dashboard → Director brief → PDF reports → Exception center → Staff welfare. **More** holds Reports & analytics + Account management.
+- `assets/api.js` `roleNav` updated (per-role `s:` steps; accountant's `report-exchange` relabeled **Manager pack**). No pages moved — grouping/order/labels only.
+- Bumped `assets/api.js?v=20260804e`. README sidebar descriptions updated for admin / accountant / executive.
+
+**Notes**
+- Deploy (when pushed): `assets/api.js`, `README.md`. No DB change. The inline demo `ROLES`/`switchRole` in `index.html` is legacy dead code (no role buttons rendered) — the real account menus come from `LapokAPI.roleNav`.
+
+### 2026-08-04 · Per-trip "Reload" removed + docs daily-review notes
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | local WIP on `ft-live`, not yet pushed |
+| **Area** | Manager dispatch log · Team docs |
+
+**Changes**
+- Removed the per-trip **Reload** button from the dispatch log (the toolbar "Reload vehicle" button was already gone). Reloading mid-route is redundant with the **Edit** button (reverses + re-deducts the load) and the **Load** button (shows what the cadet went with).
+- Removed the now-orphaned `reloadModal` markup (`index.html`) and the reload JS in `assets/manager-ops.js` (`openReloadModalFor`, `prepareReloadModal`, `saveReload`, `reloadPendingVehicleId`, modal watcher). No UI reference to `api/vehicles/reload.php` remains. Bumped `manager-ops.js?v=20260804e`.
+- Added a **⏰ Daily review** notice at the top of `docs/MODULE_TRACKER.md` and `docs/TEAM_CHANGELOG.md` so both are treated as a morning review checklist, not write-only archives.
+
+**Notes**
+- `api/vehicles/reload.php` is now unreferenced from the UI; left in place (still role-guarded server-side). Safe to delete on the next deploy if we want to retire the reload path fully.
+- Deploy (when pushed): `index.html`, `assets/manager-ops.js`, `docs/MODULE_TRACKER.md`, `docs/TEAM_CHANGELOG.md`. No DB change.
+
+### 2026-08-04 · Daily-menu organization + global UI polish (gradients/glows)
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | local WIP on `ft-live`, not yet pushed |
+| **Area** | Sidebar navigation (all roles) · UI polish |
+
+**Changes**
+- Manager **Daily** sidebar section is now a numbered daily flow (1–6): Dashboard → Stock taking → Dispatch → CCBA boards → RDC daily sheets → PDF reports (`s:` step in `assets/api.js` `navManager`). Steps render as small red numbered badges (`nav-step`) on the right of each item.
+- Cadet menu now uses the same grouped design — a **Daily** section (Dashboard 1, Today's report 2) instead of ungrouped items.
+- `assets/app.js` `renderNavMenu()`: item label is wrapped in `nav-item-label` (truncates safely), optional step badge rendered when `n.s` is set, and the **Daily** group gets a `nav-group-primary` accent (pulsing red dot + brighter title).
+- Global CSS polish in `index.html` (palette unchanged — still red/slate/gold):
+  - Sidebar gradient deepened (`--gradient-dark`) + red top-left and blue bottom-right glow blobs (`::before`/`::after`).
+  - Open nav group: red gradient wash + red glow text/chevron. Active nav item: stronger red gradient, inner glow, icon drop-shadow. Hover: 2px slide + red edge.
+  - Cards: hover top hairline gradient accent (red → transparent) on top of the existing lift/shadow.
+  - Metric cards: soft red radial sheen on hover; `btn-red` gets a red glow focus ring.
+- Cache busters bumped: `assets/api.js?v=20260804d`, `assets/app.js?v=20260804d`. README sidebar descriptions updated.
+- `node --check` clean on `api.js`/`app.js`; `index.html` still serves HTTP 200.
+
+**Notes**
+- Deploy (when pushed): `index.html`, `assets/api.js`, `assets/app.js`, `README.md`. No DB change. The inline demo role-switcher (`ROLES` in `index.html`) is flat by design and unaffected.
+
+### 2026-08-04 · Manager dashboard tweaks + one-day time-alert override
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | local WIP on `ft-live`, not yet pushed |
+| **Area** | Manager dashboard · Stock window |
+
+**Changes**
+- Manager dashboard order: the **Daily checklist & handoff** card now sits **above** the **Monthly targets vs achieved** card.
+- `api/dashboard/manager.php` — `targets_summary` now also returns a `units` array (per sales unit: DEPOT, KAMDINI, each vehicle) with SODA/WATER target vs actual and %, built from `depot_sales_target_breakdown()`. The targets card renders a per-unit table (`mgrTargetsUnitsBody`) under the overall rows.
+- One-day time-alert override: `presentation-config.js` sets `SUPPRESS_TIME_ALERTS_ON = '2026-08-03'` (delete when no longer needed). On that date `suppressTimeAlertsToday()` returns true, so `isClosingStockWindowOpen()` treats the closing-stock window as open (late entry allowed), the manager dashboard shows a neutral "Enter when ready (late submission today)" / "Pending" instead of "Locked until 6:30 PM" / "Due now", and the stock page says "enter when ready". Alerts return automatically the next day.
+- Cache busters bumped: `presentation-config.js?v=20260804a`, `depot-snapshots.js?v=20260804a`, `manager-ops.js?v=20260804c`.
+
+**Notes**
+- Deploy (when pushed): `assets/presentation-config.js`, `assets/manager-ops.js`, `assets/depot-snapshots.js`, `index.html`, `api/dashboard/manager.php`. No DB change. Remember to remove the `SUPPRESS_TIME_ALERTS_ON` line once today's late entry is done.
+
+### 2026-08-04 · Manager depot + cadet operational features (batch)
+
+| | |
+|--|--|
+| **Who** | Ekiz |
+| **Push / ref** | local WIP on `ft-live`, not yet pushed |
+| **Area** | Manager dispatch · Loads · Targets card · RDC depot sales |
+
+**Changes**
+- `api/trips/dispatch_log.php` — each trip now returns `load_items` (product/name/sku/`rdc_key`/qty_loaded/sold/returned) and `load_breakdown`; the response also carries a `depot_sheet` for the date (sales lines with `depot_qty`/`kamdini_qty`, `depot_total`, `kamdini_total`, status).
+- `api/trips/update_load.php` (new) — edit a dispatch load on any `dispatched`/`on_route` trip: rejects when any `qty_sold`/`qty_returned` already exist, reverses the current load back into warehouse stock (`cancel_restore`), re-deducts the corrected quantity, upserts `trip_load_items`, writes an `edit_load` audit row, and notifies the cadet of the delta.
+- `api/rdc/save_depot_sales.php` (new) — admin/manager writes `{depot, kamdini}` quantities into today's RDC sheet `sales_json` qty maps; guards locked statuses (approved/rejected always, submitted/under_review unless admin); creates the sheet with `created_by = rdc_system_accountant_id()` when missing; recomputes totals; stamps a `[DEPOT_SALES]` note.
+- `includes/rdc_balancing.php` — new `kamdini` column added to `rdc_build_columns()` and to the sales-column filters in `rdc_blank_sales_lines()` and `rdc_new_sheet_template()`.
+- `includes/depot_finance.php` — qty maps now sum `depot` + `kamdini` + `vehicle_*`; `depot_targets_for_month()` maps `vehicle_id 0` → `KAMDINI`; `depot_target_breakdown_row()` emits DEPOT then KAMDINI rows (KAMDINI keyed `vehicleId 0`, `isDepotOverride`).
+- `api/targets/get.php` / `save.php` — KAMDINI accepted as a target key (`vehicle_id 0` sentinel; `vehicleKeys` includes `'KAMDINI' => 0`).
+- `api/dashboard/manager.php` — new `targets_summary` block (monthly SODA/WATER target vs actual, %, `has_targets`).
+- `assets/manager-ops.js` — dispatch log rewritten: 9-column table with a DEPOT row (badge + Sales button when `depot_sheet` exists) and per-trip Load / Edit buttons (a per-trip **Reload** button was added here but removed the same day — see the newest log entry); `openViewTripLoad`, `openEditLoadModalFor`/`saveEditLoad`, `openDepotSalesModal`/`saveDepotSales`; manager dashboard renders the targets summary card. Bumped `manager-ops.js?v=20260804a`.
+- `index.html` — added `#mgrTargetsSummaryCard` on the manager dashboard and three new modals (`viewTripLoadModal`, `editLoadModal`, `depotSalesModal`). Bumped `manager-ops.js?v=20260804a` and `rdc-balancing.js?v=20260804a`.
+- `assets/rdc-balancing.js` — `rdcSalesColumns()` now also keeps the `kamdini` column so the RDC sheet renders/saves Kamdini quantities. Bumped `rdc-balancing.js?v=20260804a`.
+
+**Notes**
+- KAMDINI is a plain extra sales column — no branch/depot infra. Target key sentinel: `vehicle_id 0 = KAMDINI` (data-only, no migration).
+- Deploy list (when pushed): the PHP files above, `assets/manager-ops.js`, `assets/rdc-balancing.js`, `index.html`. No DB change.
 
 ### 2026-08-03 · Dispatch pre-fills yesterday's unsold stock
 

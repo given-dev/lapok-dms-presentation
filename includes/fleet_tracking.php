@@ -1,6 +1,21 @@
 <?php
 declare(strict_types=1);
 
+// Shared datetime range helpers (also defined in bootstrap.php for API endpoints);
+// guarded so this file is self-contained when loaded without bootstrap (CLI/cron).
+if (!function_exists('day_bounds')) {
+    function day_bounds(string $date): array
+    {
+        return [$date . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($date . ' +1 day'))];
+    }
+}
+if (!function_exists('period_bounds')) {
+    function period_bounds(string $from, string $to): array
+    {
+        return [$from . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($to . ' +1 day'))];
+    }
+}
+
 /** Configured Lapok depot coordinates for the Gulu branch. */
 function fleet_depot_coords(): array
 {
@@ -69,13 +84,14 @@ function fleet_estimate_position(int $tripId, int $routeId, array $stops): array
         return fleet_depot_coords();
     }
 
+    [$dayFrom, $dayUntil] = day_bounds(date('Y-m-d'));
     $stmt = db()->prepare(
         "SELECT COUNT(DISTINCT o.customer_id) AS visited
          FROM orders o
-         WHERE o.trip_id = ? AND DATE(o.created_at) = CURDATE()
+         WHERE o.trip_id = ? AND o.created_at >= ? AND o.created_at < ?
            AND o.status IN ('confirmed', 'pending')"
     );
-    $stmt->execute([$tripId]);
+    $stmt->execute([$tripId, $dayFrom, $dayUntil]);
     $visited = (int) ($stmt->fetch()['visited'] ?? 0);
     $idx = min(max($visited, 0), count($stops) - 1);
     $stop = $stops[$idx];

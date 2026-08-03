@@ -46,14 +46,15 @@ if ($trip) {
     }
 }
 
+[$dayFrom, $dayUntil] = day_bounds(date('Y-m-d'));
 $oStmt = $pdo->prepare(
     "SELECT o.id, o.order_ref, o.amount_total, o.status, o.created_at, c.name AS customer_name
      FROM orders o
      LEFT JOIN customers c ON c.id = o.customer_id
-     WHERE o.user_id = ? AND DATE(o.created_at) = CURDATE()
+     WHERE o.user_id = ? AND o.created_at >= ? AND o.created_at < ?
      ORDER BY o.created_at DESC"
 );
-$oStmt->execute([$user['id']]);
+$oStmt->execute([$user['id'], $dayFrom, $dayUntil]);
 $todayOrders = $oStmt->fetchAll();
 
 $revenueToday = array_sum(array_map(fn($o) => (float) $o['amount_total'], $todayOrders));

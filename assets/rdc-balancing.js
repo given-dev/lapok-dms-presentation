@@ -369,7 +369,7 @@ function rdcRenderStickyBar() {
 
 function rdcSalesColumns() {
   return (rdcSheet.sales_columns || rdcSheet.columns || []).filter(
-    (c) => c.key === 'depot' || String(c.key).startsWith('vehicle_')
+    (c) => c.key === 'depot' || c.key === 'kamdini' || String(c.key).startsWith('vehicle_')
   );
 }
 

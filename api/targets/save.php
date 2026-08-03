@@ -20,10 +20,10 @@ if (!is_array($rows)) {
 
 $pdo = db();
 
-// Resolve unit keys to vehicle_id (NULL = DEPOT) and validate vehicles.
+// Resolve unit keys to vehicle_id (NULL = DEPOT, 0 = KAMDINI) and validate vehicles.
 $vehicleKeys = [];
-foreach (['DEPOT'] as $k) {
-    $vehicleKeys[$k] = null;
+foreach (['DEPOT' => null, 'KAMDINI' => 0] as $k => $v) {
+    $vehicleKeys[$k] = $v;
 }
 $vehicles = $pdo->query('SELECT id FROM vehicles WHERE is_active = 1')->fetchAll();
 foreach ($vehicles as $v) {

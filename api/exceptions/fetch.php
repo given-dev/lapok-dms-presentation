@@ -76,13 +76,14 @@ foreach ($pending as $r) {
 }
 
 require_once dirname(__DIR__, 2) . '/includes/cadet_reports.php';
+[$dayStart, $dayEnd] = day_bounds(date('Y-m-d'));
 $cadetTrips = $pdo->query(
     "SELECT dt.id, dt.cash_reported, dt.fuel_cost, dt.notes, dt.returned_at,
             v.registration, u.full_name AS cadet_name
      FROM delivery_trips dt
      JOIN vehicles v ON v.id = dt.vehicle_id
      LEFT JOIN users u ON u.id = dt.cadet_id
-     WHERE dt.status = 'returned' AND DATE(dt.returned_at) = CURDATE()
+     WHERE dt.status = 'returned' AND dt.returned_at >= '" . $dayStart . "' AND dt.returned_at < '" . $dayEnd . "'
      ORDER BY dt.returned_at DESC LIMIT 15"
 )->fetchAll();
 foreach ($cadetTrips as $r) {

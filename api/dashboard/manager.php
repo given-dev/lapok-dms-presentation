@@ -73,11 +73,14 @@ $cadetReportFlags = 0;
 $welfareOpenCount = 0;
 try {
     require_once dirname(__DIR__, 2) . '/includes/cadet_reports.php';
-    $cadetRows = $pdo->query(
+    [$dayStart, $dayEnd] = day_bounds($today);
+    $cadetStmt = $pdo->prepare(
         "SELECT dt.notes FROM delivery_trips dt
-         WHERE dt.status = 'returned' AND DATE(dt.returned_at) = CURDATE()
+         WHERE dt.status = 'returned' AND dt.returned_at >= ? AND dt.returned_at < ?
            AND dt.notes LIKE '%[CADET_REPORT]%'"
-    )->fetchAll();
+    );
+    $cadetStmt->execute([$dayStart, $dayEnd]);
+    $cadetRows = $cadetStmt->fetchAll();
     foreach ($cadetRows as $row) {
         $parsed = cadet_parse_report_note($row['notes'] ?? null);
         if (!empty($parsed['flags'])) {
@@ -95,10 +98,47 @@ try {
 
 $openingSnap = null;
 $closingSnap = null;
+$targetsSummary = null;
 try {
     require_once dirname(__DIR__, 2) . '/includes/depot_finance.php';
     $openingSnap = depot_snapshot_fetch($today, 'opening');
     $closingSnap = depot_snapshot_fetch($today, 'closing');
+
+    // Monthly targets vs achieved (SODA + WATER, crates) across every sales unit.
+    $month = date('Y-m', strtotime($today));
+    $from = $month . '-01';
+    $targets = depot_targets_for_month($month);
+    $actuals = depot_sales_split_by_unit_mtd($from, $today);
+    $unitRows = depot_sales_target_breakdown($from, $today, $month);
+    $tot = ['soda' => ['target' => 0.0, 'actual' => 0.0], 'water' => ['target' => 0.0, 'actual' => 0.0]];
+    foreach ($targets as $units) {
+        $tot['soda']['target'] += (float) ($units['soda'] ?? 0);
+        $tot['water']['target'] += (float) ($units['water'] ?? 0);
+    }
+    foreach ($actuals as $units) {
+        $tot['soda']['actual'] += (float) ($units['soda'] ?? 0);
+        $tot['water']['actual'] += (float) ($units['water'] ?? 0);
+    }
+    $pct = static function (float $a, float $t): float {
+        return $t > 0 ? round(($a / $t) * 100, 1) : 0.0;
+    };
+    $targetsSummary = [
+        'month' => $month,
+        'soda_target' => $tot['soda']['target'],
+        'soda_actual' => $tot['soda']['actual'],
+        'soda_pct' => $pct($tot['soda']['actual'], $tot['soda']['target']),
+        'water_target' => $tot['water']['target'],
+        'water_actual' => $tot['water']['actual'],
+        'water_pct' => $pct($tot['water']['actual'], $tot['water']['target']),
+        'total_target' => $tot['soda']['target'] + $tot['water']['target'],
+        'total_actual' => $tot['soda']['actual'] + $tot['water']['actual'],
+        'total_pct' => $pct(
+            $tot['soda']['actual'] + $tot['water']['actual'],
+            $tot['soda']['target'] + $tot['water']['target']
+        ),
+        'has_targets' => ($tot['soda']['target'] + $tot['water']['target']) > 0,
+        'units' => $unitRows,
+    ];
 } catch (Throwable) {
 }
 
@@ -120,6 +160,7 @@ $payload = [
         'inventory' => $occdInv['status'] ?? null,
         'occd' => $occdBoard['status'] ?? null,
     ],
+    'targets_summary' => $targetsSummary,
     'rdc_sheet_today' => null,
     'rdc_pending_review' => 0,
 ];

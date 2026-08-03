@@ -72,6 +72,7 @@ async function loadManagerDashboardExtras() {
   if (!handoff && !exc && !stockCard) return;
   try {
     const d = await LapokAPI.get('/api/dashboard/manager.php');
+    const timeAlertsOff = typeof window.suppressTimeAlertsToday === 'function' && window.suppressTimeAlertsToday();
     const openEl = document.getElementById('mgrDashOpeningStatus');
     const closeEl = document.getElementById('mgrDashClosingStatus');
     if (openEl) {
@@ -84,6 +85,9 @@ async function loadManagerDashboardExtras() {
       if (d.closing_stock_done) {
         closeEl.textContent = 'Done' + (d.closing_stock_at ? ' · ' + LapokAPI.formatTime(d.closing_stock_at) : '');
         closeEl.style.color = 'var(--green, #166534)';
+      } else if (timeAlertsOff) {
+        closeEl.textContent = 'Enter when ready (late submission today)';
+        closeEl.style.color = 'var(--gray-mid)';
       } else if (typeof isClosingStockWindowOpen === 'function' && !isClosingStockWindowOpen()) {
         closeEl.textContent = 'Locked until 6:30 PM';
         closeEl.style.color = 'var(--gray-mid)';
@@ -128,7 +132,9 @@ async function loadManagerDashboardExtras() {
 
       const closingStatus = d.closing_stock_done
         ? doneBadge(true, 'Done', '')
-        : (closingOpen ? '<span class="badge bd">Due now</span>' : '<span class="badge bg">After 6:30 PM</span>');
+        : (timeAlertsOff
+          ? '<span class="badge bw">Pending</span>'
+          : (closingOpen ? '<span class="badge bd">Due now</span>' : '<span class="badge bg">After 6:30 PM</span>'));
 
       handoff.innerHTML = `
         <div class="card-header">
@@ -194,6 +200,45 @@ async function loadManagerDashboardExtras() {
     }
     const editMetric = document.querySelector('#page-manager-dashboard .metric-card:nth-child(4) .metric-value');
     if (editMetric) editMetric.textContent = d.pending_edit_requests;
+
+    const ts = d.targets_summary;
+    if (ts) {
+      const chip = document.getElementById('mgrTargetsMonthChip');
+      if (chip) chip.textContent = execMonthLabel ? execMonthLabel(ts.month) : ts.month;
+      const fmt = (n) => Number(n || 0).toLocaleString('en-UG', { maximumFractionDigits: 0 });
+      const line = (target, actual, pct) => {
+        if (Number(target || 0) <= 0) return '<span style="color:var(--gray-mid)">target not set</span>';
+        const ok = Number(pct || 0) >= 100;
+        return `${fmt(actual)} / ${fmt(target)} crates · <span style="color:${ok ? 'var(--green,#166534)' : 'var(--red,#B91C1C)'};font-weight:600">${pct ?? 0}%</span>`;
+      };
+      const soda = document.getElementById('mgrTargetsSoda');
+      if (soda) soda.innerHTML = line(ts.soda_target, ts.soda_actual, ts.soda_pct);
+      const water = document.getElementById('mgrTargetsWater');
+      if (water) water.innerHTML = line(ts.water_target, ts.water_actual, ts.water_pct);
+      const overall = document.getElementById('mgrTargetsOverall');
+      if (overall) {
+        overall.innerHTML = ts.has_targets
+          ? line(ts.total_target, ts.total_actual, ts.total_pct)
+          : '<span style="color:var(--gray-mid)">No targets entered yet — set them on the Monthly targets page.</span>';
+      }
+      const unitsBody = document.getElementById('mgrTargetsUnitsBody');
+      if (unitsBody) {
+        const units = ts.units || [];
+        const unitCell = (target, actual, pct) => {
+          if (Number(target || 0) <= 0) return '<span style="color:var(--gray-mid)">—</span>';
+          const ok = Number(pct || 0) >= 100;
+          return `${fmt(actual)} / ${fmt(target)} · <span style="color:${ok ? 'var(--green,#166534)' : 'var(--red,#B91C1C)'};font-weight:600">${pct ?? 0}%</span>`;
+        };
+        unitsBody.innerHTML = units.length
+          ? units.map((u) => `<tr>
+            <td>${escMgr(u.label)}${u.is_depot ? '' : `<div style="font-size:11px;color:var(--gray-mid)">${escMgr(u.vehicle_type || '')}</div>`}</td>
+            <td>${unitCell(u.soda_target, u.soda_units, u.soda_pct)}</td>
+            <td>${unitCell(u.water_target, u.water_units, u.water_pct)}</td>
+            <td>${unitCell(u.soda_target + u.water_target, u.soda_units + u.water_units, u.total_pct)}</td>
+          </tr>`).join('')
+          : '<tr><td colspan="4" style="color:var(--gray-mid)">No target data for this month.</td></tr>';
+      }
+    }
   } catch (e) {
     console.warn('Manager extras:', e.message);
     if (handoff) {
@@ -446,38 +491,151 @@ async function loadDeliveryList() {
   }
 }
 
+let mgrDispatchTrips = [];
+let mgrDepotSheet = null;
+
 async function loadDispatchLog() {
   const table = document.getElementById('dispatchLogTable');
   if (!table) return;
   try {
     const d = await LapokAPI.get('/api/trips/dispatch_log.php');
     const trips = d.trips || [];
+    mgrDispatchTrips = trips;
+    mgrDepotSheet = d.depot_sheet || null;
+    const rows = [];
+
+    if (mgrDepotSheet) {
+      const depTotal = Math.round(Number(mgrDepotSheet.depot_total || 0));
+      const kamTotal = Math.round(Number(mgrDepotSheet.kamdini_total || 0));
+      const st = String(mgrDepotSheet.status || 'draft');
+      const stBadge = st === 'approved' ? '<span class="badge bs">Approved</span>'
+        : st === 'submitted' ? '<span class="badge bw">Submitted</span>'
+        : st === 'under_review' ? '<span class="badge bg">Under review</span>'
+        : '<span class="badge bg">Draft</span>';
+      rows.push(`<tr>
+        <td><strong>DEPOT</strong></td>
+        <td><span class="badge bg">depot</span></td>
+        <td>—</td>
+        <td>—</td>
+        <td>${depTotal}${kamTotal > 0 ? ` + ${kamTotal} K` : ''}</td>
+        <td>Depot</td>
+        <td>—</td>
+        <td>${stBadge}</td>
+        <td><button class="btn btn-sm btn-red" type="button" onclick="openDepotSalesModal()">Sales</button></td>
+      </tr>`);
+    }
+
+    trips.forEach((t) => {
+      const crew = [t.driver_name, t.cadet_name].filter(Boolean).join(' / ') || '—';
+      const badge = t.vehicle_type === 'truck' ? 'b-truck' : 'b-tuk';
+      let st = 'bg';
+      let label = t.status;
+      if (t.status === 'dispatched') {
+        st = 'bw';
+        label = t.acknowledged_at ? 'Dispatched' : 'Awaiting confirm';
+      } else if (t.status === 'on_route') {
+        st = 'bs';
+        label = 'On route';
+      }
+      const open = t.status === 'dispatched' || t.status === 'on_route';
+      const action = [
+        `<button class="btn btn-sm" type="button" onclick="openViewTripLoad(${t.id})">Load</button>`,
+        open ? `<button class="btn btn-sm" type="button" onclick="openEditLoadModalFor(${t.id})">Edit</button>` : '',
+      ].filter(Boolean).join(' ');
+      rows.push(`<tr><td>${escMgr(t.registration)}</td><td><span class="badge ${badge}">${t.vehicle_type}</span></td>
+        <td>${escMgr(crew)}</td><td>${t.dispatched_at ? LapokAPI.formatTime(t.dispatched_at) : '—'}</td>
+        <td>${t.load_qty || 0}</td><td>${escMgr(t.route_area || '—')}</td>
+        <td>${t.returned_at ? LapokAPI.formatTime(t.returned_at) : '—'}</td>
+        <td><span class="badge ${st}">${label}${t.acknowledged_at && t.status !== 'dispatched' ? ' ✓' : ''}</span></td>
+        <td>${action}</td></tr>`);
+    });
+
     table.innerHTML = '<tr><th>Vehicle</th><th>Type</th><th>Crew</th><th>Departed</th><th>Load</th><th>Route</th><th>Returned</th><th>Status</th><th>Action</th></tr>' +
-      trips.map((t) => {
-        const crew = [t.driver_name, t.cadet_name].filter(Boolean).join(' / ') || '—';
-        const badge = t.vehicle_type === 'truck' ? 'b-truck' : 'b-tuk';
-        let st = 'bg';
-        let label = t.status;
-        if (t.status === 'dispatched') {
-          st = 'bw';
-          label = t.acknowledged_at ? 'Dispatched' : 'Awaiting confirm';
-        } else if (t.status === 'on_route') {
-          st = 'bs';
-          label = 'On route';
-        }
-        const open = t.status === 'dispatched' || t.status === 'on_route';
-        const action = open
-          ? `<button class="btn btn-sm btn-red" type="button" onclick="openReloadModalFor(${t.vehicle_id})">Reload</button>`
-          : '<span style="color:var(--gray-mid);font-size:12px">—</span>';
-        return `<tr><td>${escMgr(t.registration)}</td><td><span class="badge ${badge}">${t.vehicle_type}</span></td>
-          <td>${escMgr(crew)}</td><td>${t.dispatched_at ? LapokAPI.formatTime(t.dispatched_at) : '—'}</td>
-          <td>${t.load_qty || 0}</td><td>${escMgr(t.route_area || '—')}</td>
-          <td>${t.returned_at ? LapokAPI.formatTime(t.returned_at) : '—'}</td>
-          <td><span class="badge ${st}">${label}${t.acknowledged_at && t.status !== 'dispatched' ? ' ✓' : ''}</span></td>
-          <td>${action}</td></tr>`;
-      }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--gray-mid)">No dispatches today</td></tr>';
+      rows.join('') || '<tr><td colspan="9" style="text-align:center;color:var(--gray-mid)">No dispatches today</td></tr>';
   } catch (e) {
     console.warn('Dispatch log:', e.message);
+  }
+}
+
+function mgrTripById(tripId) {
+  return mgrDispatchTrips.find((t) => Number(t.id) === Number(tripId)) || null;
+}
+
+function openViewTripLoad(tripId) {
+  const trip = mgrTripById(tripId);
+  const meta = document.getElementById('viewTripLoadMeta');
+  const body = document.getElementById('viewTripLoadBody');
+  if (!meta || !body) return;
+  if (!trip) {
+    body.innerHTML = '<tr><td colspan="4" class="skel">Trip not loaded.</td></tr>';
+    return;
+  }
+  const crew = [trip.driver_name, trip.cadet_name].filter(Boolean).join(' / ') || '—';
+  meta.textContent = `${trip.registration} · ${trip.vehicle_type} · ${crew} · ${trip.status}`;
+  const items = (trip.load_items || []);
+  body.innerHTML = items.map((i) => `<tr>
+    <td>${escMgr(i.name)}<div style="font-size:11px;color:var(--gray-mid)">${escMgr(i.sku || '')}</div></td>
+    <td>${i.qty_loaded || 0}</td>
+    <td>${i.qty_sold || 0}</td>
+    <td>${i.qty_returned || 0}</td>
+  </tr>`).join('') || '<tr><td colspan="4" style="color:var(--gray-mid)">No load recorded.</td></tr>';
+  openModal('viewTripLoadModal');
+}
+
+let mgrEditTripId = 0;
+
+function openEditLoadModalFor(tripId) {
+  const trip = mgrTripById(tripId);
+  const meta = document.getElementById('editLoadMeta');
+  const body = document.getElementById('editLoadBody');
+  if (!meta || !body) return;
+  mgrEditTripId = Number(tripId || 0);
+  if (!trip) {
+    body.innerHTML = '<tr><td colspan="3" class="skel">Trip not loaded.</td></tr>';
+    openModal('editLoadModal');
+    return;
+  }
+  const crew = [trip.driver_name, trip.cadet_name].filter(Boolean).join(' / ') || '—';
+  meta.textContent = `${trip.registration} · ${crew} · ${trip.status} · currently ${trip.load_qty || 0} crates`;
+  const items = (trip.load_items || []);
+  body.innerHTML = items.map((i) => `<tr data-product-id="${i.product_id}">
+    <td>${escMgr(i.name)}<div style="font-size:11px;color:var(--gray-mid)">${escMgr(i.sku || '')}</div></td>
+    <td>${i.qty_loaded || 0}</td>
+    <td><input class="qty-inp edit-load-qty" type="number" min="0" step="1" value="${i.qty_loaded || 0}" data-product-id="${i.product_id}"></td>
+  </tr>`).join('') || '<tr><td colspan="3" style="color:var(--gray-mid)">No load recorded.</td></tr>';
+  openModal('editLoadModal');
+}
+
+async function saveEditLoad(btn) {
+  if (!mgrEditTripId) {
+    mgrNotify('No trip selected for editing', 'error');
+    return;
+  }
+  const items = [];
+  document.querySelectorAll('#editLoadBody tr[data-product-id]').forEach((tr) => {
+    const productId = parseInt(tr.dataset.productId || '0', 10);
+    const qty = parseInt(tr.querySelector('.edit-load-qty')?.value || '0', 10);
+    if (!Number.isInteger(qty) || qty < 0) {
+      mgrNotify('Load quantities must be whole numbers (0 or more).', 'error');
+      return;
+    }
+    items.push({ product_id: productId, qty });
+  });
+  if (!items.length) {
+    mgrNotify('Nothing to save.', 'error');
+    return;
+  }
+  if (items.some((x) => !Number.isInteger(x.qty) || x.qty < 0)) return;
+  const restoreBtn = mgrSetBusy(btn, 'Saving...');
+  try {
+    await LapokAPI.post('/api/trips/update_load.php', { trip_id: mgrEditTripId, items });
+    closeModal('editLoadModal');
+    mgrNotify('Load corrected. Warehouse stock re-balanced.', 'success');
+    await Promise.allSettled([loadDispatchLog(), loadStockTable()]);
+  } catch (e) {
+    mgrNotify(e.message || 'Could not update load', 'error');
+  } finally {
+    restoreBtn();
   }
 }
 
@@ -614,101 +772,75 @@ async function saveDispatch(btn) {
   }
 }
 
-let reloadPendingVehicleId = 0;
-
-function openReloadModalFor(vehicleId) {
-  reloadPendingVehicleId = parseInt(vehicleId || '0', 10) || 0;
-  openModal('reloadModal');
-}
-
-async function prepareReloadModal() {
-  const modal = document.getElementById('reloadModal');
-  if (!modal) return;
+async function openDepotSalesModal() {
+  const meta = document.getElementById('depotSalesMeta');
+  const body = document.getElementById('depotSalesBody');
+  if (!meta || !body) return;
+  openModal('depotSalesModal');
   try {
-    const [d, stock] = await Promise.all([
-      LapokAPI.get('/api/trips/dispatch_log.php'),
+    const [stock, d] = await Promise.all([
       LapokAPI.get('/api/stock/fetch_stock.php'),
+      LapokAPI.get('/api/trips/dispatch_log.php'),
     ]);
-    const openTrips = (d.trips || []).filter((t) => t.status === 'on_route' || t.status === 'dispatched');
-
-    const vSel = document.getElementById('reloadVehicle');
-    if (vSel) {
-      if (!openTrips.length) {
-        vSel.innerHTML = '<option value="">No vehicles on route</option>';
-      } else {
-        vSel.innerHTML = openTrips.map((t) => {
-          const crew = [t.driver_name, t.cadet_name].filter(Boolean).join(' / ') || '—';
-          const icon = t.vehicle_type === 'truck' ? '[TRUCK]' : '[TUK]';
-          return `<option value="${t.vehicle_id}" data-trip="${t.id}" data-load="${t.load_qty || 0}">${icon} ${escMgr(t.registration)} - ${escMgr(crew)}</option>`;
-        }).join('');
-      }
-      vSel.onchange = () => {
-        const opt = vSel.selectedOptions[0];
-        const loadEl = document.getElementById('reloadCurrentLoad');
-        if (loadEl) loadEl.value = opt ? `${opt.dataset.load || '0'} crates` : '—';
-      };
-      if (reloadPendingVehicleId) {
-        const match = Array.from(vSel.options).find((o) => Number(o.value) === reloadPendingVehicleId);
-        if (match) vSel.value = String(reloadPendingVehicleId);
-        reloadPendingVehicleId = 0;
-      }
-      vSel.onchange();
-    }
-
-    const tbody = document.getElementById('reloadLoadBody');
-    if (tbody) {
-      const packs = stock.packs || [];
-      let html = '';
-      packs.forEach((g) => {
-        if (!g.packs?.length) return;
-        html += `<tr class="cadet-cat-row"><td colspan="3"><strong>${escMgr(g.category)}</strong></td></tr>`;
-        g.packs.forEach((p) => {
-          const pqty = Number(p.warehouse_qty || 0);
-          if (pqty <= 0) {
-            html += `<tr class="dispatch-out" data-rdc-key="${escMgr(p.rdc_key)}"><td>${escMgr(p.label)}</td><td>0</td><td style="color:var(--gray-mid);font-size:11px">Out of stock</td></tr>`;
-            return;
-          }
-          html += `<tr data-rdc-key="${escMgr(p.rdc_key)}"><td>${escMgr(p.label)}</td><td>${pqty.toLocaleString('en-UG')}</td>
-          <td><input class="qty-inp reload-qty" type="number" min="0" value="0" data-rdc-key="${escMgr(p.rdc_key)}"></td></tr>`;
-        });
+    const sheet = d.depot_sheet || null;
+    const byKey = {};
+    if (sheet) {
+      (sheet.sales || []).forEach((s) => {
+        byKey[s.rdc_key] = { depot: Number(s.depot_qty || 0), kamdini: Number(s.kamdini_qty || 0) };
       });
-      tbody.innerHTML = html || '<tr><td colspan="3" style="color:var(--gray-mid)">No warehouse stock. Refresh the page.</td></tr>';
     }
+    const date = d.date || mgrTodayLocal();
+    const status = sheet ? String(sheet.status || 'draft') : 'draft';
+    const statusLabel = { approved: 'Approved', submitted: 'Submitted', under_review: 'Under review', reopened: 'Reopened' }[status] || 'Draft';
+    meta.textContent = `${date}  ·  RDC sheet status: ${statusLabel}`;
+    const packs = stock.packs || [];
+    let html = '';
+    packs.forEach((g) => {
+      if (!g.packs?.length) return;
+      html += `<tr class="cadet-cat-row"><td colspan="3"><strong>${escMgr(g.category)}</strong></td></tr>`;
+      g.packs.forEach((p) => {
+        const cur = byKey[p.rdc_key] || { depot: 0, kamdini: 0 };
+        html += `<tr data-rdc-key="${escMgr(p.rdc_key)}">
+          <td>${escMgr(p.label)}</td>
+          <td><input class="qty-inp dsqty-depot" type="number" min="0" step="1" value="${cur.depot}"></td>
+          <td><input class="qty-inp dsqty-kamdini" type="number" min="0" step="1" value="${cur.kamdini}"></td>
+        </tr>`;
+      });
+    });
+    body.innerHTML = html || '<tr><td colspan="3" style="color:var(--gray-mid)">No products in depot catalog.</td></tr>';
   } catch (e) {
-    const vSel = document.getElementById('reloadVehicle');
-    if (vSel) vSel.innerHTML = '<option value="">Could not load</option>';
-    mgrNotify(e.message || 'Could not load reload options', 'error');
+    body.innerHTML = `<tr><td colspan="3" style="color:var(--red)">${escMgr(e.message || 'Could not load depot sales')}</td></tr>`;
+    mgrNotify(e.message, 'error');
   }
 }
 
-async function saveReload(btn) {
-  const vSel = document.getElementById('reloadVehicle');
-  const opt = vSel?.selectedOptions[0];
-  const vehicleId = parseInt(opt?.value || '0', 10);
-  const loadItems = [];
-  document.querySelectorAll('.reload-qty').forEach((inp) => {
-    const qty = parseInt(inp.value || '0', 10);
-    if (qty > 0) loadItems.push({ rdc_key: inp.dataset.rdcKey, qty });
+async function saveDepotSales(btn) {
+  const depot = {};
+  const kamdini = {};
+  document.querySelectorAll('#depotSalesBody tr[data-rdc-key]').forEach((tr) => {
+    const key = tr.dataset.rdcKey;
+    const dq = parseInt(tr.querySelector('.dsqty-depot')?.value || '0', 10);
+    const kq = parseInt(tr.querySelector('.dsqty-kamdini')?.value || '0', 10);
+    if (Number.isInteger(dq) && dq > 0) depot[key] = dq;
+    if (Number.isInteger(kq) && kq > 0) kamdini[key] = kq;
   });
-  if (!vehicleId || !loadItems.length) {
-    mgrNotify('Select a vehicle and enter reload quantities.', 'error');
-    return;
-  }
-  if (loadItems.some((x) => !Number.isInteger(x.qty) || x.qty <= 0)) {
-    mgrNotify('Reload quantities must be positive integers.', 'error');
+  const hasAny = Object.keys(depot).length > 0 || Object.keys(kamdini).length > 0;
+  if (!hasAny) {
+    mgrNotify('Enter at least one depot quantity (or leave 0 to clear).', 'error');
     return;
   }
   const restoreBtn = mgrSetBusy(btn, 'Saving...');
   try {
-    await LapokAPI.post('/api/vehicles/reload.php', {
-      vehicle_id: vehicleId,
-      load_items: loadItems,
+    await LapokAPI.post('/api/rdc/save_depot_sales.php', {
+      balance_date: mgrTodayLocal(),
+      depot,
+      kamdini,
     });
-    closeModal('reloadModal');
-    mgrNotify('Reload added to trip. Warehouse stock deducted.', 'success');
-    await Promise.allSettled([loadDispatchLog(), loadStockTable()]);
+    closeModal('depotSalesModal');
+    mgrNotify('Depot sales saved into today\'s RDC sheet.', 'success');
+    await Promise.allSettled([loadDispatchLog()]);
   } catch (e) {
-    mgrNotify(e.message, 'error');
+    mgrNotify(e.message || 'Could not save depot sales', 'error');
   } finally {
     restoreBtn();
   }
@@ -860,5 +992,4 @@ function mgrWatchModalOpen(id, onOpen) {
 
 document.addEventListener('DOMContentLoaded', () => {
   mgrWatchModalOpen('dispatchModal', prepareDispatchModal);
-  mgrWatchModalOpen('reloadModal', prepareReloadModal);
 });

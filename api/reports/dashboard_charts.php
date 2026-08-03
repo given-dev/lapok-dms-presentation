@@ -76,9 +76,9 @@ for ($m = 4; $m >= 0; $m--) {
 
     $eStmt = db()->prepare(
         "SELECT COALESCE(SUM(fuel_cost), 0) FROM delivery_trips
-         WHERE fuel_cost IS NOT NULL AND DATE(dispatched_at) BETWEEN ? AND ?"
+         WHERE fuel_cost IS NOT NULL AND dispatched_at >= ? AND dispatched_at < ?"
     );
-    $eStmt->execute([$monthStart, $monthEnd]);
+    $eStmt->execute(period_bounds($monthStart, $monthEnd));
     $monthlyExpenses[] = round(((float) $eStmt->fetchColumn()) / 1000000, 2);
 }
 

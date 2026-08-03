@@ -110,10 +110,11 @@ function navToGroups(nav) {
 function renderNavMenu(nav) {
   return navToGroups(nav).map((g, gi) => {
     const gid = 'nav-grp-' + gi;
+    const primary = g.title === 'Daily' ? ' nav-group-primary' : '';
     const itemsHtml = g.items.map((n) =>
-      `<div class="nav-item" onclick="showPage('${n.id}');closeSidebar()" id="nav-${n.id}">${ICONS[n.i] || ''}${n.l}</div>`
+      `<div class="nav-item" onclick="showPage('${n.id}');closeSidebar()" id="nav-${n.id}">${ICONS[n.i] || ''}<span class="nav-item-label">${n.l}</span>${n.s ? `<span class="nav-step" aria-hidden="true">${n.s}</span>` : ''}</div>`
     ).join('');
-    return `<div class="nav-group" data-nav-group="${gid}">
+    return `<div class="nav-group${primary}" data-nav-group="${gid}">
       <button type="button" class="nav-group-header" onclick="toggleNavGroup('${gid}')" aria-expanded="false">
         <span>${g.title}</span><span class="nav-group-chevron" aria-hidden="true">›</span>
       </button>

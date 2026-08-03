@@ -82,10 +82,10 @@ Notification behavior is intentionally split: **Bell = unread notifications**, w
 
 ### Manager
 
-**Sidebar — Daily:** Dashboard, Stock taking, **CCBA boards**, RDC daily sheets, PDF reports  
+**Sidebar — Daily** (numbered 1–6 in order): Dashboard → Stock taking → Dispatch → CCBA boards → RDC daily sheets → PDF reports  
 **Sidebar — Approvals:** Exception center, Edit requests  
-**Sidebar — Business:** Customers & receivables, Order via MyCCBA, Reports & analytics  
-**Sidebar — Monthly:** Month-end (view checklist + manager fixed costs), Staff welfare  
+**Sidebar — Business:** Order via MyCCBA, Reports & analytics  
+**Sidebar — Monthly:** Monthly targets, Staff welfare  
 
 Stock page is daily only: opening/closing counts + delivery confirmation. CCBA boards (**Inventory + OCCD only**) feed the executive brief when submitted — **SKU map / warehouse sync are Phase 2** (not on boards). Dashboard shows an ordered **daily checklist** with RDC pending review count.
 
@@ -106,8 +106,8 @@ Stock page is daily only: opening/closing counts + delivery confirmation. CCBA b
 | Closing stock (7pm) | `accountant-rdc-hub` | **View only** — manager enters counts on `manager-stock` |
 | Depot alerts | `admin-exceptions` | Live exception queue (see below) |
 
-**Sidebar — Today:** Home, Today's close  
-**Sidebar — More:** Cash handover, Month-end, Staff welfare, Depot alerts
+**Sidebar — Daily** (numbered 1–5 in order): Home → Today's close → Cash handover → Manager pack → Depot alerts  
+**Sidebar — More:** Month-end, Staff welfare
 
 Receivables (`admin-customers`) are **manager-only**. Accountants see a Home nudge when outstanding credit ≥ **8M UGX**.
 
@@ -117,10 +117,8 @@ Receivables (`admin-customers`) are **manager-only**. Accountants see a Home nud
 
 Read-only board/MD view. Initial local account: `executive@lapok.ug`; change its setup password before operational use.
 
-**Sidebar — Overview:** Executive dashboard (daily checklist + P&L widget), Director brief (date picker / today / yesterday, **live opening/closing stock snapshot**)  
-**Sidebar — Reports:** PDF reports (acknowledge manager brief), Reports & analytics  
-
-**Sidebar — Monitoring:** Exception center (monitor only), Receivables overview, Staff welfare (view), Month-end (view)
+**Sidebar — Daily** (numbered 1–5 in order): Executive dashboard (daily checklist + P&L widget) → Director brief (date picker / today / yesterday, **live opening/closing stock snapshot**) → PDF reports (acknowledge manager brief) → Exception center (monitor only) → Staff welfare (view)  
+**Sidebar — More:** Reports & analytics, Account management
 
 The dashboard has a **month picker** (current + any previous month). Picking a past month switches revenue, per-cadet sales, targets, and cash still out to that month and hides live "today" cards and charts. **Per-cadet soda/water sold is always tracked** even before targets are set (they sync in once the Manager saves them on the Monthly targets page), and the "Monthly sales targets" table ends with an **Overall depot** total row (DEPOT + all vehicles) for target / sold / %. **SODA targets** count the CSD packs **300ML, PET-330ML, PET-500ML, PET-1L, PET-2000ML**; **WATER targets** count **RWENZORI 500MLS-BOX, RWENZORI 500MLS-SHRINKS, RWENZORI 1.5MLS-BOX, JUMBO-BIG, JUMBO-SMALL** (energy / juice / empties excluded).
 
@@ -134,7 +132,8 @@ Daily flow: Director brief → acknowledge PDF pack → scan exceptions / receiv
 
 Login: `admin@lapok.ug` / `password123`.
 
-**Sidebar:** Admin dashboard, User management, Audit log, Customers & receivables, Edit requests, Exception center, PDF reports, Reports & analytics, Month-end, Staff welfare.
+**Sidebar — Daily** (numbered 1–6 in order): System console → Exception center → Edit requests → Audit log → PDF reports → Staff welfare  
+**Sidebar — Administration:** User management, Fleet registry, Reports & analytics
 
 Dashboard shows an **Admin daily checklist** (users → edit requests → exceptions → reporting-chain health → audit → welfare/month-end) plus the action center. Charts (sales/expenses/profit, product share MTD, monthly bars) use live API data. Admin does not own day-to-day depot close (RDC / Manager do).
 

@@ -26,7 +26,10 @@ if ($status === 'pending') {
 
 // Field users see today's receipts for their vehicle/trip context; admins see all recent.
 if (!in_array($user['role'], ['admin', 'manager', 'executive'], true)) {
-    $where .= ' AND DATE(r.fiscal_timestamp) = CURDATE()';
+    [$dayFrom, $dayUntil] = day_bounds(date('Y-m-d'));
+    $where .= ' AND r.fiscal_timestamp >= ? AND r.fiscal_timestamp < ?';
+    $params[] = $dayFrom;
+    $params[] = $dayUntil;
 }
 
 $sql = "SELECT r.id, r.efris_invoice_no, r.device_serial, r.fiscal_timestamp, r.amount_total,

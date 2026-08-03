@@ -1,6 +1,21 @@
 <?php
 declare(strict_types=1);
 
+// Shared datetime range helpers (also defined in bootstrap.php for API endpoints);
+// guarded so this file is self-contained when loaded without bootstrap (CLI/cron).
+if (!function_exists('day_bounds')) {
+    function day_bounds(string $date): array
+    {
+        return [$date . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($date . ' +1 day'))];
+    }
+}
+if (!function_exists('period_bounds')) {
+    function period_bounds(string $from, string $to): array
+    {
+        return [$from . ' 00:00:00', date('Y-m-d 00:00:00', strtotime($to . ' +1 day'))];
+    }
+}
+
 /**
  * Cash out ledger — cadets issue credit to customers (amount out) and
  * record recoveries over time until the balance is settled.
@@ -92,13 +107,14 @@ function cashout_daily_totals(PDO $pdo, string $date): array
     $issued = [];
     $collected = [];
 
+    [$dayFrom, $dayUntil] = day_bounds($date);
     $stmt = $pdo->prepare(
         'SELECT cadet_id, COALESCE(SUM(amount_out), 0) AS total
          FROM customer_cashouts
-         WHERE DATE(created_at) = ?
+         WHERE created_at >= ? AND created_at < ?
          GROUP BY cadet_id'
     );
-    $stmt->execute([$date]);
+    $stmt->execute([$dayFrom, $dayUntil]);
     foreach ($stmt->fetchAll() as $row) {
         $issued[(int) $row['cadet_id']] = (float) $row['total'];
     }

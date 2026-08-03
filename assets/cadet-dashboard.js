@@ -155,10 +155,10 @@
     const pct = (a, tg) => (Number(tg) > 0 ? Math.round((Number(a) / Number(tg)) * 100) : 0);
     const row = (label, target, sold, p) => {
       const ok = p >= 100;
-      return `<div style="flex:1;min-width:180px;padding:12px 14px;border:1px solid ${ok ? 'rgba(22,163,74,.4)' : 'var(--gray-light)'};border-radius:10px;background:${ok ? 'rgba(22,163,74,.06)' : 'rgba(0,0,0,.02)'}">
+      return `<div style="flex:1;min-width:180px;padding:12px 14px;border:1px solid ${ok ? 'rgba(22,163,74,.4)' : 'rgba(229,62,62,.35)'};border-radius:10px;background:${ok ? 'rgba(22,163,74,.06)' : 'rgba(229,62,62,.05)'}">
         <div style="font-size:11px;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.4px">${label}</div>
         <div style="font-size:20px;font-weight:700;color:var(--black)">${Number(sold || 0).toLocaleString('en-UG')} <span style="font-size:12px;color:var(--gray-mid);font-weight:500">${Number(target || 0) > 0 ? `/ ${Number(target || 0).toLocaleString('en-UG')}` : 'sold'}</span></div>
-        <div style="font-size:12px;margin-top:4px">${Number(target || 0) > 0 ? `<span class="badge ${ok ? 'bs' : 'bw'}">${p}%</span> <span style="color:var(--gray-mid)">${ok ? '✓ meeting target' : 'not yet'}</span>` : '<span class="badge bg">target not set yet</span>'}</div>
+        <div style="font-size:12px;margin-top:4px">${Number(target || 0) > 0 ? `<span class="badge ${ok ? 'bs' : 'bd'}">${p}%</span> <span style="color:${ok ? '#166534' : '#B91C1C'};font-weight:600">${ok ? '✓ meeting target' : 'not yet'}</span>` : '<span class="badge bg">target not set yet</span>'}</div>
       </div>`;
     };
     body.innerHTML = `<div style="display:flex;gap:10px;flex-wrap:wrap">
