@@ -1043,7 +1043,7 @@ async function submitAddUser() {
     full_name: document.getElementById('addUserFullName')?.value?.trim() || '',
     email: document.getElementById('addUserEmail')?.value?.trim() || '',
     password: document.getElementById('addUserPassword')?.value || '',
-    role: document.getElementById('addUserRole')?.value || 'field_user',
+    role: document.getElementById('addUserRole')?.value || 'cadet',
     national_id: document.getElementById('addUserNationalId')?.value?.trim() || '',
     phone: document.getElementById('addUserPhone')?.value?.trim() || '',
     vehicle_id: document.getElementById('addUserVehicleId')?.value || null,
@@ -1068,7 +1068,7 @@ async function submitEditUser() {
     id,
     full_name: document.getElementById('editUserFullName')?.value?.trim() || '',
     email: document.getElementById('editUserEmail')?.value?.trim() || '',
-    role: document.getElementById('editUserRole')?.value || 'field_user',
+    role: document.getElementById('editUserRole')?.value || 'cadet',
     national_id: document.getElementById('editUserNationalId')?.value?.trim() || '',
     phone: document.getElementById('editUserPhone')?.value?.trim() || '',
     vehicle_id: document.getElementById('editUserVehicleId')?.value || null,
@@ -1303,7 +1303,7 @@ if (_origOpenModal) {
       ['addUserFullName', 'addUserNationalId', 'addUserPhone', 'addUserEmail', 'addUserDefaultRoute', 'addUserPassword']
         .forEach((field) => { const el = document.getElementById(field); if (el) el.value = ''; });
       const role = document.getElementById('addUserRole');
-      if (role) role.value = 'field_user';
+      if (role) role.value = 'cadet';
       const vehicle = document.getElementById('addUserVehicleId');
       if (vehicle) vehicle.value = '';
       hydrateUserVehicleOptions();
