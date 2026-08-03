@@ -389,6 +389,48 @@ async function refreshAdminHome() {
 }
 window.refreshAdminHome = refreshAdminHome;
 
+async function loadAdminConsole() {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  const body = document.getElementById('admConsoleChecklist');
+  if (!body) return;
+  try {
+    const d = await LapokAPI.get('/api/dashboard/admin.php');
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('admConsoleWarehouse', Number(d.warehouse_cartons).toLocaleString());
+    set('admConsoleRequests', Number(d.pending_requests || 0).toLocaleString());
+    set('admConsoleExceptions', Number(d.exception_count || 0).toLocaleString());
+    set('admConsoleRdc', Number(d.rdc_pending_review || 0).toLocaleString());
+    set('admConsoleCash', Number(d.cash_pending || 0).toLocaleString());
+    set('admConsoleAudit', Number(d.audit_today || 0).toLocaleString());
+    set('admConsoleLowStock', Number(d.low_stock_count ?? (d.low_stock || []).length).toLocaleString());
+    set('admConsoleUsers', Number(d.active_users || 0).toLocaleString());
+    set('admConsoleWelfare', Number(d.welfare_open_count || 0).toLocaleString());
+    set('admConsoleVehicles', `${Number(d.vehicles_out || 0)}/${Number(d.vehicles_total || 0)}`);
+    const excSub = document.getElementById('admConsoleExceptionsSub');
+    if (excSub) excSub.textContent = `stock ${Number(d.low_stock_count ?? 0)} · cash ${Number(d.cash_pending ?? 0)} · reqs ${Number(d.pending_requests ?? 0)}`;
+    const usersSub = document.getElementById('admConsoleUsersSub');
+    if (usersSub) usersSub.textContent = `${Number(d.inactive_users || 0).toLocaleString()} inactive`;
+    const countBadge = (n) => `<span class="badge ${Number(n) ? 'bd' : 'bs'}">${Number(n || 0).toLocaleString()}</span>`;
+    const rows = [
+      [1, 'Account management', `${Number(d.active_users || 0).toLocaleString()} active · ${Number(d.inactive_users || 0).toLocaleString()} inactive`, 'admin-users', 'Open'],
+      [2, 'Edit requests', countBadge(d.pending_requests), 'admin-editreqs', 'Review'],
+      [3, 'Exception center', countBadge(d.exception_count), 'admin-exceptions', 'Resolve'],
+      [4, 'Audit log today', `${Number(d.audit_today || 0).toLocaleString()} events logged`, 'admin-audit', 'View'],
+      [5, 'RDC sheets under review', countBadge(d.rdc_pending_review), 'admin-exceptions', 'Monitor'],
+      [6, 'Cash pending confirmation', countBadge(d.cash_pending), 'admin-exceptions', 'Monitor'],
+      [7, 'Executive briefs open', countBadge(d.exec_briefs_open), 'report-exchange', 'Open'],
+      [8, 'Low stock products', countBadge(d.low_stock_count), 'admin-exceptions', 'View'],
+      [9, 'Staff welfare open', countBadge(d.welfare_open_count), 'accountant-welfare', 'Review'],
+    ];
+    body.innerHTML = rows.map(([n, s, st, page, action]) =>
+      `<tr><td>${n}</td><td>${s}</td><td>${st}</td><td><button class="btn btn-sm" onclick="showPage('${page}')">${action}</button></td></tr>`
+    ).join('');
+  } catch (e) {
+    body.innerHTML = `<tr><td colspan="4" style="color:var(--red)">${escMgr(e.message || 'Could not load console')}</td></tr>`;
+  }
+}
+window.loadAdminConsole = loadAdminConsole;
+
 async function loadAdminHomeExtras(cachedDashboard = null) {
   if (!currentUser || currentUser.role !== 'admin') return;
   const checklist = document.getElementById('adminDailyChecklist');
@@ -921,7 +963,7 @@ function applyUsersFilter() {
   const q = (document.getElementById('adminUserSearch')?.value || '').toLowerCase();
   const roleFilter = document.getElementById('adminUserRoleFilter')?.value || '';
   const roleBadge = (r) => `<span class="badge ${r === 'admin' || r === 'executive' ? 'br' : r === 'manager' ? 'bw' : 'bi'}">${LapokAPI.roleLabel[r] || r}</span>`;
-  const filtered = adminUsersCache.filter((u) => {
+  const filtered = adminUsersCache.filter((u) => u.role !== 'admin').filter((u) => {
     const text = [u.full_name, u.email, u.national_id, u.phone, u.role].join(' ').toLowerCase();
     return (!q || text.includes(q)) && (!roleFilter || u.role === roleFilter);
   });
@@ -975,7 +1017,15 @@ function openEditUserModal(id) {
   document.getElementById('editUserId').value = String(u.id);
   document.getElementById('editUserFullName').value = u.full_name || '';
   document.getElementById('editUserEmail').value = u.email || '';
-  document.getElementById('editUserRole').value = u.role || 'field_user';
+  const roleSel = document.getElementById('editUserRole');
+  if (roleSel) {
+    const available = ['admin', 'executive', 'manager', 'accountant', 'cadet'];
+    const legacy = u.role && !available.includes(u.role);
+    const opts = available.map((r) => `<option value="${r}">${LapokAPI.roleLabel[r] || r}</option>`);
+    if (legacy) opts.push(`<option value="${u.role}">${LapokAPI.roleLabel[u.role] || u.role} (legacy)</option>`);
+    roleSel.innerHTML = opts.join('');
+    roleSel.value = u.role || 'cadet';
+  }
   document.getElementById('editUserNationalId').value = u.national_id || '';
   document.getElementById('editUserPhone').value = u.phone || '';
   document.getElementById('editUserDefaultRoute').value = u.default_route || '';
@@ -1269,6 +1319,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const phase45Pages = {
     'admin-dashboard': () => { execMonthbarInit(); loadAdminDashboard(); loadLiveCharts(); },
+    'admin-console': () => loadAdminConsole(),
     'manager-dashboard': () => { loadAdminDashboard(); loadManagerDashboardExtras(); },
     'report-exchange': () => loadReportExchangePage(),
     'user-dashboard': () => loadFieldDashboard(),

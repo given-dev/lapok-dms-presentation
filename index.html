@@ -617,6 +617,37 @@ td.skel{padding:.6rem .8rem}
 <div class="content">
 
 <!-- ══════════ ADMIN DASHBOARD ══════════ -->
+<!-- ADMIN SYSTEM CONSOLE -->
+<div class="page" id="page-admin-console">
+  <div class="alert a-info"><span>⚙️</span><div><strong>System operations console.</strong> This is the system owner's home — user management, approvals, exceptions, audit and reporting-chain health. Revenue and business KPIs live on the <strong>Executive dashboard</strong>.</div></div>
+  <div class="metric-grid" id="admConsoleMetrics">
+    <div class="metric-card"><div class="metric-label">Pending approvals</div><div class="metric-value" id="admConsoleRequests">—</div><div class="metric-sub">edit requests</div></div>
+    <div class="metric-card"><div class="metric-label">Exception queue</div><div class="metric-value" id="admConsoleExceptions">—</div><div class="metric-sub" id="admConsoleExceptionsSub">items</div></div>
+    <div class="metric-card"><div class="metric-label">RDC under review</div><div class="metric-value" id="admConsoleRdc">—</div><div class="metric-sub">sheets</div></div>
+    <div class="metric-card"><div class="metric-label">Cash pending</div><div class="metric-value" id="admConsoleCash">—</div><div class="metric-sub">confirmations</div></div>
+    <div class="metric-card"><div class="metric-label">Audit events today</div><div class="metric-value" id="admConsoleAudit">—</div><div class="metric-sub">logged</div></div>
+    <div class="metric-card"><div class="metric-label">Low stock</div><div class="metric-value" id="admConsoleLowStock">—</div><div class="metric-sub">products</div></div>
+    <div class="metric-card"><div class="metric-label">Active accounts</div><div class="metric-value" id="admConsoleUsers">—</div><div class="metric-sub" id="admConsoleUsersSub">inactive: —</div></div>
+    <div class="metric-card"><div class="metric-label">Vehicles out</div><div class="metric-value" id="admConsoleVehicles">—</div><div class="metric-sub">of active fleet</div></div>
+    <div class="metric-card"><div class="metric-label">Warehouse</div><div class="metric-value" id="admConsoleWarehouse">—</div><div class="metric-sub">crates total</div></div>
+    <div class="metric-card"><div class="metric-label">Welfare open</div><div class="metric-value" id="admConsoleWelfare">—</div><div class="metric-sub">requests</div></div>
+  </div>
+  <div class="card" style="margin-top:1rem">
+    <div class="card-header"><span class="card-title">System checklist</span><button class="btn btn-sm" onclick="loadAdminConsole()">Refresh</button></div>
+    <div class="tbl-wrap"><table>
+      <tr><th>#</th><th>Step</th><th>Status</th><th>Action</th></tr>
+      <tbody id="admConsoleChecklist"><tr><td colspan="4" class="skel" style="text-align:center">Loading…</td></tr></tbody>
+    </table></div>
+  </div>
+  <div class="btn-group" style="margin-top:1rem">
+    <button class="btn btn-red" onclick="showPage('admin-users')">Account management</button>
+    <button class="btn" onclick="showPage('admin-editreqs')">Edit requests</button>
+    <button class="btn" onclick="showPage('admin-exceptions')">Exception center</button>
+    <button class="btn" onclick="showPage('admin-audit')">Audit log</button>
+    <button class="btn" onclick="showPage('report-exchange')">PDF reports</button>
+  </div>
+</div>
+
 <div class="page active" id="page-admin-dashboard">
   <div class="alert a-danger" id="admLowStockAlert"><span>⚠</span><div><strong>Low stock:</strong> Checking… <a href="#" onclick="showPage('admin-exceptions');return false" style="color:var(--red);font-weight:600">Open exception center →</a></div></div>
   <div class="alert a-info"><span>ℹ</span><div id="admReportingLine"><strong>Reporting line:</strong> Field agents submit to Accountant, Accountant consolidates for Manager, Manager submits executive brief to Managing Directors and Board.</div></div>
@@ -739,13 +770,10 @@ td.skel{padding:.6rem .8rem}
     <input class="input" id="adminUserSearch" style="max-width:360px;flex:1" type="text" placeholder="Search by name, email, ID or phone…" oninput="applyUsersFilter()">
     <select class="select-inp" id="adminUserRoleFilter" style="max-width:200px" onchange="applyUsersFilter()">
       <option value="">All roles</option>
-      <option value="admin">Admin</option>
       <option value="executive">Executive</option>
       <option value="manager">Manager</option>
       <option value="accountant">Accountant</option>
-      <option value="driver">Driver</option>
       <option value="cadet">Cadet</option>
-      <option value="field_user">Field user</option>
     </select>
   </div>
   <div class="card"><div class="tbl-wrap"><table id="userTable">
@@ -1959,7 +1987,7 @@ td.skel{padding:.6rem .8rem}
   <div class="modal-title">Add new user</div>
   <div class="alert a-danger" id="addUserErr" style="display:none"></div>
   <div class="form-section">Personal details</div>
-  <div class="form-row"><div class="form-group"><label>Full name</label><input class="input" id="addUserFullName" placeholder="Full legal name"></div><div class="form-group"><label>Role</label><select class="select-inp" id="addUserRole"><option value="admin">Admin</option><option value="executive">Executive</option><option value="manager">Manager</option><option value="accountant">Accountant</option><option value="driver">Driver</option><option value="cadet">Cadet</option><option value="field_user" selected>Field User</option></select></div></div>
+  <div class="form-row"><div class="form-group"><label>Full name</label><input class="input" id="addUserFullName" placeholder="Full legal name"></div><div class="form-group"><label>Role</label><select class="select-inp" id="addUserRole"><option value="admin">Admin</option><option value="executive">Executive</option><option value="manager">Manager</option><option value="accountant">Accountant</option><option value="cadet" selected>Cadet</option></select></div></div>
   <div class="form-row"><div class="form-group"><label>National ID number</label><input class="input" id="addUserNationalId" placeholder="CMxxxxxxxxxxxxxxx"></div><div class="form-group"><label>Phone number</label><input class="input" id="addUserPhone" placeholder="+256 7XX XXXXXX"></div></div>
   <div class="form-group"><label>Email address</label><input class="input" id="addUserEmail" type="email" placeholder="user@email.com"></div>
   <div class="form-section">Vehicle assignment</div>
@@ -1974,7 +2002,7 @@ td.skel{padding:.6rem .8rem}
   <div class="modal-title" id="editUserTitle">Edit user</div>
   <div class="alert a-danger" id="editUserErr" style="display:none"></div>
   <input type="hidden" id="editUserId">
-  <div class="form-row"><div class="form-group"><label>Full name</label><input class="input" id="editUserFullName"></div><div class="form-group"><label>Role</label><select class="select-inp" id="editUserRole"><option value="admin">Admin</option><option value="executive">Executive</option><option value="manager">Manager</option><option value="accountant">Accountant</option><option value="driver">Driver</option><option value="cadet">Cadet</option><option value="field_user">Field User</option></select></div></div>
+  <div class="form-row"><div class="form-group"><label>Full name</label><input class="input" id="editUserFullName"></div><div class="form-group"><label>Role</label><select class="select-inp" id="editUserRole"><option value="admin">Admin</option><option value="executive">Executive</option><option value="manager">Manager</option><option value="accountant">Accountant</option><option value="cadet">Cadet</option></select></div></div>
   <div class="form-row"><div class="form-group"><label>National ID</label><input class="input" id="editUserNationalId"></div><div class="form-group"><label>Phone</label><input class="input" id="editUserPhone"></div></div>
   <div class="form-group"><label>Email address</label><input class="input" id="editUserEmail" type="email"></div>
   <div class="form-group"><label>Assigned vehicle</label><select class="select-inp" id="editUserVehicleId"><option value="">None</option></select></div>
@@ -2150,7 +2178,7 @@ const ICONS={
 
 const ROLES={
   admin:{name:'John Okello',email:'admin@ccoutlet.ug',pill:'rp-admin',badge:'Admin',nav:[
-    {id:'admin-dashboard',l:'Dashboard',i:'home'},
+    {id:'admin-console',l:'System console',i:'home'},
     {id:'admin-users',l:'User management',i:'users'},
     {id:'admin-editreqs',l:'Edit requests',i:'edit'},
     {id:'admin-exceptions',l:'Exception center',i:'chart'},

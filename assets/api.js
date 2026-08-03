@@ -225,7 +225,7 @@ const LapokAPI = (() => {
     roleNav: {
       admin: [
         { section: 'Overview' },
-        { id: 'admin-dashboard', l: 'Admin dashboard', i: 'home' },
+        { id: 'admin-console', l: 'System console', i: 'home' },
         { section: 'Administration' },
         { id: 'admin-users', l: 'User management', i: 'users' },
         { id: 'admin-audit', l: 'Audit log', i: 'edit' },
@@ -291,7 +291,7 @@ const LapokAPI = (() => {
       cadet: 'cadet-dashboard',
       manager: 'manager-dashboard',
       executive: 'admin-dashboard',
-      admin: 'admin-dashboard',
+      admin: 'admin-console',
     },
     /**
      * Ownership map (see docs/SYSTEMS_BUILDING_GUIDE.md §9).
@@ -310,6 +310,7 @@ const LapokAPI = (() => {
       'manager-ccba-boards': 'Manager',
       'manager-ccba-order': 'Manager',
       'admin-users': 'Admin / Executive',
+      'admin-console': 'Admin',
       'admin-audit': 'Admin',
       'admin-editreqs': 'Manager / Admin',
       'accountant-improvements': 'Accountant',
@@ -320,6 +321,7 @@ const LapokAPI = (() => {
     roleBlockedPages: {
       admin: [
         'accountant-improvements',
+        'admin-dashboard',
       ],
       cadet: [
         'accountant-rdc-hub', 'accountant-rdc', 'accountant-cash',
@@ -334,6 +336,7 @@ const LapokAPI = (() => {
         'manager-dashboard', 'manager-stock', 'manager-dispatch', 'manager-delivery', 'manager-rdc-review',
         'manager-ccba-boards', 'manager-ccba-order',
         'admin-users', 'admin-audit', 'admin-editreqs',
+        'admin-console',
       ],
       manager: [
         'accountant-rdc-hub', 'accountant-cash', 'accountant-improvements',
@@ -346,6 +349,7 @@ const LapokAPI = (() => {
         'manager-dashboard', 'manager-stock', 'manager-dispatch', 'manager-delivery', 'manager-rdc-review',
         'manager-ccba-boards', 'manager-ccba-order',
         'admin-editreqs', 'admin-audit',
+        'admin-console',
         'cadet-dashboard', 'cadet-daily',
       ],
     },
