@@ -608,7 +608,7 @@ async function loadManagerDeliveryPage() {
     const tbody = document.getElementById('incomingProductBody');
     const countEl = document.getElementById('incomingProductCount');
     if (tbody) {
-      const cats = ['300ML RGB', '330ML', 'ENERGY', '500ML', '1 LITRE', 'JUICE', '2 LITRE', 'RWENZORI WATER', 'EMPTIES'];
+      const cats = ['300ML RGB', '300ML PET', '400ML', 'ENERGY', '500ML PET', '1L PET', '280ML', '2L PET', 'RWENZORI WATER', 'EMPTIES'];
       const byCat = {};
       productCatalog.forEach((p) => {
         const cat = p.category || p.brand || 'OTHER';

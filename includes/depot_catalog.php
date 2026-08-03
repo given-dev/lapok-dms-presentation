@@ -263,50 +263,49 @@ function depot_manager_warehouse_catalog(): array
         $row('300ML RGB', 'KREST', '300-KREST', '300ml', 18500, 40, 40),
         $row('300ML RGB', 'STONEY', '300-STONEY', '300ml', 18500, 40, 40),
         $row('300ML RGB', 'NOVIDA', '300-NOVIDA', '300ml', 18500, 40, 40),
-        // 330ML PET
-        $row('330ML', 'COKE', '330-COKE', 'pet_330', 10000, 80, 80),
-        $row('330ML', 'COKE ZERO', '330-COKE-Z', 'pet_330', 10000, 40, 40),
-        $row('330ML', 'FANTA', '330-FANTA', 'pet_330', 10000, 80, 80),
-        $row('330ML', 'FANTA PINEAPPLE', '330-FANTA-B', 'pet_330', 10000, 40, 40),
-        $row('330ML', 'STONEY', '330-STONEY', 'pet_330', 10000, 40, 40),
-        $row('330ML', 'SPRITE ZERO', '330-SPRITE-Z', 'pet_330', 10000, 40, 40),
-        $row('330ML', 'NOVIDA', '330-NOVIDA', 'pet_330', 10000, 40, 40),
-        $row('330ML', 'NOVIDA ZERO', '330-NOVIDA-Z', 'pet_330', 10000, 40, 40),
+        // 300ML PET
+        $row('300ML PET', 'COKE', '330-COKE', 'pet_330', 10000, 80, 80),
+        $row('300ML PET', 'COKE ZERO', '330-COKE-Z', 'pet_330', 10000, 40, 40),
+        $row('300ML PET', 'FANTA', '330-FANTA', 'pet_330', 10000, 80, 80),
+        $row('300ML PET', 'FANTA PINEAPPLE', '330-FANTA-B', 'pet_330', 10000, 40, 40),
+        $row('300ML PET', 'STONEY', '330-STONEY', 'pet_330', 10000, 40, 40),
+        $row('300ML PET', 'SPRITE ZERO', '330-SPRITE-Z', 'pet_330', 10000, 40, 40),
+        $row('300ML PET', 'NOVIDA', '330-NOVIDA', 'pet_330', 10000, 40, 40),
+        $row('300ML PET', 'NOVIDA ZERO', '330-NOVIDA-Z', 'pet_330', 10000, 40, 40),
+        // 400ML — Minute Maid
+        $row('400ML', 'MM MANGO', '400-MM-MANGO', 'mm_400', 25500, 40, 50),
+        $row('400ML', 'MM BERRY', '400-MM-BERRY', 'mm_400', 25500, 40, 50),
+        $row('400ML', 'MM APPLE', '400-MM-APPLE', 'mm_400', 25500, 40, 50),
+        $row('400ML', 'MM ORANGE', '400-MM-ORANGE', 'mm_400', 25500, 40, 50),
         // ENERGY — Predator Gold + Mango, and Power Play
         $row('ENERGY', 'PREDATOR GOLD', 'EN-GOLD', 'energy', 17500, 40, 60),
         $row('ENERGY', 'PREDATOR MANGO', 'EN-MANGO', 'energy', 17500, 40, 60),
         $row('ENERGY', 'POWER PLAY', 'EN-POWERPLAY', 'energy', 17500, 40, 60),
-        // 500ML PET (CSD only — Refresh lives under JUICE)
-        $row('500ML', 'COKE', '500-COKE', 'pet_500', 15000, 80, 80),
-        $row('500ML', 'FANTA', '500-FANTA', 'pet_500', 15000, 80, 80),
-        $row('500ML', 'SPRITE', '500-SPRITE', 'pet_500', 15000, 80, 80),
-        $row('500ML', 'KREST', '500-KREST', 'pet_500', 15000, 40, 40),
-        $row('500ML', 'STONEY', '500-STONEY', 'pet_500', 15000, 40, 40),
-        $row('500ML', 'NOVIDA', '500-NOVIDA', 'pet_500', 15000, 40, 40),
-        // 1 LITRE CSD
-        $row('1 LITRE', 'COKE', '1L-COKE', 'pet_1l', 12500, 40, 50),
-        // JUICE — all Minute Maid + Refresh together
-        $row('JUICE', 'MM MANGO 400ML', '400-MM-MANGO', 'mm_400', 25500, 40, 50),
-        $row('JUICE', 'MM BERRY 400ML', '400-MM-BERRY', 'mm_400', 25500, 40, 50),
-        $row('JUICE', 'MM APPLE 400ML', '400-MM-APPLE', 'mm_400', 25500, 40, 50),
-        $row('JUICE', 'MM ORANGE 400ML', '400-MM-ORANGE', 'mm_400', 25500, 40, 50),
-        $row('JUICE', 'MM MANGO 1L', '1L-MM-MANGO', 'mm_1l', 25500, 40, 50),
-        $row('JUICE', 'MM BERRY 1L', '1L-MM-BERRY', 'mm_1l', 25500, 40, 50),
-        $row('JUICE', 'REFRESH MANGO 280ML', '280-RF-MANGO', 'refresh_250', 10000, 40, 50),
-        $row('JUICE', 'REFRESH APPLE 280ML', '280-RF-APPLE', 'refresh_250', 10000, 40, 50),
-        $row('JUICE', 'REFRESH ORANGE 280ML', '280-RF-ORANGE', 'refresh_250', 10000, 40, 50),
-        $row('JUICE', 'REFRESH MANGO 500ML', '500-RF-MANGO', 'pet_500', 15000, 40, 50),
-        // 2 LITRE
-        $row('2 LITRE', 'COKE', '2L-COKE', 'pet_2000', 25500, 40, 50),
-        $row('2 LITRE', 'FANTA', '2L-FANTA', 'pet_2000', 25500, 40, 50),
-        $row('2 LITRE', 'SPRITE', '2L-SPRITE', 'pet_2000', 25500, 40, 50),
-        // RWENZORI WATER — shrinks, packs, jumbo 20L / 10L
+        // 500ML PET (CSD + Refresh)
+        $row('500ML PET', 'COKE', '500-COKE', 'pet_500', 15000, 80, 80),
+        $row('500ML PET', 'FANTA', '500-FANTA', 'pet_500', 15000, 80, 80),
+        $row('500ML PET', 'REFRESH MANGO', '500-RF-MANGO', 'pet_500', 15000, 40, 50),
+        $row('500ML PET', 'REFRESH ORANGE', '500-RF-ORANGE', 'pet_500', 15000, 40, 50),
+        $row('500ML PET', 'SPRITE', '500-SPRITE', 'pet_500', 15000, 80, 80),
+        $row('500ML PET', 'KREST', '500-KREST', 'pet_500', 15000, 40, 40),
+        $row('500ML PET', 'NOVIDA', '500-NOVIDA', 'pet_500', 15000, 40, 40),
+        // 1L PET CSD
+        $row('1L PET', 'COKE', '1L-COKE', 'pet_1l', 12500, 40, 50),
+        // 280ML — Refresh
+        $row('280ML', 'REFRESH MANGO', '280-RF-MANGO', 'refresh_250', 10000, 40, 50),
+        $row('280ML', 'REFRESH APPLE', '280-RF-APPLE', 'refresh_250', 10000, 40, 50),
+        $row('280ML', 'REFRESH ORANGE', '280-RF-ORANGE', 'refresh_250', 10000, 40, 50),
+        // 2L PET
+        $row('2L PET', 'COKE', '2L-COKE', 'pet_2000', 25500, 40, 50),
+        $row('2L PET', 'FANTA', '2L-FANTA', 'pet_2000', 25500, 40, 50),
+        $row('2L PET', 'SPRITE', '2L-SPRITE', 'pet_2000', 25500, 40, 50),
+        // RWENZORI WATER — shrinks, packs, jumbo 10L / 20L
         $row('RWENZORI WATER', 'SHRINX', 'RW-SHRINX', 'rw_500_shrink', 10000, 60, 80),
         $row('RWENZORI WATER', '500 ML X 24', 'RW-500-X24', 'rw_500_box', 17400, 60, 80),
         $row('RWENZORI WATER', '1500ML X 12', 'RW-1500-X12', 'rw_1500_box', 18600, 40, 50),
-        $row('RWENZORI WATER', 'JUMBO 20L', 'RW-5000-X4', 'jumbo_big', 10800, 20, 30),
         $row('RWENZORI WATER', 'JUMBO 10L', 'RW-JUMBO', 'jumbo_small', 5500, 20, 30),
-        // EMPTIES — bottles + shells
+        $row('RWENZORI WATER', 'JUMBO 20L', 'RW-5000-X4', 'jumbo_big', 10800, 20, 30),
+        // EMPTIES — bottles + shells (excluded from grand total)
         $row('EMPTIES', 'BOTTLES', 'EMPTY-300', 'bottles', 400, 50, 100),
         $row('EMPTIES', 'SHELLS', 'EMPTY-SHELL', 'shell', 6400, 40, 80),
     ];
@@ -432,7 +431,7 @@ function depot_split_pack_qty(string $rdcKey, int $qty): array
 /** Brand section order on manager stock / dispatch sheet. */
 function depot_stock_brand_order(): array
 {
-    return ['300ML RGB', '330ML', 'ENERGY', '500ML', '1 LITRE', 'JUICE', '2 LITRE', 'RWENZORI WATER', 'EMPTIES'];
+    return ['300ML RGB', '300ML PET', '400ML', 'ENERGY', '500ML PET', '1L PET', '280ML', '2L PET', 'RWENZORI WATER', 'EMPTIES'];
 }
 
 /**
@@ -497,6 +496,7 @@ function depot_ensure_warehouse_products(): array
         'MM-400', 'MM-1L', 'RF-250',
         'RW-500-BOX', 'RW-500-SHR', 'RW-1500',
         'JUMBO-20', 'JUMBO-10', 'BOTTLES', 'SHELLS',
+        '1L-MM-MANGO', '1L-MM-BERRY', '500-STONEY',
     ];
     $deactivate = $pdo->prepare('UPDATE products SET is_active = 0 WHERE sku = ?');
     foreach ($legacySkus as $legacy) {
